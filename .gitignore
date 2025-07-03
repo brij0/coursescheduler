@@ -19,6 +19,8 @@ frontend/node_modules/
 *.gpg
 *.enc
 *.jks
+# Ignore SSL certificates
+*.github
 
 # Ignore common private key filenames
 id_rsa
