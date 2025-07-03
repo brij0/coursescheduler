@@ -1,0 +1,27 @@
+# Ignore environment files
+.env
+
+# Ignore Python bytecode caches
+__pycache__/
+
+# Ignore Node modules in frontend
+frontend/node_modules/
+
+# Ignore SSH and authentication keys
+*.pem
+*.pub
+*.key
+*.crt
+*.der
+*.p12
+*.pfx
+*.asc
+*.gpg
+*.enc
+*.jks
+
+# Ignore common private key filenames
+id_rsa
+id_rsa.pub
+id_dsa
+id_dsa.pub
