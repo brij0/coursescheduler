@@ -51,7 +51,26 @@ class Post(TimeStampedModel):
         object_id_field='object_id',
         related_query_name='post'
     )
-
+    job_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,)
+    job_term = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,)
+    job_title = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,)
+    organization = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,)
+    job_location = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,)
     class Meta:
         db_table = 'discussion_post'
         ordering = ['-created_at']

@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>CoopForum</title>
+    <meta name="csrf-token" content="{{ csrf_token }}" />
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 2em;
+      }
+      .hidden {
+        display: none;
+      }
+      .post,
+      .comment {
+        border: 1px solid #ccc;
+        padding: 0.5em;
+        margin: 0.5em 0;
+        cursor: pointer;
+      }
+      .reply {
+        margin-left: 2em;
+      }
+      .reply-form {
+        margin-left: 2em;
+        margin-top: 0.5em;
+        padding: 0.5em;
+        background: #f9f9f9;
+        border-radius: 5px;
+      }
+      .reply-form textarea {
+        width: 100%;
+        box-sizing: border-box;
+        margin-bottom: 0.5em;
+      }
+      .comment-actions {
+        margin-top: 0.5em;
+        font-size: 0.8em;
+      }
+      .comment-actions button {
+        margin-right: 0.5em;
+        padding: 2px 6px;
+        font-size: 0.8em;
+      }
+      button {
+        margin: 0.5em 0;
+      }
+      .auth-section {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: white;
+        border: 1px solid #ccc;
+        padding: 10px;
+        border-radius: 5px;
+      }
+      .login-form {
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 5px;
+        max-width: 300px;
+        margin: 20px auto;
+      }
+      .login-form input {
+        width: 100%;
+        padding: 8px;
+        margin: 5px 0;
+        box-sizing: border-box;
+      }
+      .error {
+        color: red;
+      }
+      .post-form {
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 5px;
+        max-width: 600px;
+        margin: 20px auto;
+      }
+      .post-form input,
+      .post-form textarea,
+      .post-form select {
+        width: 100%;
+        padding: 8px;
+        margin: 5px 0 15px;
+        box-sizing: border-box;
+      }
+      .post-form label {
+        font-weight: bold;
+      }
+      .form-buttons {
+        text-align: right;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>CoopForum</h1>
+
+    <div class="auth-section">
+      <div id="auth-logged-out" class="hidden">
+        <button id="login-btn">Login</button>
+      </div>
+      <div id="auth-logged-in" class="hidden">
+        <span>Welcome, <span id="username"></span>!</span>
+        <button id="logout-btn">Logout</button>
+      </div>
+    </div>
+
+    <div id="login-form" class="login-form hidden">
+      <h3>Login</h3>
+      <div id="login-error" class="error hidden"></div>
+      <input type="text" id="login-username" placeholder="Username" required />
+      <input
+        type="password"
+        id="login-password"
+        placeholder="Password"
+        required
+      />
+      <button id="login-submit">Login</button>
+      <button id="login-cancel">Cancel</button>
+    </div>
+
+    <div id="search-section" class="hidden">
+      <div style="margin: 20px 0; text-align: center">
+        <input
+          type="text"
+          id="search-input"
+          placeholder="Search posts by title, content, job title, or organization..."
+          style="
+            width: 60%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+          "
+        />
+        <button
+          id="search-btn"
+          style="
+            padding: 10px 15px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+          "
+        >
+          Search
+        </button>
+        <button
+          id="clear-search-btn"
+          style="
+            padding: 10px 15px;
+            background: #666;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 5px;
+          "
+        >
+          Clear
+        </button>
+      </div>
+      <div id="search-results" style="margin: 20px 0"></div>
+    </div>
+    <div id="post-list-view">
+      <button id="new-post-btn">+ New Post</button>
+      <div id="post-list"></div>
+    </div>
+
+    <div id="post-form-view" class="hidden">
+      <button id="back-to-list-btn">← Back</button>
+      <h2>Create New Post</h2>
+      <div class="post-form">
+        <label for="post-title">Title*</label>
+        <input type="text" id="post-title" required />
+
+        <label for="post-job-title">Job Title</label>
+        <input type="text" id="post-job-title" />
+
+        <label for="post-job-id">Job ID</label>
+        <input type="text" id="post-job-id" />
+
+        <label for="post-job-term">Term</label>
+        <input type="text" id="post-job-term" />
+
+        <label for="post-organization">Organization</label>
+        <input type="text" id="post-organization" />
+
+        <label for="post-job-location">Location</label>
+        <input type="text" id="post-job-location" />
+
+        <label for="post-content">Content*</label>
+        <textarea id="post-content" rows="5" required></textarea>
+
+        <div class="form-buttons">
+          <button id="post-cancel-btn">Cancel</button>
+          <button id="post-submit-btn">Submit</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="post-detail-view" class="hidden">
+      <button id="back-btn">← Back</button>
+      <h2 id="detail-title"></h2>
+      <div
+        id="job-details"
+        style="
+          background: #f5f5f5;
+          padding: 10px;
+          margin: 10px 0;
+          border-radius: 5px;
+          display: none;
+        "
+      ></div>
+      <p id="detail-content"></p>
+      <p>
+        Score: <span id="detail-score"></span>
+        <button id="upvote-btn">↑</button>
+        <button id="downvote-btn">↓</button>
+      </p>
+      <h3>Comments</h3>
+      <div id="comments"></div>
+      <textarea
+        id="comment-body"
+        rows="3"
+        cols="50"
+        placeholder="Write a comment..."
+      ></textarea
+      ><br />
+      <button id="comment-submit-btn">Submit Comment</button>
+    </div>
+
+    <script>
+      // Add this debounce function at the top of your script section
+      function debounce(func, delay) {
+        let timeoutId;
+        return function (...args) {
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => func.apply(this, args), delay);
+        };
+      }
+
+      // Update the search input listener with debouncing
+      const debouncedSearch = debounce((query) => {
+        if (query) {
+          searchPosts(query);
+        } else {
+          document.getElementById("search-results").innerHTML = "";
+          document.getElementById("post-list-view").classList.remove("hidden");
+        }
+      }, 300); // 300ms delay
+
+      document.getElementById("search-input").oninput = (e) => {
+        const query = e.target.value.trim();
+        debouncedSearch(query);
+      };
+      const API = "/api/coopforum";
+      const csrftoken = document
+        .querySelector('meta[name="csrf-token"]')
+        .getAttribute("content");
+      let currentUser = null;
+
+      function fetchJson(url, opts = {}) {
+        opts.headers = opts.headers || {};
+        if (opts.method && opts.method !== "GET") {
+          opts.headers["X-CSRFToken"] = csrftoken;
+          opts.headers["Content-Type"] = "application/json";
+        }
+        return fetch(url, opts).then((r) => {
+          if (r.status === 401) {
+            handleUnauthorized();
+            throw new Error("Unauthorized");
+          }
+          return r.json();
+        });
+      }
+
+      function handleUnauthorized() {
+        currentUser = null;
+        updateAuthUI();
+        showLoginForm();
+      }
+
+      function updateAuthUI() {
+        if (currentUser) {
+          document.getElementById("auth-logged-out").classList.add("hidden");
+          document.getElementById("auth-logged-in").classList.remove("hidden");
+          document.getElementById("username").textContent =
+            currentUser.username;
+          document.getElementById("new-post-btn").style.display = "block";
+          document.getElementById("comment-submit-btn").style.display = "block";
+          showSearchSection();
+        } else {
+          document.getElementById("auth-logged-in").classList.add("hidden");
+          document.getElementById("auth-logged-out").classList.remove("hidden");
+          document.getElementById("new-post-btn").style.display = "none";
+          document.getElementById("comment-submit-btn").style.display = "none";
+          hideSearchSection();
+        }
+      }
+
+      function showLoginForm() {
+        document.getElementById("login-form").classList.remove("hidden");
+        document.getElementById("post-list-view").classList.add("hidden");
+        document.getElementById("post-detail-view").classList.add("hidden");
+        document.getElementById("post-form-view").classList.add("hidden");
+      }
+
+      function hideLoginForm() {
+        document.getElementById("login-form").classList.add("hidden");
+        document.getElementById("post-list-view").classList.remove("hidden");
+        document.getElementById("login-error").classList.add("hidden");
+      }
+
+      function showPostForm() {
+        document.getElementById("post-list-view").classList.add("hidden");
+        document.getElementById("post-form-view").classList.remove("hidden");
+        document.getElementById("post-detail-view").classList.add("hidden");
+      }
+
+      function hidePostForm() {
+        document.getElementById("post-form-view").classList.add("hidden");
+        document.getElementById("post-list-view").classList.remove("hidden");
+        // Clear form fields
+        document.getElementById("post-title").value = "";
+        document.getElementById("post-job-title").value = "";
+        document.getElementById("post-job-id").value = "";
+        document.getElementById("post-job-term").value = "";
+        document.getElementById("post-organization").value = "";
+        document.getElementById("post-job-location").value = "";
+        document.getElementById("post-content").value = "";
+      }
+
+      async function login(username, password) {
+        try {
+          const response = await fetch("/api/auth/login/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": csrftoken,
+            },
+            body: JSON.stringify({ username, password }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            currentUser = data.user;
+            updateAuthUI();
+            hideLoginForm();
+            loadPosts();
+          } else {
+            const error = await response.json();
+            document.getElementById("login-error").textContent =
+              error.error || "Login failed";
+            document.getElementById("login-error").classList.remove("hidden");
+          }
+        } catch (error) {
+          document.getElementById("login-error").textContent = "Network error";
+          document.getElementById("login-error").classList.remove("hidden");
+        }
+      }
+
+      async function logout() {
+        try {
+          await fetch("/api/auth/logout/", {
+            method: "POST",
+            headers: {
+              "X-CSRFToken": csrftoken,
+            },
+          });
+        } catch (error) {
+          console.error("Logout error:", error);
+        }
+        currentUser = null;
+        updateAuthUI();
+        showLoginForm();
+      }
+
+      async function checkAuthStatus() {
+        try {
+          const response = await fetch("/api/auth/user/");
+          if (response.ok) {
+            const data = await response.json();
+            currentUser = data.user;
+            updateAuthUI();
+            loadPosts();
+          } else {
+            showLoginForm();
+          }
+        } catch (error) {
+          showLoginForm();
+        }
+      }
+
+      async function loadPosts() {
+        if (!currentUser) return;
+
+        try {
+          const posts = await fetchJson(`${API}/posts/`);
+          const list = document.getElementById("post-list");
+          list.innerHTML = "";
+          posts.forEach((p) => {
+            const el = document.createElement("div");
+            el.className = "post";
+
+            // Show job_title if available, otherwise show regular title
+            const displayTitle = p.job_title || p.title;
+            el.innerHTML = `
+          <div style="font-weight: bold; margin-bottom: 4px;">${displayTitle}</div>
+          <div style="font-size: 0.9em; color: #666;">
+            by ${p.user.username} • Score: ${p.score}
+            ${p.organization ? ` • ${p.organization}` : ""}
+          </div>
+        `;
+            el.onclick = () => showPost(p.id);
+            list.appendChild(el);
+          });
+        } catch (error) {
+          console.error("Error loading posts:", error);
+        }
+      }
+
+      function renderComment(comment, depth = 0) {
+        const div = document.createElement("div");
+        div.className = "comment" + (depth > 0 ? " reply" : "");
+        div.style.marginLeft = `${depth * 2}em`;
+        div.setAttribute("data-comment-id", comment.id);
+
+        const contentDiv = document.createElement("div");
+        contentDiv.innerHTML = `
+      <strong>${comment.user.username}</strong>: ${comment.content} 
+      <span style="color: #666;">[Score: ${comment.score}]</span>
+    `;
+
+        const actionsDiv = document.createElement("div");
+        actionsDiv.className = "comment-actions";
+        actionsDiv.innerHTML = `
+      <button onclick="showReplyForm(${comment.id})">Reply</button>
+      <button onclick="voteComment(${comment.id}, 1)">↑</button>
+      <button onclick="voteComment(${comment.id}, -1)">↓</button>
+    `;
+
+        div.appendChild(contentDiv);
+        div.appendChild(actionsDiv);
+
+        return div;
+      }
+
+      function buildCommentTree(comments) {
+        const commentMap = {};
+        const rootComments = [];
+
+        // First pass: create comment elements and map them
+        comments.forEach((comment) => {
+          commentMap[comment.id] = {
+            data: comment,
+            element: renderComment(comment),
+            children: [],
+          };
+        });
+
+        // Second pass: build tree structure
+        comments.forEach((comment) => {
+          if (comment.parent) {
+            if (commentMap[comment.parent]) {
+              commentMap[comment.parent].children.push(commentMap[comment.id]);
+            }
+          } else {
+            rootComments.push(commentMap[comment.id]);
+          }
+        });
+
+        return rootComments;
+      }
+
+      function renderCommentTree(commentNode, container, depth = 0) {
+        // Update the element's depth styling
+        commentNode.element.style.marginLeft = `${depth * 2}em`;
+        if (depth > 0) {
+          commentNode.element.classList.add("reply");
+        }
+
+        container.appendChild(commentNode.element);
+
+        // Add children
+        commentNode.children.forEach((child) => {
+          renderCommentTree(child, container, depth + 1);
+        });
+      }
+
+      async function showPost(id) {
+        if (!currentUser) return;
+
+        try {
+          const post = await fetchJson(`${API}/posts/${id}/`);
+
+          // Update post details with job information
+          document.getElementById("detail-title").textContent =
+            post.job_title || post.title;
+          document.getElementById("detail-content").textContent = post.content;
+          document.getElementById("detail-score").textContent = post.score;
+
+          // Show job details if available
+          const jobDetails = document.getElementById("job-details");
+          if (
+            post.job_id ||
+            post.job_term ||
+            post.organization ||
+            post.job_location
+          ) {
+            let jobInfo = "";
+            if (post.job_id)
+              jobInfo += `<strong>Job ID:</strong> ${post.job_id}<br>`;
+            if (post.job_term)
+              jobInfo += `<strong>Term:</strong> ${post.job_term}<br>`;
+            if (post.organization)
+              jobInfo += `<strong>Organization:</strong> ${post.organization}<br>`;
+            if (post.job_location)
+              jobInfo += `<strong>Location:</strong> ${post.job_location}<br>`;
+
+            jobDetails.innerHTML = jobInfo;
+            jobDetails.style.display = "block";
+          } else {
+            jobDetails.style.display = "none";
+          }
+
+          const cmts = await fetchJson(`${API}/posts/${id}/comments/`);
+          const container = document.getElementById("comments");
+          container.innerHTML = "";
+
+          const commentTree = buildCommentTree(cmts);
+          commentTree.forEach((rootComment) => {
+            renderCommentTree(rootComment, container);
+          });
+
+          document.getElementById("post-list-view").classList.add("hidden");
+          document
+            .getElementById("post-detail-view")
+            .classList.remove("hidden");
+          document.getElementById("post-form-view").classList.add("hidden");
+
+          // Store post ID for voting and commenting
+          document
+            .getElementById("post-detail-view")
+            .setAttribute("data-post-id", id);
+
+          document.getElementById("back-btn").onclick = () => {
+            document.getElementById("post-detail-view").classList.add("hidden");
+            document
+              .getElementById("post-list-view")
+              .classList.remove("hidden");
+          };
+        } catch (error) {
+          console.error("Error showing post:", error);
+        }
+      }
+
+      function showReplyForm(commentId) {
+        if (!currentUser) return;
+
+        // Remove any existing reply forms
+        document
+          .querySelectorAll(".reply-form")
+          .forEach((form) => form.remove());
+
+        const commentElement = document.querySelector(
+          `[data-comment-id="${commentId}"]`
+        );
+        if (!commentElement) return;
+
+        const replyForm = document.createElement("div");
+        replyForm.className = "reply-form";
+        replyForm.innerHTML = `
+      <textarea rows="3" placeholder="Write a reply..." id="reply-textarea-${commentId}"></textarea>
+      <button onclick="submitReply(${commentId})">Submit Reply</button>
+      <button onclick="cancelReply()">Cancel</button>
+    `;
+
+        commentElement.appendChild(replyForm);
+        document.getElementById(`reply-textarea-${commentId}`).focus();
+      }
+
+      function cancelReply() {
+        document
+          .querySelectorAll(".reply-form")
+          .forEach((form) => form.remove());
+      }
+
+      async function submitReply(parentCommentId) {
+        if (!currentUser) return;
+
+        const textarea = document.getElementById(
+          `reply-textarea-${parentCommentId}`
+        );
+        const content = textarea.value.trim();
+        const postId = document
+          .getElementById("post-detail-view")
+          .getAttribute("data-post-id");
+
+        if (!content || !postId) return;
+
+        try {
+          await fetchJson(`${API}/comments/`, {
+            method: "POST",
+            body: JSON.stringify({
+              post: postId,
+              content: content,
+              parent: parentCommentId,
+            }),
+          });
+
+          cancelReply();
+          showPost(postId); // Refresh the post view
+        } catch (error) {
+          console.error("Error creating reply:", error);
+        }
+      }
+
+      async function voteComment(commentId, value) {
+        if (!currentUser) return;
+
+        try {
+          await fetchJson(`${API}/comments/${commentId}/vote/`, {
+            method: "POST",
+            body: JSON.stringify({ value: value }),
+          });
+
+          const postId = document
+            .getElementById("post-detail-view")
+            .getAttribute("data-post-id");
+          showPost(postId); // Refresh to show updated scores
+        } catch (error) {
+          console.error("Error voting on comment:", error);
+        }
+      }
+
+      async function createPost() {
+        if (!currentUser) return;
+
+        const title = document.getElementById("post-title").value.trim();
+        const content = document.getElementById("post-content").value.trim();
+        const jobTitle = document.getElementById("post-job-title").value.trim();
+        const jobId = document.getElementById("post-job-id").value.trim();
+        const jobTerm = document.getElementById("post-job-term").value.trim();
+        const organization = document
+          .getElementById("post-organization")
+          .value.trim();
+        const jobLocation = document
+          .getElementById("post-job-location")
+          .value.trim();
+
+        if (!title || !content) {
+          alert("Title and content are required");
+          return;
+        }
+
+        try {
+          await fetchJson(`${API}/posts/`, {
+            method: "POST",
+            body: JSON.stringify({
+              title,
+              content,
+              job_title: jobTitle || null,
+              job_id: jobId || null,
+              job_term: jobTerm || null,
+              organization: organization || null,
+              job_location: jobLocation || null,
+            }),
+          });
+          hidePostForm();
+          loadPosts();
+        } catch (error) {
+          console.error("Error creating post:", error);
+        }
+      }
+
+      // Event listeners
+
+      // Add these with the other event listeners
+      document.getElementById("search-btn").onclick = () => {
+        const query = document.getElementById("search-input").value.trim();
+        if (query) {
+          searchPosts(query);
+        }
+      };
+
+      document.getElementById("clear-search-btn").onclick = () => {
+        document.getElementById("search-input").value = "";
+        document.getElementById("search-results").innerHTML = "";
+        loadPosts(); // Reload all posts
+      };
+
+      document.getElementById("search-input").oninput = (e) => {
+        const query = e.target.value.trim();
+        if (query) {
+          searchPosts(query);
+        } else {
+          // If search is empty, show all posts
+          document.getElementById("search-results").innerHTML = "";
+          document.getElementById("post-list-view").classList.remove("hidden");
+        }
+      };
+
+      document.getElementById("search-btn").onclick = () => {
+        const query = document.getElementById("search-input").value.trim();
+        if (query) {
+          searchPosts(query);
+        }
+      };
+
+      document.getElementById("login-btn").onclick = showLoginForm;
+      document.getElementById("logout-btn").onclick = logout;
+      document.getElementById("login-cancel").onclick = hideLoginForm;
+
+      document.getElementById("login-submit").onclick = async () => {
+        const username = document.getElementById("login-username").value;
+        const password = document.getElementById("login-password").value;
+        if (username && password) {
+          await login(username, password);
+        }
+      };
+
+      document.getElementById("login-password").onkeypress = (e) => {
+        if (e.key === "Enter") {
+          document.getElementById("login-submit").click();
+        }
+      };
+
+      document.getElementById("new-post-btn").onclick = showPostForm;
+      document.getElementById("back-to-list-btn").onclick = hidePostForm;
+      document.getElementById("post-cancel-btn").onclick = hidePostForm;
+      document.getElementById("post-submit-btn").onclick = createPost;
+
+      document.getElementById("comment-submit-btn").onclick = async () => {
+        if (!currentUser) return;
+
+        const body = document.getElementById("comment-body").value;
+        const postId = document
+          .getElementById("post-detail-view")
+          .getAttribute("data-post-id");
+        if (!body || !postId) return;
+
+        try {
+          await fetchJson(`${API}/comments/`, {
+            method: "POST",
+            body: JSON.stringify({ post: postId, content: body }),
+          });
+          document.getElementById("comment-body").value = "";
+          showPost(postId);
+        } catch (error) {
+          console.error("Error creating comment:", error);
+        }
+      };
+
+      document.getElementById("upvote-btn").onclick = async () => await vote(1);
+      document.getElementById("downvote-btn").onclick = async () =>
+        await vote(-1);
+
+      async function vote(val) {
+        if (!currentUser) return;
+
+        const postId = document
+          .getElementById("post-detail-view")
+          .getAttribute("data-post-id");
+        if (!postId) return;
+
+        try {
+          await fetchJson(`${API}/posts/${postId}/vote/`, {
+            method: "POST",
+            body: JSON.stringify({ value: val }),
+          });
+          showPost(postId);
+        } catch (error) {
+          console.error("Error voting:", error);
+        }
+      }
+      function showSearchSection() {
+        document.getElementById("search-section").classList.remove("hidden");
+      }
+
+      function hideSearchSection() {
+        document.getElementById("search-section").classList.add("hidden");
+        document.getElementById("search-input").value = "";
+        document.getElementById("search-results").innerHTML = "";
+      }
+
+      async function searchPosts(query) {
+        if (!currentUser) return;
+
+        try {
+          const posts = await fetchJson(
+            `${API}/posts/search/?q=${encodeURIComponent(query)}`
+          );
+          const resultsContainer = document.getElementById("search-results");
+
+          // Hide the regular post list when showing search results
+          document.getElementById("post-list-view").classList.add("hidden");
+
+          if (posts.results && posts.results.length > 0) {
+            resultsContainer.innerHTML = `
+              <h3>Search Results (${posts.count} found):</h3>
+              <div id="search-post-list"></div>
+            `;
+
+            const searchList = document.getElementById("search-post-list");
+            searchList.innerHTML = "";
+
+            posts.results.forEach((p) => {
+              const el = document.createElement("div");
+              el.className = "post";
+
+              const displayTitle = p.job_title || p.title;
+              el.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 4px;">${displayTitle}</div>
+                <div style="font-size: 0.9em; color: #666;">
+                  by ${p.user.username} • Score: ${p.score}
+                  ${p.organization ? ` • ${p.organization}` : ""}
+                </div>
+              `;
+              el.onclick = () => showPost(p.id);
+              searchList.appendChild(el);
+            });
+          } else {
+            resultsContainer.innerHTML =
+              "<p>No posts found matching your search.</p>";
+          }
+        } catch (error) {
+          console.error("Search error:", error);
+          document.getElementById("search-results").innerHTML =
+            '<p style="color: red;">Search failed. Please try again.</p>';
+        }
+      }
+      // Initialize
+      checkAuthStatus();
+    </script>
+  </body>
+</html>
