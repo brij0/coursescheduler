@@ -1,11 +1,12 @@
 # scheduler/urls.py
 from django.urls import path
 from backend.scheduler import views
-
+from django.contrib import admin
 app_name = 'scheduler'
 
 urlpatterns = [
     # Main pages
+    path('admin/', admin.site.urls),  # This line is missing
     path('', views.index, name='index'),
     path('privacy/', views.privacy_policy, name='privacy'),
     
