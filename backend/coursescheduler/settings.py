@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "backend.scheduler",
-    # "backend.gpacalc",
+    "backend.gpacalc",
     "backend.coopforum",
 ]
 

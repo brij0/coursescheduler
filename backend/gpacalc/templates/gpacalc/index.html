@@ -1,0 +1,174 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>GPA Calculator</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    .course-block { margin-bottom: 1rem; padding: .5rem; border: 1px solid #ccc; }
+    .assess-table { width: 100%; border-collapse: collapse; margin-top: .5rem; }
+    .assess-table th, .assess-table td { border: 1px solid #ddd; padding: .3rem; }
+  </style>
+</head>
+<body>
+  <h1>GPA Calculator</h1>
+  <div id="courses-container"></div>
+  <button id="add-course">Add Course</button>
+  <hr>
+  <button id="calc-gpa">Calculate GPA</button>
+
+  <h2 id="result-header" style="display:none;">Results</h2>
+  <div id="results"></div>
+
+<script>
+let courseIdx = 0;
+
+// Add a new course selector block
+function addCourseBlock() {
+  const idx = courseIdx++;
+  const block = $(`
+    <div class="course-block" data-idx="${idx}">
+      <label>Type:
+        <select class="ctype" name="course_type">
+          <option value="">-- select --</option>
+          {% for t in course_types %}
+            <option value="{{ t }}">{{ t }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Code:
+        <select class="ccode" name="course_code"><option></option></select>
+      </label>
+      <label>Section:
+        <select class="csec" name="section_number"><option></option></select>
+      </label>
+      <div class="events"></div>
+    </div>
+  `);
+  $("#courses-container").append(block);
+}
+
+// load codes when type changes
+$(document).on('change', '.ctype', function(){
+  const parent = $(this).closest('.course-block');
+  const type = $(this).val();
+  parent.find('.ccode').empty().append('<option>Loading…</option>');
+  parent.find('.csec').empty().append('<option></option>');
+  parent.find('.events').empty();
+  fetch("{% url 'gpacalc:get_course_codes' %}", {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+    body: JSON.stringify({course_type: type})
+  })
+  .then(r=>r.json())
+  .then(list=>{
+    const sel = parent.find('.ccode').empty().append('<option></option>');
+    list.forEach(c=> sel.append(`<option value="${c}">${c}</option>`));
+  });
+});
+
+// load sections when code changes
+$(document).on('change', '.ccode', function(){
+  const parent = $(this).closest('.course-block');
+  const type = parent.find('.ctype').val();
+  const code = $(this).val();
+  parent.find('.csec').empty().append('<option>Loading…</option>');
+  parent.find('.events').empty();
+  fetch("{% url 'gpacalc:get_section_numbers' %}", {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+    body: JSON.stringify({course_type: type, course_code: code})
+  })
+  .then(r=>r.json())
+  .then(list=>{
+    const sel = parent.find('.csec').empty().append('<option></option>');
+    list.forEach(s=> sel.append(`<option value="${s}">${s}</option>`));
+  });
+});
+
+// load events when section changes
+$(document).on('change', '.csec', function(){
+  const parent = $(this).closest('.course-block');
+  const type = parent.find('.ctype').val();
+  const code = parent.find('.ccode').val();
+  const sec  = $(this).val();
+  parent.find('.events').html('Loading events…');
+  fetch("{% url 'gpacalc:get_course_events' %}", {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+    body: JSON.stringify({
+      course_type: type,
+      course_code: code,
+      section_number: sec
+    })
+  })
+  .then(r=>r.json())
+  .then(evs=>{
+    let tbl = `<table class="assess-table">
+      <tr><th>Event</th><th>Weight (%)</th><th>Your %</th></tr>`;
+    evs.forEach(e=>{
+      tbl += `<tr>
+        <td>${e.event_type}</td>
+        <td>${e.weightage}</td>
+        <td>
+          <input type="number" step="0.01" min="0" max="100"
+                 class="achieved"
+                 data-ev-id="${e.id}"
+                 placeholder="e.g. 85">
+        </td>
+      </tr>`;
+    });
+    tbl += `</table>`;
+    parent.find('.events').html(tbl);
+  });
+});
+
+// add-course button
+$('#add-course').click(e=>{
+  e.preventDefault();
+  addCourseBlock();
+});
+addCourseBlock();
+
+// calculate GPA
+$('#calc-gpa').click(async e => {
+  const payload = {courses: []};
+  $('.course-block').each(function(){
+    const block = $(this);
+    const type = block.find('.ctype').val();
+    const code = block.find('.ccode').val();
+    const sec  = block.find('.csec').val();
+    if (!type||!code||!sec) return;
+    const assessments = [];
+    block.find('.achieved').each(function(){
+      const val = parseFloat($(this).val());
+      if (!isNaN(val)) {
+        assessments.push({
+          event_id: $(this).data('ev-id'),
+          achieved: val
+        });
+      }
+    });
+    payload.courses.push({course_type: type, course_code: code, section_number: sec, assessments});
+  });
+
+  const res = await fetch("{% url 'gpacalc:calculate_gpa' %}", {
+    method: 'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  // render results
+  $('#result-header').show();
+  let html = `<p><strong>Overall GPA:</strong> ${data.overall_gpa}</p>`;
+  html += '<ul>';
+  data.per_course.forEach(c=>{
+    html += `<li>${c.course}: ${c.final_percentage}% → ${c.letter_grade} → ${c.gpa_value}</li>`;
+  });
+  html += '</ul>';
+  $('#results').html(html);
+});
+</script>
+</body>
+</html>

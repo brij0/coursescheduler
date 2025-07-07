@@ -269,7 +269,7 @@
           opts.headers["X-CSRFToken"] = csrftoken;
           opts.headers["Content-Type"] = "application/json";
         }
-        return fetch(url, opts).then((r) => {
+        return fetch(url, { credentials: 'include', ...opts }).then((r) => {
           if (r.status === 401) {
             handleUnauthorized();
             throw new Error("Unauthorized");

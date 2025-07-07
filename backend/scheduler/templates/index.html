@@ -525,7 +525,7 @@
 
             if (courseType) {
                 $.ajax({
-                    url: "/get_course_codes",
+                    url: "get_course_codes/",
                     type: "POST",
                     contentType: "application/json",
                     data: JSON.stringify({ course_type: courseType }),
@@ -548,7 +548,7 @@
 
             if (courseType && courseCode) {
                 $.ajax({
-                    url: "/get_section_numbers",
+                    url: "get_section_numbers/",
                     type: "POST",
                     contentType: "application/json",
                     data: JSON.stringify({ course_type: courseType, course_code: courseCode }),

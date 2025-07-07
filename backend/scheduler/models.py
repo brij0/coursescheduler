@@ -2,7 +2,7 @@
 from django.db import models
 
 class Course(models.Model):
-    course_id      = models.AutoField(primary_key=True)  # Add this line
+    course_id      = models.AutoField(primary_key=True)
     course_type    = models.CharField(max_length=20)
     course_code    = models.CharField(max_length=20)
     section_number = models.CharField(max_length=20)
@@ -42,3 +42,15 @@ class CourseEvent(models.Model):
 class Suggestion(models.Model):
     text         = models.TextField()
     submitted_at = models.DateTimeField(auto_now_add=True)
+
+from django.db import models
+
+class Event(models.Model):
+    id = models.AutoField(primary_key=True)
+    course_id = models.ForeignKey('Course', on_delete=models.CASCADE, db_column='course_id')
+    event_type = models.CharField(max_length=50)
+    times = models.CharField(max_length=100)
+    location = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = "events"

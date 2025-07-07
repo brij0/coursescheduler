@@ -17,6 +17,7 @@ urlpatterns = [
     path('', scheduler_views.index, name='index'),
     path('privacy/', scheduler_views.privacy_policy, name='privacy'),
     path('forum/', include('backend.coopforum.urls', namespace='coopforum')),
+    path('gpacalc/', include('backend.gpacalc.urls', namespace='gpacalc')),
 
     # Authentication API endpoints
     path('api/auth/login/', coop_views.login_view, name='api_login'),

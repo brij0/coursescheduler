@@ -12,12 +12,25 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 import json
 from django.db.models import Q
+
 def index(request):
+    """
+    Renders the CoopForum main page.
+    """
     return render(request, 'coopforum/index.html')
+
 # Authentication Views
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def login_view(request):
+    """
+    POST /api/auth/login/
+    Request: JSON { "username": "...", "password": "..." }
+    Response: JSON { "user": { "id": ..., "username": "...", "email": "..." } }
+    Usage (frontend):
+        - Call to log in user and receive user info for session.
+    """
     try:
         data = json.loads(request.body)
         username = data.get('username')
@@ -46,11 +59,25 @@ def login_view(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def logout_view(request):
+    """
+    POST /api/auth/logout/
+    Logs out the current user.
+    Response: JSON { "message": "Logged out successfully" }
+    Usage (frontend):
+        - Call to log out user and clear session.
+    """
     auth_logout(request)
     return JsonResponse({'message': 'Logged out successfully'})
 
 @require_http_methods(["GET"])
 def user_view(request):
+    """
+    GET /api/auth/user/
+    Returns current authenticated user info.
+    Response: JSON { "user": { ... } } or { "error": "Not authenticated" }
+    Usage (frontend):
+        - Call on page load to check if user is logged in.
+    """
     if request.user.is_authenticated:
         return JsonResponse({
             'user': {
@@ -61,9 +88,22 @@ def user_view(request):
         })
     else:
         return JsonResponse({'error': 'Not authenticated'}, status=401)
+
 class PostViewSet(viewsets.ModelViewSet):
     """
-    CRUD for Posts. Includes a custom action to retrieve all non-deleted comments for a given post.
+    API endpoints for CRUD operations on Posts.
+    All endpoints require authentication.
+    Endpoints:
+      - GET /api/coopforum/posts/ : List all posts
+      - POST /api/coopforum/posts/ : Create a new post
+      - GET /api/coopforum/posts/{id}/ : Retrieve post details
+      - PUT/PATCH /api/coopforum/posts/{id}/ : Update post
+      - DELETE /api/coopforum/posts/{id}/ : Delete post (soft delete)
+      - GET /api/coopforum/posts/{id}/comments/ : List comments for a post
+      - POST /api/coopforum/posts/{id}/vote/ : Upvote/downvote a post
+      - GET /api/coopforum/posts/search/?q=... : Search posts by text
+    Usage (frontend):
+        - Use for all post-related actions, voting, and searching.
     """
     queryset = Post.objects.filter(is_deleted=False).order_by('-created_at')
     serializer_class = PostSerializer
@@ -79,6 +119,13 @@ class PostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='comments')
     def comments(self, request, pk=None):
+        """
+        GET /api/coopforum/posts/{id}/comments/
+        Returns all non-deleted comments for a post.
+        Response: List of comment objects.
+        Usage (frontend):
+            - Call to display comments for a post.
+        """
         post = self.get_object()
         comments = post.comments.filter(is_deleted=False)
         serializer = CommentSerializer(comments, many=True)
@@ -86,7 +133,13 @@ class PostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='vote')
     def vote(self, request, pk=None):
-        """Handle voting on posts"""
+        """
+        POST /api/coopforum/posts/{id}/vote/
+        Request: JSON { "value": 1 } or { "value": -1 }
+        Response: JSON { "message": ... }
+        Usage (frontend):
+            - Call to upvote or downvote a post.
+        """
         post = self.get_object()
         value = request.data.get('value')
         
@@ -115,9 +168,16 @@ class PostViewSet(viewsets.ModelViewSet):
                 return Response({'message': 'Vote updated'})
         
         return Response({'message': 'Vote created'})
+
     @action(detail=False, methods=['get'], url_path='search')
     def search(self, request):
-        """Search posts by text in title, content, job_title, or organization"""
+        """
+        GET /api/coopforum/posts/search/?q=...
+        Returns posts matching the search query in title, content, job_title, or organization.
+        Response: JSON { "query": "...", "count": N, "results": [...] }
+        Usage (frontend):
+            - Call to implement search functionality.
+        """
         query = request.query_params.get('q', '').strip().lower()
         
         if not query:
@@ -143,19 +203,35 @@ class PostViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     """
-    CRUD for Comments (nested replies supported via MPTT).
+    API endpoints for CRUD operations on Comments (nested replies supported).
+    All endpoints require authentication.
+    Endpoints:
+      - GET /api/coopforum/comments/ : List all comments (rarely used)
+      - POST /api/coopforum/comments/ : Create a comment or reply
+      - GET /api/coopforum/comments/{id}/ : Retrieve comment details
+      - POST /api/coopforum/comments/{id}/vote/ : Upvote/downvote a comment
+    Usage (frontend):
+        - Use for comment creation, voting, and displaying nested replies.
     """
     queryset = Comment.objects.filter(is_deleted=False).order_by('tree_id', 'lft')
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        """Override to automatically set the user when creating a comment"""
+        """
+        Automatically sets the user when creating a comment.
+        """
         serializer.save(user=self.request.user)
 
     @action(detail=True, methods=['post'], url_path='vote')
     def vote(self, request, pk=None):
-        """Handle voting on comments"""
+        """
+        POST /api/coopforum/comments/{id}/vote/
+        Request: JSON { "value": 1 } or { "value": -1 }
+        Response: JSON { "message": ... }
+        Usage (frontend):
+            - Call to upvote or downvote a comment.
+        """
         comment = self.get_object()
         value = request.data.get('value')
         

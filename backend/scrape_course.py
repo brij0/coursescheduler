@@ -134,8 +134,8 @@ def scrape_courses(list_of_courses):
             try:
                 sb.open(url)
                 button_selector = f'button[aria-controls="collapsible-view-available-sections-for-{course}-collapseBody"]'
-                sb.click(button_selector, timeout=10, delay=0.01)
-                sb.wait(5)
+                sb.click(button_selector, timeout=15, delay=0.01)
+                sb.wait(10)
                 page_source = sb.get_page_source()
                 scraped_courses[course] = extract_course_sections(page_source)
             except Exception as e:
