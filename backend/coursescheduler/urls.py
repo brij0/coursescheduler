@@ -14,6 +14,8 @@ router.register(r'comments', coop_views.CommentViewSet, basename='coopforum-comm
 urlpatterns = [
     # Admin & main pages
     path('admin/', admin.site.urls),
+    path('conflictfree/', scheduler_views.conflict_test, name='conflict_test'),
+    path('api/conflict_free_schedule/', scheduler_views.conflict_free_schedule, name='conflict_free_schedule'),
     path('', scheduler_views.index, name='index'),
     path('privacy/', scheduler_views.privacy_policy, name='privacy'),
     path('forum/', include('backend.coopforum.urls', namespace='coopforum')),

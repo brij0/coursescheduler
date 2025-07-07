@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Conflict-Free Schedule Tester</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f4f0; }
+        .container { max-width: 600px; margin: 2rem auto; background: #fff; border-radius: 10px; padding: 2rem; box-shadow: 0 2px 10px #ccc; }
+        .dropdown-row { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        select, button { padding: 0.5rem; border-radius: 5px; border: 1px solid #ccc; }
+        #result { margin-top: 2rem; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Test Conflict-Free Schedule</h2>
+    <form id="conflict-form" autocomplete="off" onsubmit="return false;">
+        <div id="course-rows"></div>
+        <button type="button" id="add-course">Add Course</button>
+        <button type="button" id="find-schedule">Find Conflict-Free Schedule</button>
+    </form>
+    <div id="result"></div>
+</div>
+<script>
+$(document).ready(function() {
+    let courseTypes = [];
+    let courseCodes = {};
+    let rowCount = 0;
+    let lastOffset = 0;
+    let lastCourses = [];
+    let lastTotal = 0;
+    let lastLimit = 100;
+
+    // Fetch course types on load
+    $.get('/api/course_types/', function(data) {
+        courseTypes = data;
+    });
+
+    // Fetch codes for a type
+    function fetchCodes(type, cb) {
+        if (courseCodes[type]) return cb(courseCodes[type]);
+        $.ajax({
+            url: '/api/get_course_codes/',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ course_type: type }),
+            success: function(data) {
+                courseCodes[type] = data;
+                cb(data);
+            }
+        });
+    }
+
+    // Add a new course row
+    function addCourseRow() {
+        const idx = rowCount++;
+        const row = $(`
+            <div class="dropdown-row" data-idx="${idx}">
+                <select class="course-type" name="course_type_${idx}">
+                    <option value="">Type</option>
+                </select>
+                <select class="course-code" name="course_code_${idx}">
+                    <option value="">Code</option>
+                </select>
+                <button type="button" class="remove-row">Remove</button>
+            </div>
+        `);
+        // Populate types
+        courseTypes.forEach(t => row.find('.course-type').append(`<option value="${t}">${t}</option>`));
+        // Remove row
+        row.find('.remove-row').click(function() { row.remove(); });
+        // On type change, fetch codes
+        row.find('.course-type').change(function() {
+            const type = $(this).val();
+            const codeSel = row.find('.course-code');
+            codeSel.empty().append('<option value="">Code</option>');
+            if (type) {
+                fetchCodes(type, codes => {
+                    codes.forEach(c => codeSel.append(`<option value="${c}">${c}</option>`));
+                });
+            }
+        });
+        $('#course-rows').append(row);
+    }
+
+    $('#add-course').click(addCourseRow);
+    addCourseRow(); // Add initial row
+
+    function fetchSchedules(offset = 0, append = false) {
+        const courses = [];
+        $('#course-rows .dropdown-row').each(function() {
+            const type = $(this).find('.course-type').val();
+            const code = $(this).find('.course-code').val();
+            if (type && code) courses.push({ course_type: type, course_code: code });
+        });
+        if (!courses.length) {
+            $('#result').html('<span style="color:red;">Please select at least one course.</span>');
+            return;
+        }
+        $('#result').html('<span>Loading...</span>');
+        $.ajax({
+            url: '/api/conflict_free_schedule/',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ courses, offset, limit: lastLimit }),
+            success: function(data) {
+                lastOffset = offset;
+                lastCourses = courses;
+                lastTotal = data.total;
+                let html = '';
+                if (!append) {
+                    html += `<h3>Found ${data.total} conflict-free schedule(s):</h3>`;
+                }
+                data.schedules.forEach((sched, idx) => {
+                    html += `<h4>Schedule ${offset + idx + 1}</h4><pre>${JSON.stringify(sched, null, 2)}</pre>`;
+                });
+                if (offset + data.schedules.length < data.total) {
+                    html += `<button id="load-more">Load More</button>`;
+                }
+                if (append) {
+                    $('#result').append(html);
+                } else {
+                    $('#result').html(html);
+                }
+            },
+            error: function(xhr) {
+                $('#result').html('<span style="color:red;">' + (xhr.responseJSON?.error || 'Error') + '</span>');
+            }
+        });
+    }
+
+    $('#find-schedule').click(function() {
+        lastOffset = 0;
+        fetchSchedules(0, false);
+    });
+
+    $(document).on('click', '#load-more', function() {
+        fetchSchedules(lastOffset + lastLimit, true);
+    });
+});
+</script>
+</body>
+</html>

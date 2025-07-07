@@ -10,10 +10,13 @@ from django.core.files.storage import FileSystemStorage
 from allauth.socialaccount.models import SocialToken
 from google.oauth2.credentials import Credentials as GoogleCredentials
 from googleapiclient.discovery import build
+import re
+from datetime import datetime
+from .models import Course, CourseEvent,Event, Suggestion
 
-from .models import Course, CourseEvent, Suggestion
-
+#-----------------------------------------
 # API endpoint for getting course types
+#-----------------------------------------
 @require_GET
 def get_course_types(request):
     types = (
@@ -24,7 +27,8 @@ def get_course_types(request):
         .order_by("course_type")
     )
     return JsonResponse(list(types), safe=False)
-
+def conflict_test(request):
+    return render(request, "conflict_free_schedule.html")
 def index(request):
     # SHOW COURSE TYPES
     course_types = (
@@ -189,6 +193,244 @@ def insert_events_to_calendar(request):
     except Exception as e:
         return JsonResponse({"error": f"Failed to add events: {str(e)}"}, status=500)
 
+# this return same number of combinations as uoguelph.courses but is slow and has some errors
+# For only cis2750 both commented conflict_free_schedule and uoguelph.courses give 1 schedule but in reality there are 17 sections and any one will work
+# @csrf_exempt
+# def conflict_free_schedule(request):
+#     """
+#     Expects JSON:
+#     {
+#       "courses": [
+#         {"course_type": "ENGG", "course_code": "3380"},
+#         {"course_type": "CIS", "course_code": "3750"}
+#       ]
+#     }
+#     Returns all possible combinations of one section per course that are conflict-free.
+#     """
+#     try:
+#         data = json.loads(request.body)
+#         selected_courses = data.get("courses", [])
+#         course_sections = []
+#         for c in selected_courses:
+#             sections = Course.objects.filter(
+#                 course_type=c["course_type"],
+#                 course_code=c["course_code"]
+#             )
+#             course_sections.append(list(sections))
+
+#         from itertools import product
+#         all_combinations = list(product(*course_sections))
+
+#         def get_events_for_section(section):
+#             return list(Event.objects.filter(course_id=section.course_id).values(
+#                 "event_type", "times", "location"
+#             ))
+
+#         def parse_time_range(timestr):
+#             parts = [p.strip() for p in timestr.split(',')]
+#             days = []
+#             time_part = None
+#             for p in parts:
+#                 if re.match(r'\d{1,2}:\d{2}\s*[AP]M\s*-\s*\d{1,2}:\d{2}\s*[AP]M', p):
+#                     time_part = p
+#                     break
+#                 days.append(p)
+#             if not time_part:
+#                 match = re.search(r'(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)', timestr)
+#                 if not match:
+#                     return [], None, None
+#                 start, end = match.groups()
+#             else:
+#                 start, end = [t.strip() for t in time_part.split('-')]
+#             start_24 = datetime.strptime(start, "%I:%M %p").time()
+#             end_24 = datetime.strptime(end, "%I:%M %p").time()
+#             return days, start_24, end_24
+
+#         def has_conflict(events):
+#             schedule = []
+#             for e in events:
+#                 days, start, end = parse_time_range(e["times"])
+#                 for d in days:
+#                     for s in schedule:
+#                         if d == s["day"]:
+#                             if not (end <= s["start"] or start >= s["end"]):
+#                                 return True
+#                     schedule.append({"day": d, "start": start, "end": end})
+#             return False
+
+#         # Collect all conflict-free schedules
+#         conflict_free_schedules = []
+#         for combo in all_combinations:
+#             all_events = []
+#             valid = True
+#             result = {}
+#             for section in combo:
+#                 events = get_events_for_section(section)
+#                 if not events:
+#                     valid = False  # Section has no events, skip this combo
+#                     break
+#                 all_events.extend(events)
+#                 key = f"{section.course_type}*{section.course_code}*{section.section_number}"
+#                 result[key] = events
+#             if valid and not has_conflict(all_events):
+#                 conflict_free_schedules.append(result)
+
+#         if conflict_free_schedules:
+#             return JsonResponse({"schedules": conflict_free_schedules, "message": "All conflict-free schedules found"})
+#         return JsonResponse({"error": "No conflict-free schedule possible"}, status=400)
+#     except Exception as e:
+#         return JsonResponse({"error": str(e)}, status=500) 
+    
+@csrf_exempt
+def conflict_free_schedule(request):
+    """
+    Expects JSON:
+    {
+      "courses": [
+        {"course_type": "ENGG", "course_code": "3380"},
+        {"course_type": "CIS", "course_code": "3750"}
+      ],
+      "offset": 0,
+      "limit": 100
+    }
+    Returns paginated conflict-free schedules.
+    """
+    import time
+    import logging
+
+    logger = logging.getLogger(__name__)
+    total_start = time.time()
+
+    try:
+        data = json.loads(request.body)
+        selected_courses = data.get("courses", [])
+        offset = int(data.get("offset", 0))
+        limit = int(data.get("limit", 100))
+
+        # Get all sections for each course with their events
+        course_data = []
+        for course in selected_courses:
+            sections = Course.objects.filter(
+                course_type=course["course_type"],
+                course_code=course["course_code"]
+            )
+            section_events = []
+            for section in sections:
+                events = list(Event.objects.filter(course_id=section.course_id).values(
+                    "event_type", "times", "location"
+                ))
+                if not events:
+                    continue
+                # Parse time slots for conflict checking
+                time_slots = []
+                for e in events:
+                    parts = [p.strip() for p in e["times"].split(',')]
+                    days = []
+                    time_part = None
+                    for p in parts:
+                        if re.match(r'\d{1,2}:\d{2}\s*[AP]M\s*-\s*\d{1,2}:\d{2}\s*[AP]M', p):
+                            time_part = p
+                            break
+                        days.append(p)
+                    if not time_part:
+                        match = re.search(r'(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)', e["times"])
+                        if not match:
+                            continue
+                        start, end = match.groups()
+                    else:
+                        start, end = [t.strip() for t in time_part.split('-')]
+                    start_24 = datetime.strptime(start, "%I:%M %p").time()
+                    end_24 = datetime.strptime(end, "%I:%M %p").time()
+                    for d in days:
+                        time_slots.append((d, start_24, end_24, e["event_type"]))
+                section_events.append({
+                    'section': section,
+                    'events': events,
+                    'time_slots': time_slots,
+                    'key': f"{section.course_type}*{section.course_code}*{section.section_number}"
+                })
+            course_data.append(section_events)
+            logger.info(f"Course {course['course_type']}{course['course_code']}: {len(section_events)} sections with events")
+
+        # Conflict checking helper
+        def events_conflict(slots1, slots2):
+            for day1, start1, end1, _ in slots1:
+                for day2, start2, end2, _ in slots2:
+                    if day1 == day2:
+                        if not (end1 <= start2 or start1 >= end2):
+                            return True
+            return False
+
+        # Backtracking with early pruning and pagination
+        results = []
+        total_found = [0]  # Use list for mutability in nested scope
+
+        def build_schedules(course_index, current_schedule, current_slots):
+            if len(results) >= offset + limit:
+                return
+            if course_index >= len(course_data):
+                if total_found[0] >= offset and len(results) < offset + limit:
+                    results.append(current_schedule.copy())
+                total_found[0] += 1
+                return
+            for section_data in course_data[course_index]:
+                new_slots = section_data['time_slots']
+                conflict_found = False
+                for existing_slots in current_slots:
+                    if events_conflict(existing_slots, new_slots):
+                        conflict_found = True
+                        break
+                if not conflict_found:
+                    new_schedule = current_schedule.copy()
+                    new_schedule[section_data['key']] = section_data['events']
+                    new_slot_list = current_slots + [new_slots]
+                    build_schedules(course_index + 1, new_schedule, new_slot_list)
+
+        build_schedules(0, {}, [])
+
+        response_data = {
+            "schedules": results[offset:offset+limit],
+            "total": total_found[0],
+            "offset": offset,
+            "limit": limit,
+            "message": f"Showing {len(results[offset:offset+limit])} of {total_found[0]} conflict-free schedules"
+        }
+        logger.info(f"Found {total_found[0]} conflict-free schedules in {time.time() - total_start:.2f}s")
+        logger.info(f"Returned {len(results[offset:offset+limit])} schedules out of {total_found[0]} found in {time.time() - total_start:.2f}s")
+        return JsonResponse(response_data)
+    except Exception as e:
+        logger.error(f"Error in conflict_free_schedule: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+# Helper function (same as original)
+def parse_time_range(timestr):
+    """Parse time string into days, start_time, end_time"""
+    import re
+    from datetime import datetime
+    
+    parts = [p.strip() for p in timestr.split(',')]
+    days = []
+    time_part = None
+    
+    for p in parts:
+        if re.match(r'\d{1,2}:\d{2}\s*[AP]M\s*-\s*\d{1,2}:\d{2}\s*[AP]M', p):
+            time_part = p
+            break
+        days.append(p)
+    
+    if not time_part:
+        match = re.search(r'(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)', timestr)
+        if not match:
+            return [], None, None
+        start, end = match.groups()
+    else:
+        start, end = [t.strip() for t in time_part.split('-')]
+    
+    start_24 = datetime.strptime(start, "%I:%M %p").time()
+    end_24 = datetime.strptime(end, "%I:%M %p").time()
+    
+    return days, start_24, end_24
 def privacy_policy(request):
     return render(request, "privacy.html")
 
