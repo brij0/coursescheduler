@@ -113,3 +113,117 @@ Course ENGG1410: 70 sections with events
 Course ENGG2400: 36 sections with events
 Found 100 conflict-free schedules in 0.27s
 Returned 100 schedules out of 100 found in 0.28s
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\coursescheduler\settings.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\coursescheduler\settings.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\apps.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Not Found: /
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\urls.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\urls.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /gpacalc
+Not Found: /gpacalc/
+Not Found: /gpacalc/
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\coursescheduler\urls.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /gpacalc/
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\gpacalc\urls.py changed, reloading.
+Watching for file changes with StatReloader
+Internal Server Error: /gpacalc/
+Traceback (most recent call last):
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\views\decorators\http.py", line 64, in inner
+    return func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\gpacalc\views.py", line 26, in index
+    return render(request, "gpacalc/index.html", {
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\template\loader.py", line 62, in render_to_string
+    return template.render(context, request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\template\backends\django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\template\base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\template\base.py", line 1016, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\template\defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\urls\base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\urls\resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'get_course_codes' not found. 'get_course_codes' is not a valid view function or pattern name.
+Not Found: /favicon.ico
+Internal Server Error: /api/gpacalc/calculate/
+Traceback (most recent call last):
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\views\decorators\http.py", line 64, in inner
+    return func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\gpacalc\views.py", line 144, in calculate_gpa
+    course_obj = Course.objects.get(
+                 ^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\db\models\query.py", line 636, in get
+    raise self.model.MultipleObjectsReturned(
+scheduler.models.Course.MultipleObjectsReturned: get() returned more than one Course -- it returned 2!
+Internal Server Error: /api/gpacalc/calculate/
+Traceback (most recent call last):
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\views\decorators\http.py", line 64, in inner
+    return func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\gpacalc\views.py", line 144, in calculate_gpa
+    course_obj = Course.objects.get(
+                 ^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\prg\miniconda\envs\coursescheduler\Lib\site-packages\django\db\models\query.py", line 636, in get
+    raise self.model.MultipleObjectsReturned(
+scheduler.models.Course.MultipleObjectsReturned: get() returned more than one Course -- it returned 2!
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\models.py changed, reloading.
+Watching for file changes with StatReloader

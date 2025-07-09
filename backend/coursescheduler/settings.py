@@ -38,9 +38,9 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
-    "backend.scheduler",
-    "backend.gpacalc",
-    "backend.coopforum",
+    "scheduler",
+    "gpacalc",
+    "coopforum",
 ]
 
 SITE_ID = 1
@@ -57,7 +57,7 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
 ]
 
-ROOT_URLCONF = "backend.coursescheduler.urls"
+ROOT_URLCONF = "coursescheduler.urls"
 
 TEMPLATES = [
     {

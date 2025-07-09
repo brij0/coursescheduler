@@ -12,6 +12,7 @@ class Course(models.Model):
 
     class Meta:
         db_table = "courses"
+        unique_together = ("course_type", "course_code", "section_number")
 
     def __str__(self):
         return f"{self.course_type}*{self.course_code}*{self.section_number}"

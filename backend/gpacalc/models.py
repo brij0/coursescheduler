@@ -1,5 +1,5 @@
 from django.db import models
-from backend.scheduler.models import Course, CourseEvent
+from scheduler.models import Course, CourseEvent
 
 class GradeScale(models.Model):
     """
