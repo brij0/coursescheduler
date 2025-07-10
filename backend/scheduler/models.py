@@ -2,6 +2,7 @@
 from django.db import models
 
 class Course(models.Model):
+    offered_term = models.CharField(max_length=20, null=True, blank=True)
     course_id      = models.AutoField(primary_key=True)
     course_type    = models.CharField(max_length=20)
     course_code    = models.CharField(max_length=20)
@@ -12,7 +13,7 @@ class Course(models.Model):
 
     class Meta:
         db_table = "courses"
-        unique_together = ("course_type", "course_code", "section_number")
+        unique_together = ("offered_term","course_type", "course_code", "section_number")
 
     def __str__(self):
         return f"{self.course_type}*{self.course_code}*{self.section_number}"
@@ -51,7 +52,9 @@ class Event(models.Model):
     course_id = models.ForeignKey('Course', on_delete=models.CASCADE, db_column='course_id')
     event_type = models.CharField(max_length=50)
     times = models.CharField(max_length=100)
-    location = models.CharField(max_length=255)
+    location = models.CharField(max_length=255, null=True, blank=True)
+    days = models.CharField(max_length=50, null=True, blank=True)
+    dates = models.CharField(max_length=100, null=True, blank=True)
 
     class Meta:
         db_table = "events"

@@ -227,3 +227,336 @@ Traceback (most recent call last):
 scheduler.models.Course.MultipleObjectsReturned: get() returned more than one Course -- it returned 2!
 C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\models.py changed, reloading.
 Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Not Found: /submit_suggestion/
+Not Found: /submit_suggestion/
+Watching for file changes with StatReloader
+Not Found: /submit_suggestion/
+Not Found: /api/submit_suggestion/
+Watching for file changes with StatReloader
+Not Found: /get_course_codes/
+Not Found: /get_course_codes/
+Not Found: /search/
+Not Found: /search/
+Not Found: /search/
+Not Found: /search/
+Not Found: /search/
+Watching for file changes with StatReloader
+Not Found: /search/
+Not Found: /search/
+Not Found: /search/
+Method Not Allowed (GET): /api/scheduler/search/
+Method Not Allowed (GET): /api/scheduler/search/
+Not Found: /search/
+Not Found: /add_to_calendar/
+Unauthorized: /api/auth/user/
+Watching for file changes with StatReloader
+Not Found: /conflictfree/
+Not Found: /conflictfree/
+Not Found: /conflictfree/
+Not Found: /conflictfree/
+Not Found: /conflictfree/
+Not Found: /conflictfree/
+Unauthorized: /api/auth/user/
+Not Found: /conflictfree/
+Not Found: /conflictfree
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\urls.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\urls.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /scheduler/conflictfree/
+Error in conflict_free_schedule: Expecting value: line 1 column 1 (char 0)
+Internal Server Error: /conflictfree/
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\coursescheduler\urls.py changed, reloading.
+Watching for file changes with StatReloader
+Error in conflict_free_schedule: Expecting value: line 1 column 1 (char 0)
+Internal Server Error: /conflictfree/
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\coursescheduler\urls.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /conflict_test/
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\coursescheduler\urls.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /conflict_test/
+Not Found: /conflict_test/
+Error in conflict_free_schedule: Expecting value: line 1 column 1 (char 0)
+Internal Server Error: /scheduler/conflictfree/
+Error in conflict_free_schedule: Expecting value: line 1 column 1 (char 0)
+Internal Server Error: /scheduler/conflictfree/
+Error in conflict_free_schedule: Expecting value: line 1 column 1 (char 0)
+Internal Server Error: /scheduler/conflictfree/
+Error in conflict_free_schedule: Expecting value: line 1 column 1 (char 0)
+Internal Server Error: /scheduler/conflictfree/
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\urls.py changed, reloading.
+Watching for file changes with StatReloader
+Error in conflict_free_schedule: Expecting value: line 1 column 1 (char 0)
+Internal Server Error: /scheduler/conflictfree/
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\urls.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\urls.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /api/course_types/
+Course CIS2750: 16 sections with events
+Found 16 conflict-free schedules in 0.04s
+Returned 16 schedules out of 16 found in 0.04s
+Course CIS2750: 16 sections with events
+Course ENGG1410: 70 sections with events
+Found 100 conflict-free schedules in 0.10s
+Returned 100 schedules out of 100 found in 0.10s
+Course CIS2750: 16 sections with events
+Course ENGG1410: 70 sections with events
+Course ENGG2400: 36 sections with events
+Found 100 conflict-free schedules in 0.14s
+Returned 100 schedules out of 100 found in 0.14s
+Course CIS2750: 16 sections with events
+Course ENGG1410: 70 sections with events
+Course ENGG2400: 36 sections with events
+Course ENGG1410: 70 sections with events
+Found 100 conflict-free schedules in 0.21s
+Returned 100 schedules out of 100 found in 0.21s
+Course CIS2750: 16 sections with events
+Course CIS2750: 16 sections with events
+Found 100 conflict-free schedules in 0.04s
+Returned 100 schedules out of 100 found in 0.04s
+Course CIS2750: 16 sections with events
+Found 16 conflict-free schedules in 0.02s
+Returned 16 schedules out of 16 found in 0.02s
+Watching for file changes with StatReloader
+Course CISCIS*2750: 17 sections with events
+Found 17 conflict-free schedules in 0.03s
+Returned 17 schedules out of 17 found in 0.03s
+Course CISCIS*2750: 17 sections with events
+Course ENGGENGG*1410: 70 sections with events
+Course ENGGENGG*2400: 36 sections with events
+Course ENGGENGG*2410: 48 sections with events
+Found 100 conflict-free schedules in 0.36s
+Returned 100 schedules out of 100 found in 0.36s
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\api_urls.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\api_urls.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\api_urls.py changed, reloading.
+Watching for file changes with StatReloader
+Forbidden (CSRF cookie not set.): /api/scheduler/course_types/
+Forbidden (CSRF cookie not set.): /api/scheduler/course_types/
+Forbidden (CSRF cookie not set.): /api/scheduler/course_types/
+Watching for file changes with StatReloader
+Forbidden (CSRF cookie not set.): /api/scheduler/course_types/
+Forbidden (CSRF cookie not set.): /api/scheduler/course_types/
+Method Not Allowed (POST): /api/scheduler/course_types/
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+Method Not Allowed (POST): /api/scheduler/course_types/
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+Course CISCIS*2750: 17 sections with events
+Found 17 conflict-free schedules in 0.04s
+Returned 17 schedules out of 17 found in 0.04s
+Course ENGGENGG*1410: 70 sections with events
+Found 70 conflict-free schedules in 0.11s
+Returned 70 schedules out of 70 found in 0.11s
+Course CISCIS*2750: 17 sections with events
+Found 17 conflict-free schedules in 0.02s
+Returned 17 schedules out of 17 found in 0.02s
+Watching for file changes with StatReloader
+Course CISCIS*2750: 1 sections with events
+Found 1 conflict-free schedules in 0.02s
+Returned 1 schedules out of 1 found in 0.02s
+Course ENGGENGG*1410: 70 sections with events
+Found 70 conflict-free schedules in 0.08s
+Returned 70 schedules out of 70 found in 0.08s
+Course CISCIS*2750: 16 sections with events
+Found 16 conflict-free schedules in 0.02s
+Returned 16 schedules out of 16 found in 0.02s
+Course CISCIS*2750: 1 sections with events
+Found 1 conflict-free schedules in 0.01s
+Returned 1 schedules out of 1 found in 0.01s
+Course CISCIS*2750: 1 sections with events
+Course ENGGENGG*1410: 70 sections with events
+Course ENGGENGG*2400: 36 sections with events
+Course ENGGENGG*2410: 48 sections with events
+Found 100 conflict-free schedules in 0.17s
+Returned 100 schedules out of 100 found in 0.17s
+Course ENGGENGG*6090: 3 sections with events
+Found 3 conflict-free schedules in 0.01s
+Returned 3 schedules out of 3 found in 0.01s
+Course ENGGENGG*4460: 18 sections with events
+Found 18 conflict-free schedules in 0.04s
+Returned 18 schedules out of 18 found in 0.04s
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\models.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\models.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Course ENGGENGG*1410: 70 sections with events
+Course CHEMCHEM*1040: 126 sections with events
+Found 100 conflict-free schedules in 0.21s
+Returned 100 schedules out of 100 found in 0.22s
+Course CHEMCHEM*1040: 126 sections with events
+Found 100 conflict-free schedules in 0.19s
+Returned 100 schedules out of 100 found in 0.19s
+Course ENGGENGG*1410: 70 sections with events
+Found 70 conflict-free schedules in 0.13s
+Returned 70 schedules out of 70 found in 0.13s
+Course CHEMCHEM*1040: 24 sections with events
+Found 24 conflict-free schedules in 0.04s
+Returned 24 schedules out of 24 found in 0.04s
+Course CHEMCHEM*1040: 126 sections with events
+Found 100 conflict-free schedules in 0.14s
+Returned 100 schedules out of 100 found in 0.14s
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+Course CHEMCHEM*1040: 126 sections with events
+Found 100 conflict-free schedules in 0.15s
+Returned 100 schedules out of 100 found in 0.15s
+Course CHEMCHEM*1040: 126 sections with events
+Found 100 conflict-free schedules in 0.13s
+Returned 100 schedules out of 100 found in 0.13s
+Course CHEMCHEM*1040: 126 sections with events
+Course CISCIS*2750: 1 sections with events
+Found 100 conflict-free schedules in 0.14s
+Returned 100 schedules out of 100 found in 0.14s
+Course CISCIS*2750: 1 sections with events
+Found 1 conflict-free schedules in 0.02s
+Returned 1 schedules out of 1 found in 0.02s
+Course CISCIS*2750: 1 sections with events
+Course ENGGENGG*2400: 36 sections with events
+Found 36 conflict-free schedules in 0.05s
+Returned 36 schedules out of 36 found in 0.05s
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+Course CHEMCHEM*1040: 126 sections with events
+Found 100 conflict-free schedules in 0.13s
+Returned 100 schedules out of 100 found in 0.13s
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+Course CHEMCHEM*1040: 126 sections with events
+Found 126 conflict-free schedules in 0.18s
+Returned 100 schedules out of 126 found in 0.18s
+Course CHEMCHEM*1040: 126 sections with events
+Course CISCIS*2750: 1 sections with events
+Course ENGGENGG*1410: 70 sections with events
+Course ENGGENGG*2400: 36 sections with events
+Course ENGGENGG*2410: 48 sections with events
+Course ENGGENGG*4460: 18 sections with events
+Watching for file changes with StatReloader
+Course CHEMCHEM*1040: 126 sections with events
+Course CISCIS*2750: 1 sections with events
+Course ENGGENGG*1410: 70 sections with events
+Course ENGGENGG*2400: 36 sections with events
+Course ENGGENGG*2410: 48 sections with events
+Course ENGGENGG*4460: 18 sections with events
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+Course CHEMCHEM*1040: 126 sections with events
+Course CISCIS*2750: 1 sections with events
+Course ENGGENGG*1410: 70 sections with events
+Course ENGGENGG*2400: 36 sections with events
+Course ENGGENGG*2410: 48 sections with events
+Course ENGGENGG*4460: 18 sections with events
+Watching for file changes with StatReloader
+Course CHEM1040: 126 sections with events
+Found 126 conflict-free schedules in 0.11s
+Returned 100 schedules out of 126 found in 0.11s
+Course CHEM1040: 126 sections with events
+Course ECON1050: 5 sections with events
+Found 630 conflict-free schedules in 0.17s
+Returned 100 schedules out of 630 found in 0.17s
+Course CHEM1040: 126 sections with events
+Course ECON1050: 5 sections with events
+Course ENGG1410: 70 sections with events
+Course ENGG2400: 36 sections with events
+Course ENGG2410: 48 sections with events
+Watching for file changes with StatReloader
+Course CHEM1040: 126 sections with events
+Found 126 conflict-free schedules in 0.17s
+Returned 100 schedules out of 126 found in 0.17s
+Course ECON1050: 5 sections with events
+Found 5 conflict-free schedules in 0.02s
+Returned 5 schedules out of 5 found in 0.02s
+Course ECON1050: 5 sections with events
+Course ENGG1410: 70 sections with events
+Found 350 conflict-free schedules in 0.10s
+Returned 100 schedules out of 350 found in 0.10s
+Course ECON1050: 5 sections with events
+Course ENGG2400: 36 sections with events
+Found 180 conflict-free schedules in 0.06s
+Returned 100 schedules out of 180 found in 0.06s
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+Course ECON1050: 5 sections with events
+Course ENGG2400: 36 sections with events
+Found 180 conflict-free schedules in 0.07s
+Returned 100 schedules out of 180 found in 0.07s
+Course ECON1050: 5 sections with events
+Found 5 conflict-free schedules in 0.01s
+Returned 5 schedules out of 5 found in 0.01s
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+Course ECON1050: 5 sections with events
+Found 5 conflict-free schedules in 0.02s
+Returned 5 schedules out of 5 found in 0.02s
+Course ECON1050: 5 sections with events
+Course CHEM1040: 126 sections with events
+Found 630 conflict-free schedules in 0.18s
+Returned 100 schedules out of 630 found in 0.18s
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+Course ECON1050: 5 sections with events
+Course CHEM1040: 126 sections with events
+Found 630 conflict-free schedules in 0.21s
+Returned 100 schedules out of 630 found in 0.21s
+Watching for file changes with StatReloader
+Course CHEM1040: 126 sections with events
+Found 126 conflict-free schedules in 0.25s
+Returned 100 schedules out of 126 found in 0.25s
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+Course ENGG1410: 70 sections with events
+Found 70 conflict-free schedules in 0.14s
+Returned 70 schedules out of 70 found in 0.14s
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+Course ENGG1410: 70 sections with events
+Found 70 conflict-free schedules in 0.25s
+Returned 70 schedules out of 70 found in 0.25s
+Watching for file changes with StatReloader
+Course CIS2750: 16 sections with events
+Found 16 conflict-free schedules in 0.08s
+Returned 16 schedules out of 16 found in 0.08s
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+Course CIS2750: 16 sections with events
+Found 16 conflict-free schedules in 0.05s
+Returned 16 schedules out of 16 found in 0.05s
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+Course CIS2750: 1 sections with events
+Found 1 conflict-free schedules in 0.02s
+Returned 1 schedules out of 1 found in 0.02s
+C:\Users\brijesh.thakrar\Downloads\coursescheduler\backend\scheduler\views.py changed, reloading.
+Watching for file changes with StatReloader
+Course CIS2750: 1 sections with events
+Found 1 conflict-free schedules in 0.01s
+Returned 1 schedules out of 1 found in 0.01s

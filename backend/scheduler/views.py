@@ -11,6 +11,8 @@ from allauth.socialaccount.models import SocialToken
 from google.oauth2.credentials import Credentials as GoogleCredentials
 from googleapiclient.discovery import build
 import re
+import time
+import logging
 from datetime import datetime
 from .models import Course, CourseEvent,Event, Suggestion
 
@@ -18,15 +20,33 @@ from .models import Course, CourseEvent,Event, Suggestion
 # API endpoint for getting course types
 #-----------------------------------------
 @require_GET
-def get_course_types(request):
-    types = (
+def get_offered_terms(request):
+    terms = (
         Course.objects
         .filter(events__isnull=False)
-        .values_list("course_type", flat=True)
+        .values_list("offered_term", flat=True)
         .distinct()
-        .order_by("course_type")
+        .order_by("offered_term")
     )
-    return JsonResponse(list(types), safe=False)
+    return JsonResponse(list(terms), safe=False)
+@require_POST
+def get_course_types(request):
+    try:
+        data = json.loads(request.body)
+        cterm = data.get("offered_term")
+        
+        types = (
+            Course.objects
+            .filter(events__isnull=False, offered_term=cterm)
+            .values_list("course_type", flat=True)
+            .distinct()
+            .order_by("course_type")
+        )
+        return JsonResponse(list(types), safe=False)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 def conflict_test(request):
     return render(request, "conflict_free_schedule.html")
 def index(request):
@@ -41,18 +61,18 @@ def index(request):
     return render(request, "index.html", {"course_types": course_types})
 
 @require_POST
-@csrf_exempt
+# @csrf_exempt
 def get_course_codes(request):
     try:
         data = json.loads(request.body)
         ctype = data.get("course_type")
-        
+        cterm = data.get("offered_term")
         if not ctype:
             return JsonResponse({"error": "Course type is required"}, status=400)
             
         codes = (
             Course.objects
-            .filter(course_type=ctype, events__isnull=False)
+            .filter(course_type=ctype,offered_term = cterm, events__isnull=False)
             .values_list("course_code", flat=True)
             .distinct()
             .order_by("course_code")
@@ -70,13 +90,14 @@ def get_section_numbers(request):
         data = json.loads(request.body)
         ctype = data.get("course_type")
         code = data.get("course_code")
+        cterm = data.get("offered_term")
         print(f"Received course_type: {ctype}, course_code: {code}")
         if not ctype or not code:
             return JsonResponse({"error": "Course type and code are required"}, status=400)
             
         secs = (
             Course.objects
-            .filter(course_type=ctype, course_code=code, events__isnull=False)
+            .filter(course_type=ctype,offered_term = cterm, course_code=code, events__isnull=False)
             .values_list("section_number", flat=True)
             .distinct()
             .order_by("section_number")
@@ -295,43 +316,42 @@ def conflict_free_schedule(request):
     }
     Returns paginated conflict-free schedules.
     """
-    import time
-    import logging
-
     logger = logging.getLogger(__name__)
     total_start = time.time()
 
     try:
         data = json.loads(request.body)
         selected_courses = data.get("courses", [])
+        offered_term = data.get("offered_term", None)
         offset = int(data.get("offset", 0))
-        limit = int(data.get("limit", 100))
+        limit = int(data.get("limit", 50))
 
         # Get all sections for each course with their events
         course_data = []
         for course in selected_courses:
             sections = Course.objects.filter(
                 course_type=course["course_type"],
-                course_code=course["course_code"]
+                course_code=course["course_code"],
+                offered_term=offered_term
             )
             section_events = []
             for section in sections:
                 events = list(Event.objects.filter(course_id=section.course_id).values(
-                    "event_type", "times", "location"
+                    "event_type", "times", "location", "days"
                 ))
                 if not events:
                     continue
                 # Parse time slots for conflict checking
                 time_slots = []
                 for e in events:
+                    # print(e)
                     parts = [p.strip() for p in e["times"].split(',')]
-                    days = []
+                    days = e["days"]
                     time_part = None
                     for p in parts:
                         if re.match(r'\d{1,2}:\d{2}\s*[AP]M\s*-\s*\d{1,2}:\d{2}\s*[AP]M', p):
                             time_part = p
                             break
-                        days.append(p)
                     if not time_part:
                         match = re.search(r'(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)', e["times"])
                         if not match:
@@ -341,6 +361,7 @@ def conflict_free_schedule(request):
                         start, end = [t.strip() for t in time_part.split('-')]
                     start_24 = datetime.strptime(start, "%I:%M %p").time()
                     end_24 = datetime.strptime(end, "%I:%M %p").time()
+                    print(f"Start: {start_24}, End: {end_24}, Days: {days}")
                     for d in days:
                         time_slots.append((d, start_24, end_24, e["event_type"]))
                 section_events.append({
@@ -351,7 +372,7 @@ def conflict_free_schedule(request):
                 })
             course_data.append(section_events)
             logger.info(f"Course {course['course_type']}{course['course_code']}: {len(section_events)} sections with events")
-
+        print(course_data)
         # Conflict checking helper
         def events_conflict(slots1, slots2):
             for day1, start1, end1, _ in slots1:
@@ -361,17 +382,12 @@ def conflict_free_schedule(request):
                             return True
             return False
 
-        # Backtracking with early pruning and pagination
-        results = []
-        total_found = [0]  # Use list for mutability in nested scope
+        # Backtracking to find ALL schedules first
+        all_schedules = []
 
         def build_schedules(course_index, current_schedule, current_slots):
-            if len(results) >= offset + limit:
-                return
             if course_index >= len(course_data):
-                if total_found[0] >= offset and len(results) < offset + limit:
-                    results.append(current_schedule.copy())
-                total_found[0] += 1
+                all_schedules.append(current_schedule.copy())
                 return
             for section_data in course_data[course_index]:
                 new_slots = section_data['time_slots']
@@ -388,15 +404,19 @@ def conflict_free_schedule(request):
 
         build_schedules(0, {}, [])
 
+        # Now paginate the results
+        total_found = len(all_schedules)
+        paginated_schedules = all_schedules[offset:offset+limit]
+
         response_data = {
-            "schedules": results[offset:offset+limit],
-            "total": total_found[0],
+            "schedules": paginated_schedules,
+            "total": total_found,
             "offset": offset,
             "limit": limit,
-            "message": f"Showing {len(results[offset:offset+limit])} of {total_found[0]} conflict-free schedules"
+            "message": f"Showing {len(paginated_schedules)} of {total_found} conflict-free schedules"
         }
-        logger.info(f"Found {total_found[0]} conflict-free schedules in {time.time() - total_start:.2f}s")
-        logger.info(f"Returned {len(results[offset:offset+limit])} schedules out of {total_found[0]} found in {time.time() - total_start:.2f}s")
+        logger.info(f"Found {total_found} conflict-free schedules in {time.time() - total_start:.2f}s")
+        logger.info(f"Returned {len(paginated_schedules)} schedules out of {total_found} found in {time.time() - total_start:.2f}s")
         return JsonResponse(response_data)
     except Exception as e:
         logger.error(f"Error in conflict_free_schedule: {str(e)}")
@@ -406,9 +426,6 @@ def conflict_free_schedule(request):
 # Helper function (same as original)
 def parse_time_range(timestr):
     """Parse time string into days, start_time, end_time"""
-    import re
-    from datetime import datetime
-    
     parts = [p.strip() for p in timestr.split(',')]
     days = []
     time_part = None

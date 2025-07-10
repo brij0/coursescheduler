@@ -364,7 +364,7 @@
         <button id="generate-rows" class="btn btn-success mt-3">
             <i class="fas fa-plus-circle mr-2"></i>Generate</button>
     </div>
-    <form id="course-form" action="/search/" method="post">
+    <form id="course-form" action="api/scheduler/search/" method="post">
         <div id="course-rows"></div>
         <div class="text-center" id="find-schedule-container" style="display: none;">
             <button type="submit" class="btn btn-primary">
@@ -525,7 +525,7 @@
 
             if (courseType) {
                 $.ajax({
-                    url: "get_course_codes/",
+                    url: "api/scheduler/get_course_codes/",
                     type: "POST",
                     contentType: "application/json",
                     data: JSON.stringify({ course_type: courseType }),
@@ -548,7 +548,7 @@
 
             if (courseType && courseCode) {
                 $.ajax({
-                    url: "get_section_numbers/",
+                    url: "api/scheduler/get_section_numbers/",
                     type: "POST",
                     contentType: "application/json",
                     data: JSON.stringify({ course_type: courseType, course_code: courseCode }),
@@ -601,7 +601,7 @@
             }
 
             $.ajax({
-                url: "/submit_suggestion/",
+                url: "api/scheduler/submit_suggestion/",
                 type: "POST",
                 contentType: "application/json",
                 data: JSON.stringify({ suggestion: suggestion }),

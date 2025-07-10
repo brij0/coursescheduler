@@ -5,6 +5,7 @@ app_name = 'scheduler-api'
 
 urlpatterns = [
     path('conflict_free_schedule/', views.conflict_free_schedule, name='conflict_free_schedule'),
+    path('offered_terms/', views.get_offered_terms, name='get_offered_terms'),
     path('course_types/', views.get_course_types, name='get_course_types'),
     path('get_course_codes/', views.get_course_codes, name='get_course_codes'),
     path('get_section_numbers/', views.get_section_numbers, name='get_section_numbers'),

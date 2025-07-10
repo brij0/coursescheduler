@@ -1,0 +1,168 @@
+{
+    "Fall 2025": [
+        {
+            "term": "Fall 2025",
+            "section_name": "CIS*2750*0101",
+            "course_type": "CIS",
+            "course_code": "2750",
+            "section_number": "0101",
+            "seats": "24",
+            "meeting_details": [
+                {
+                    "times": ["T/Th 5:30 PM-6:50 PM TBD", "9/4/2025 - 12/12/2025"],
+                    "locations": ["Guelph, MCKN121 TBD", "LEC"],
+                    "event_type": "LEC"
+                },
+                {
+                    "times": ["W 8:30 AM-10:20 AM TBD", "9/4/2025 - 12/12/2025"],
+                    "locations": ["Guelph, THRN1307 TBD", "LAB"],
+                    "event_type": "LAB"
+                },
+                {
+                    "times": [],
+                    "locations": [],
+                    "event_type": "Unknown"
+                }
+            ],
+            "instructors": ["McCuaig, J", "LEC, LAB"]
+        }
+    ],
+    "Winter 2026": [
+        {
+            "term": "Winter 2026",
+            "section_name": "CIS*2750*0101",
+            "course_type": "CIS",
+            "course_code": "2750",
+            "section_number": "0101",
+            "seats": "3",
+            "meeting_details": [
+                {
+                    "times": ["T/Th 4:00 PM-5:20 PM TBD", "1/5/2026 - 4/21/2026"],
+                    "locations": ["Guelph, MACN105 TBD", "LEC"],
+                    "event_type": "LEC"
+                },
+                {
+                    "times": ["M 4:30 PM-6:20 PM TBD", "1/5/2026 - 4/21/2026"],
+                    "locations": ["Guelph, SSC1303 TBD", "LAB"],
+                    "event_type": "LAB"
+                },
+                {
+                    "times": ["M 4:30 PM-6:20 PM TBD", "1/5/2026 - 4/21/2026"],
+                    "locations": ["Guelph, SSC1305 TBD", "LAB"],
+                    "event_type": "LAB"
+                },
+                {
+                    "times": [],
+                    "locations": [],
+                    "event_type": "Unknown"
+                }
+            ],
+            "instructors": ["Nikitenko, D", "LEC"]
+        },
+        {
+            "term": "Winter 2026",
+            "section_name": "CIS*2750*0102",
+            "course_type": "CIS",
+            "course_code": "2750",
+            "section_number": "0102",
+            "seats": "0",
+            "meeting_details": [
+                {
+                    "times": ["T/Th 4:00 PM-5:20 PM TBD", "1/5/2026 - 4/21/2026"],
+                    "locations": ["Guelph, MACN105 TBD", "LEC"],
+                    "event_type": "LEC"
+                },
+                {
+                    "times": ["M 7:00 PM-8:50 PM TBD", "1/5/2026 - 4/21/2026"],
+                    "locations": ["Guelph, SSC1303 TBD", "LAB"],
+                    "event_type": "LAB"
+                },
+                {
+                    "times": ["M 7:00 PM-8:50 PM TBD", "1/5/2026 - 4/21/2026"],
+                    "locations": ["Guelph, SSC1305 TBD", "LAB"],
+                    "event_type": "LAB"
+                },
+                {
+                    "times": [],
+                    "locations": [],
+                    "event_type": "Unknown"
+                }
+            ],
+            "instructors": ["Nikitenko, D", "LEC"]
+        }
+    ]
+}
+
+
+
+
+
+INSERT INTO scheduler_courseevent
+  (course_id, event_type, event_date, start_date, end_date, days, time, location, description, weightage)
+VALUES
+  (334, 'Lecture',    '2025-09-01', '2025-09-01', '2025-12-15', 'Mon,Wed,Fri', '09:00–10:00', 'Room 101', 'Intro CS lecture', '10%'),
+  (334, 'Lab',        '2025-09-02', '2025-09-02', '2025-12-15', 'Tue',         '14:00–16:00', 'Lab A',    'Weekly programming lab', '5%'),
+  (20, 'Lecture',    '2025-09-01', '2025-09-01', '2025-12-15', 'Tue,Thu',     '11:00–12:30', 'Room 102', 'Intro CS lecture', '10%'),
+  (20, 'Midterm',    '2025-10-15', '2025-10-15', '2025-10-15', 'Wed',         '13:00–15:00', 'Room 103', 'Midterm exam', '25%'),
+  (41, 'Lecture',    '2025-09-02', '2025-09-02', '2025-12-15', 'Mon,Wed',     '10:00–11:30', 'Room 201', 'Data Structures lecture', '15%'),
+  (41, 'Discussion', '2025-09-04', '2025-09-04', '2025-12-15', 'Thu',         '13:00–14:00', 'Room 202', 'Problem-solving session', '5%'),
+  (111, 'Lecture',    '2025-09-01', '2025-09-01', '2025-12-15', 'Mon,Wed,Fri', '08:00–09:00', 'Room 301', 'Calculus I lecture', '10%'),
+  (111, 'Recitation', '2025-09-03', '2025-09-03', '2025-12-15', 'Thu',         '12:00–13:00', 'Room 302', 'Problem recitation', '5%'),
+  (147, 'Lecture',    '2025-09-01', '2025-09-01', '2025-12-15', 'Mon,Wed,Fri', '08:00–09:00', 'Room 301', 'Calculus I lecture', '10%'),
+  (147, 'Recitation', '2025-09-03', '2025-09-03', '2025-12-15', 'Thu',         '12:00–13:00', 'Room 302', 'Problem recitation', '5%'),
+  (195, 'Lecture',    '2025-09-01', '2025-09-01', '2025-12-15', 'Mon,Wed,Fri', '08:00–09:00', 'Room 301', 'Calculus I lecture', '10%'),
+  (195, 'Recitation', '2025-09-03', '2025-09-03', '2025-12-15', 'Thu',         '12:00–13:00', 'Room 302', 'Problem recitation', '5%');
+
+
+
+
+[
+    [
+        {
+            'section': "<Course: CIS*2750*0101>",
+            'events': [
+                {
+                    'event_type': 'LEC',
+                    'times': '5:30 PM-6:50 PM',
+                    'location': 'Guelph,MCKN121',
+                    'days': 'Tuesday, Thursday'
+                },
+                {
+                    'event_type': 'LAB',
+                    'times': '8:30 AM-10:20 AM',
+                    'location': 'Guelph,THRN1307',
+                    'days': 'Wednesday'
+                }
+            ],
+            'time_slots': [
+                ('T', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                ('u', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                ('e', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                ('s', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                ('d', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                ('a', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                ('y', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                (',', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                (' ', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                ('T', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                ('h', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                ('u', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                ('r', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                ('s', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                ('d', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                ('a', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                ('y', "datetime.time(17, 30)", "datetime.time(18, 50)", 'LEC'),
+                ('W', "datetime.time(8, 30)", "datetime.time(10, 20)", 'LAB'),
+                ('e', "datetime.time(8, 30)", "datetime.time(10, 20)", 'LAB'),
+                ('d', "datetime.time(8, 30)", "datetime.time(10, 20)", 'LAB'),
+                ('n', "datetime.time(8, 30)", "datetime.time(10, 20)", 'LAB'),
+                ('e', "datetime.time(8, 30)", "datetime.time(10, 20)", 'LAB'),
+                ('s', "datetime.time(8, 30)", "datetime.time(10, 20)", 'LAB'),
+                ('d', "datetime.time(8, 30)", "datetime.time(10, 20)", 'LAB'),
+                ('a', "datetime.time(8, 30)", "datetime.time(10, 20)", 'LAB'),
+                ('y', "datetime.time(8, 30)", "datetime.time(10, 20)", 'LAB')
+            ],
+            'key': 'CIS*2750*0101'
+        }
+    ]
+]

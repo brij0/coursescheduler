@@ -29,15 +29,17 @@ def get_db_connection():
         print(f"Error: {err}")
         return None, None
     
+import re  # Add this at the top of your file with other imports
+
 def insert_cleaned_sections(courses_data):
     """
     Clean and add scraped course sections and their associated events to the database.
     Matches the MySQL schema with specific field lengths and constraints.
 
     Args:
-        courses_data (dict): Dictionary with course codes as keys and lists of section info as values
+        courses_data (dict): Dictionary with course codes as keys and 
+                             dictionaries of term-section mappings as values
     """
-    # Mapping for days abbreviation to full names
     days_mapping = {
         "M": "Monday",
         "T": "Tuesday",
@@ -51,74 +53,121 @@ def insert_cleaned_sections(courses_data):
     db_connection, db_cursor = get_db_connection()
 
     try:
-        # Process each course and its sections
-        for course_code, sections in courses_data.items():
-            if sections:
-                for course_section in sections:
+        # Process each course
+        for course_codes, term_sections in courses_data.items():
+            # Process each term for the current course
+            for term, sections in term_sections.items():
+                print(f"  Processing term: {term}")
+                
+                # Process each section in the term
+                for section_info in sections:
                     # Clean and truncate section data
-                    section_name_cleaned = course_section.get('section_name', '')[:20]  # VARCHAR(50)
-                    seats_info = course_section.get('seats', '0/0')[:20]  # VARCHAR(50)
-                    instructors_list = ', '.join(course_section.get('instructors', ['Unknown']))[:50]  # VARCHAR(50)
-                    course_type_cleaned = course_section.get('course_type', 'Unknown')[:20]  # VARCHAR(50)
-                    course_code_cleaned = course_section.get('course_code', '')[:20]  # VARCHAR(50)
-                    section_number_cleaned = course_section.get('section_number', '')[:20]  # VARCHAR(50)
+                    offered_term = term[:20] if term else ''  # VARCHAR(20)
+                    section_name = section_info.get('section_name', '')[:20]
+                    seats_info = section_info.get('seats', '0/0')[:20]
+                    course_code = section_info.get('course_code', 'Unknown')[:20]
+                    instructors = ', '.join(section_info.get('instructors', ['Unknown']))[:50]
+                    course_type = section_info.get('course_type', 'Unknown')[:20]
+                    section_number = section_info.get('section_number', '')[:20]
 
                     # Insert section into database
                     insert_section_query = """
-                        INSERT INTO courses (section_name, seats, instructor, course_type, course_code, section_number)
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                        INSERT INTO courses 
+                        (offered_term, section_name, seats, instructor, course_type, course_code, section_number)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """
-                    db_cursor.execute(insert_section_query, (section_name_cleaned, seats_info, instructors_list, course_type_cleaned, course_code_cleaned, section_number_cleaned))
+                    params = (
+                        offered_term,
+                        section_name,
+                        seats_info,
+                        instructors,
+                        course_type,
+                        course_code,  
+                        section_number
+                    )
+                    db_cursor.execute(insert_section_query, params)
+                    course_id = db_cursor.lastrowid
 
-                    # Get the last inserted course_id
-                    inserted_course_id = db_cursor.lastrowid
-
-                    # Process and clean meeting details
-                    meetings_details = course_section.get('meeting_details', [])
-                    for meeting_detail in meetings_details:
-                        # Clean event data
-                        # Clean times
-                        meeting_times = meeting_detail.get('times', [])
-                        if meeting_times:
-                            meeting_times_str = ', '.join(meeting_times) if isinstance(meeting_times, list) else str(meeting_times)
-                            match = re.match(r"([MTWThFSu/]+)([0-9:AMP-]+)", meeting_times_str)
-                            if match:
-                                days_abbreviation = match.group(1)
-                                time_details = match.group(2)
-
-                                expanded_days_list = [days_mapping.get(day, day) for day in days_abbreviation.split('/')]
-                                expanded_days_string = ', '.join(expanded_days_list)
-
-                                remaining_time_details = meeting_times_str.replace(match.group(0), "").replace("TBD", "").strip()
-                                meeting_times = f"{expanded_days_string}, {time_details} {remaining_time_details}".strip(", ")
-                            else:
-                                meeting_times = meeting_times_str.replace("TBD", "").strip()
+                    # Process meeting details
+                    for meeting_detail in section_info.get('meeting_details', []):
+                        # Extract and clean times
+                        times = meeting_detail.get('times', [])
+                        # print(f"raw timings: {times}")
+                        
+                        time_str = "TBD"
+                        
+                        if times:
+                            # Parse and format time information
+                            days_list = []
+                            time_range = ""
+                            date_range = ""
+                            
+                            for time_item in times:
+                                # Check if it's a date range
+                                if re.search(r'\d+/\d+/\d+\s*-\s*\d+/\d+/\d+', time_item):
+                                    date_range = time_item
+                                    continue
+                                
+                                # Extract days (could be multiple with /)
+                                day_pattern = r'^([A-Za-z]+/)*[A-Za-z]+'
+                                day_match = re.search(day_pattern, time_item)
+                                
+                                if day_match:
+                                    day_str = day_match.group(0)
+                                    if '/' in day_str:
+                                        # Handle days like "T/F"
+                                        day_parts = day_str.split('/')
+                                        for part in day_parts:
+                                            for abbr, full in days_mapping.items():
+                                                if part == abbr:
+                                                    days_list.append(full)
+                                    else:
+                                        # Handle single days
+                                        for abbr, full in days_mapping.items():
+                                            if day_str == abbr:
+                                                days_list.append(full)
+                                
+                                # Extract time range
+                                time_pattern = r'(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)'
+                                time_match = re.search(time_pattern, time_item)
+                                if time_match:
+                                    time_range = f"{time_match.group(1)}-{time_match.group(2)}"
+                            
+                            # Format final time string
+                            if days_list and time_range:
+                                time_str = f"{', '.join(days_list)} {time_range}"
+                                if date_range:
+                                    time_str += f" ({date_range})"
+                            elif date_range:
+                                time_str = date_range
 
                         # Clean location
-                        meeting_locations = meeting_detail.get('locations', [])
-                        meeting_location_cleaned = (meeting_locations[0] if isinstance(meeting_locations, list) and meeting_locations else str(meeting_locations)).replace('TBD', '').strip()[:255]
+                        locations = meeting_detail.get('locations', [])
+                        location = locations[0][:-3] if locations else "TBD"
 
                         # Clean event type
-                        event_type_cleaned = meeting_detail.get('event_type', 'Unknown').replace('TBD', '').strip()[:50]
+                        event_type = meeting_detail.get('event_type', 'Unknown').replace('TBD', '')[:50]
+                        if not event_type:
+                            event_type = 'Unknown'
 
-                        # Skip events with event_type "Unknown"
-                        if event_type_cleaned.lower() == 'unknown':
+                        # Skip unknown event types
+                        if event_type.lower() == 'unknown':
                             continue
-
-                        # Insert event into database
+                        days_str = ", ".join(days_list) if days_list else "TBD"
+                        time_range_str = time_range if time_range else "TBD"
+                        date_range_str = date_range if date_range else ""
+                        # Insert event
                         insert_event_query = """
-                            INSERT INTO events (course_id, event_type, times, location)
-                            VALUES (%s, %s, %s, %s)
+                            INSERT INTO events 
+                            (course_id, event_type, times, location, days, dates)
+                            VALUES (%s, %s, %s, %s, %s, %s)
                         """
-                        db_cursor.execute(insert_event_query, (inserted_course_id, event_type_cleaned, meeting_times, meeting_location_cleaned))
+                        db_cursor.execute(insert_event_query, 
+                                        (course_id, event_type, time_range_str, location, 
+                                        days_str, date_range_str))
 
-                print(f"Processed {len(sections)} sections for course: {course_code}")
-            else:
-                print(f"No sections found for course: {course_code}")
-
-        # Commit the transaction
         db_connection.commit()
-        print("Successfully added all cleaned sections and events to the database")
+        print("Successfully inserted all sections and events")
 
     except Exception as e:
         print(f"An error occurred while adding data to the database: {e}")
