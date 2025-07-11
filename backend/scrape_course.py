@@ -2,6 +2,7 @@ from seleniumbase import SB
 from bs4 import BeautifulSoup
 from database import *
 from collections import defaultdict
+import re
 
 winter_2025_courses = ['ACCT*1220', 'ACCT*1240', 'ACCT*2230', 'ACCT*4230', 'BIOCH*2580', 'BIOM*2000', 
            'CHEM*1050', 'CIS*1500', 'CIS*2500', 'CIS*2750', 'CIS*2910', 'CIS*3110', 
@@ -63,7 +64,19 @@ def extract_course_sections(course_html):
         dict: A dictionary with terms as keys and lists of section dictionaries as values.
     """
     soup = BeautifulSoup(course_html, 'html.parser')
-
+    span = soup.find('span', attrs={'data-bind': re.compile(r'course-\$data\.Id\(\)')})
+    if not span:
+        span = soup.find('span', id=re.compile(r'^course-\d+'))
+    if span:
+        text = span.get_text(strip=True)
+        match = re.search(r'\(([\d.]+)\s*Credits?\)', text)
+        if match:
+            credits = match.group(1)
+        else:
+            credits = '0.5'  # Default if not found
+    else:
+        credits = '0.5'  # Default if not found
+    print(f"Credits found: {credits}")
     all_elements = soup.find_all(['h4', 'table'])
     
     all_sections = {}
@@ -128,7 +141,7 @@ def extract_course_sections(course_html):
 
                 section_info['meeting_details'] = meeting_details
                 section_info['instructors'] = instructors
-
+                section_info['credits'] = credits  # Add credits information
                 all_sections[current_term].append(section_info)
                 #print(f"Added section to {current_term}: {section_info.get('section_name', 'Unknown')}")
     #print(all_sections)
@@ -166,7 +179,8 @@ def scrape_courses(list_of_courses):
     return scraped_courses
 if __name__ == '__main__':
     # engg = ['ENGG*3130', 'ENGG*3210', 'ENGG*3410', 'ENGG*3490', 'ENGG*4430', 'ENGG*4490', 'ENGG*4510', 'ENGG*4540']
-    engg = ['ECON*1050','ENGG*1410','ENGG*2400','ENGG*2410','CHEM*1040','CIS*2750']
+    engg = ['ENGG*6390']
+    # engg = ['ECON*1050','ENGG*1410','ENGG*2400','ENGG*2410','CHEM*1040','CIS*2750']
     #,'ENGG*1410','ENGG*2400','ENGG*2410','CHEM*1040'
     scraped = scrape_courses(engg)
     insert_cleaned_sections(scraped)

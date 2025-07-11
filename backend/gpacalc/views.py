@@ -16,17 +16,38 @@ def index(request):
     Usage (frontend):
         - Use course_types to populate the first dropdown for course selection.
     """
-    course_types = (
+    terms = (
+            Course.objects
+            .filter(events__isnull=False)
+            .values_list("offered_term", flat=True)
+            .distinct()
+            .order_by("offered_term")
+        )
+    return render(request, "gpacalc/index.html", {
+            "offered_terms": terms
+        })
+@require_GET
+def get_offered_terms(request):
+    terms = (
         Course.objects
         .filter(events__isnull=False)
+        .values_list("offered_term", flat=True)
+        .distinct()
+        .order_by("offered_term")
+    )
+    return JsonResponse(list(terms), safe=False)
+@require_POST
+def get_course_types(request):
+    data = json.loads(request.body)
+    cterm = data.get("offered_term")
+    types = (
+        Course.objects
+        .filter(events__isnull=False, offered_term=cterm)
         .values_list("course_type", flat=True)
         .distinct()
         .order_by("course_type")
     )
-    return render(request, "gpacalc/index.html", {
-        "course_types": course_types
-    })
-
+    return JsonResponse(list(types), safe=False)
 @require_POST
 @csrf_exempt
 def get_course_codes(request):
@@ -38,10 +59,11 @@ def get_course_codes(request):
         - Call when user selects a course type to populate the course code dropdown.
     """
     data = json.loads(request.body)
+    cterm = data.get("offered_term")
     ctype = data.get("course_type")
     codes = (
         Course.objects
-        .filter(course_type=ctype, events__isnull=False)
+        .filter(course_type=ctype, offered_term=cterm, events__isnull=False)
         .values_list("course_code", flat=True)
         .distinct()
         .order_by("course_code")
@@ -60,10 +82,11 @@ def get_section_numbers(request):
     """
     data = json.loads(request.body)
     ctype = data.get("course_type")
-    code  = data.get("course_code")
+    ccode  = data.get("course_code")
+    cterm = data.get("offered_term")
     secs = (
         Course.objects
-        .filter(course_type=ctype, course_code=code, events__isnull=False)
+        .filter(course_type=ctype,offered_term = cterm, course_code=ccode, events__isnull=False)
         .values_list("section_number", flat=True)
         .distinct()
         .order_by("section_number")
@@ -87,11 +110,13 @@ def get_course_events(request):
     data = json.loads(request.body)
     ctype = data.get("course_type")
     code  = data.get("course_code")
-    sn    = data.get("section_number")
+    csn    = data.get("section_number")
+    cterm = data.get("offered_term")
     evs = CourseEvent.objects.filter(
         course__course_type=ctype,
         course__course_code=code,
-        course__section_number=sn
+        course__section_number=csn,
+        course__offered_term = cterm
     ).values("id", "event_type", "weightage")
     return JsonResponse(list(evs), safe=False)
 
@@ -133,6 +158,8 @@ def calculate_gpa(request):
         - Call after user enters all grades to get per-course and overall GPA.
     """
     payload = json.loads(request.body)
+    print(f"Received payload: {payload}")
+    offered_term = payload.get("offered_term")
     results = []
     total_points = 0
     total_credit = 0
@@ -144,11 +171,12 @@ def calculate_gpa(request):
         course_obj = Course.objects.get(
             course_type=c["course_type"],
             course_code=c["course_code"],
-            section_number=c["section_number"]
+            section_number=c["section_number"],
+            offered_term=offered_term,
         )
+        print(f"Found course: {course_obj} (credits: {course_obj.credits})")
         cg = CourseGrade.objects.create(
             course=course_obj,
-            credits=c.get("credits", 1.0)
         )
         # for each assessment input
         for a in c.get("assessments", []):
@@ -167,23 +195,26 @@ def calculate_gpa(request):
                 weightage=weight,
                 achieved_percentage=a["achieved"]
             )
+        print(f"AssessmentGrade created: event={ev}, weight={raw_weight}, achieved={a['achieved']}")
         # compute final & letter & gpa
         cg.calculate_from_assessments()
+        print(f"After calculation: final_percentage={cg.final_percentage}, letter_grade={cg.letter_grade}, gpa_value={cg.gpa_value}")
         results.append({
             "course": str(cg.course),
             "final_percentage": float(cg.final_percentage) if cg.final_percentage is not None else None,
             "letter_grade": cg.letter_grade,
             "gpa_value": float(cg.gpa_value) if cg.gpa_value is not None else None,
-            "credits": float(cg.credits),
+            "credits": float(cg.course.credits)
         })
         if cg.gpa_value is not None:
-            total_points += float(cg.gpa_value) * float(cg.credits)
-            total_credit += float(cg.credits)
+            total_points += float(cg.gpa_value) * float(cg.course.credits)
+            total_credit += float(cg.course.credits)
         if cg.final_percentage is not None:
-            total_weighted_percentage += float(cg.final_percentage) * float(cg.credits)
-            total_credits_for_percentage += float(cg.credits)
+            total_weighted_percentage += float(cg.final_percentage) * float(cg.course.credits)
+            total_credits_for_percentage += float(cg.course.credits)
 
     overall_gpa = round(total_points / total_credit, 2) if total_credit else 0
+    print(total_credit, total_points, overall_gpa)
     overall_final_percentage = (
         round(total_weighted_percentage / total_credits_for_percentage, 2)
         if total_credits_for_percentage else 0
@@ -191,5 +222,6 @@ def calculate_gpa(request):
     return JsonResponse({
         "per_course": results,
         "overall_gpa": overall_gpa,
-        "overall_final_percentage": overall_final_percentage
+        "overall_final_percentage": overall_final_percentage,
+        "total_credit": total_credit,
     })

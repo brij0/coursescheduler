@@ -20,7 +20,6 @@ class CourseGrade(models.Model):
     Holds the computed grade for one Course.
     """
     course           = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="grades")
-    credits          = models.DecimalField(max_digits=4, decimal_places=2, default=1.0)
     final_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     letter_grade     = models.CharField(max_length=5, null=True, blank=True)
     gpa_value        = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True)

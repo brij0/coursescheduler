@@ -10,6 +10,7 @@ class Course(models.Model):
     section_name   = models.CharField(max_length=50)
     seats          = models.CharField(max_length=50)
     instructor     = models.CharField(max_length=50)
+    credits       = models.FloatField(null=True, blank=True, default= 0.5)
 
     class Meta:
         db_table = "courses"

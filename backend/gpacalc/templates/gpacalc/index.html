@@ -9,10 +9,21 @@
     .course-block { margin-bottom: 1rem; padding: .5rem; border: 1px solid #ccc; }
     .assess-table { width: 100%; border-collapse: collapse; margin-top: .5rem; }
     .assess-table th, .assess-table td { border: 1px solid #ddd; padding: .3rem; }
+    .term-selector { margin-bottom: 1.5rem; padding: 0.5rem; background: #f5f5f5; }
   </style>
 </head>
 <body>
   <h1>GPA Calculator</h1>
+  
+  <!-- Add term selector -->
+  <div class="term-selector">
+    <label>Select Term:
+      <select id="offered-term" name="offered_term">
+        <option value="">-- Select Term --</option>
+      </select>
+    </label>
+  </div>
+  
   <div id="courses-container"></div>
   <button id="add-course">Add Course</button>
   <hr>
@@ -24,17 +35,52 @@
 <script>
 let courseIdx = 0;
 
+// Populate offered term dropdown from context
+$(document).ready(function() {
+  const sel = $('#offered-term');
+  {% for term in offered_terms %}
+    sel.append(`<option value="{{ term }}">{{ term }}</option>`);
+  {% endfor %}
+});
+
+// Disable course selection until a term is selected
+$('#add-course').prop('disabled', true);
+
+// When offered term changes, fetch course types
+$(document).on('change', '#offered-term', function() {
+  const term = $(this).val();
+  $('#add-course').prop('disabled', !term);
+  $("#courses-container").empty();
+  courseIdx = 0;
+  if (term) {
+    fetch("{% url 'gpacalc-api:get_course_types' %}", {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+      body: JSON.stringify({offered_term: term})
+    })
+    .then(r=>r.json())
+    .then(types=>{
+      // Store types globally or pass to addCourseBlock
+      window.currentCourseTypes = types;
+      addCourseBlock();
+    });
+  }
+});
+
 // Add a new course selector block
 function addCourseBlock() {
   const idx = courseIdx++;
+  let typeOptions = '<option value="">-- select --</option>';
+  if (window.currentCourseTypes) {
+    window.currentCourseTypes.forEach(t => {
+      typeOptions += `<option value="${t}">${t}</option>`;
+    });
+  }
   const block = $(`
     <div class="course-block" data-idx="${idx}">
       <label>Type:
         <select class="ctype" name="course_type">
-          <option value="">-- select --</option>
-          {% for t in course_types %}
-            <option value="{{ t }}">{{ t }}</option>
-          {% endfor %}
+          ${typeOptions}
         </select>
       </label>
       <label>Code:
@@ -53,13 +99,14 @@ function addCourseBlock() {
 $(document).on('change', '.ctype', function(){
   const parent = $(this).closest('.course-block');
   const type = $(this).val();
+  const term = $('#offered-term').val();
   parent.find('.ccode').empty().append('<option>Loading…</option>');
   parent.find('.csec').empty().append('<option></option>');
   parent.find('.events').empty();
   fetch("{% url 'gpacalc-api:get_course_codes' %}", {
     method: 'POST',
     headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
-    body: JSON.stringify({course_type: type})
+    body: JSON.stringify({course_type: type, offered_term: term})
   })
   .then(r=>r.json())
   .then(list=>{
@@ -73,12 +120,13 @@ $(document).on('change', '.ccode', function(){
   const parent = $(this).closest('.course-block');
   const type = parent.find('.ctype').val();
   const code = $(this).val();
+  const term = $('#offered-term').val();
   parent.find('.csec').empty().append('<option>Loading…</option>');
   parent.find('.events').empty();
   fetch("{% url 'gpacalc-api:get_section_numbers' %}", {
     method: 'POST',
     headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
-    body: JSON.stringify({course_type: type, course_code: code})
+    body: JSON.stringify({course_type: type, course_code: code, offered_term: term})
   })
   .then(r=>r.json())
   .then(list=>{
@@ -93,6 +141,7 @@ $(document).on('change', '.csec', function(){
   const type = parent.find('.ctype').val();
   const code = parent.find('.ccode').val();
   const sec  = $(this).val();
+  const term = $('#offered-term').val();
   parent.find('.events').html('Loading events…');
   fetch("{% url 'gpacalc-api:get_course_events' %}", {
     method: 'POST',
@@ -100,7 +149,8 @@ $(document).on('change', '.csec', function(){
     body: JSON.stringify({
       course_type: type,
       course_code: code,
-      section_number: sec
+      section_number: sec,
+      offered_term: term
     })
   })
   .then(r=>r.json())
@@ -129,11 +179,11 @@ $('#add-course').click(e=>{
   e.preventDefault();
   addCourseBlock();
 });
-addCourseBlock();
 
 // calculate GPA
 $('#calc-gpa').click(async e => {
-  const payload = {courses: []};
+  const term = $('#offered-term').val();
+  const payload = {courses: [], offered_term: term};
   $('.course-block').each(function(){
     const block = $(this);
     const type = block.find('.ctype').val();
