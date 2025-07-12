@@ -76,7 +76,7 @@ def extract_course_sections(course_html):
             credits = '0.5'  # Default if not found
     else:
         credits = '0.5'  # Default if not found
-    print(f"Credits found: {credits}")
+    # print(f"Credits found: {credits}")
     all_elements = soup.find_all(['h4', 'table'])
     
     all_sections = {}
@@ -172,14 +172,14 @@ def scrape_courses(list_of_courses):
                 page_source = sb.get_page_source()
                 scraped_courses[course] = extract_course_sections(page_source)
             except Exception as e:
-                print(f"An error occurred while scraping course sections for {course}: {e}")
+                # print(f"An error occurred while scraping course sections for {course}: {e}")
                 scraped_courses[course] = []  # Add empty list for failed courses
                 continue
     
     return scraped_courses
 if __name__ == '__main__':
     # engg = ['ENGG*3130', 'ENGG*3210', 'ENGG*3410', 'ENGG*3490', 'ENGG*4430', 'ENGG*4490', 'ENGG*4510', 'ENGG*4540']
-    engg = ['ENGG*6390']
+    engg = ['ENGG*6390','ECON*1050','ENGG*1410','ENGG*2400','ENGG*2410','CHEM*1040','CIS*2750']
     # engg = ['ECON*1050','ENGG*1410','ENGG*2400','ENGG*2410','CHEM*1040','CIS*2750']
     #,'ENGG*1410','ENGG*2400','ENGG*2410','CHEM*1040'
     scraped = scrape_courses(engg)

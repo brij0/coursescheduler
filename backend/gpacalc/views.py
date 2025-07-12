@@ -1,23 +1,26 @@
 import json
 from django.shortcuts   import render
-from django.http        import JsonResponse
+from django.http        import JsonResponse ,HttpResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
-
+from applogger.utils import log_info, log_error
+from applogger.views import log_user_year_estimate, log_app_activity
 from scheduler.models import Course, CourseEvent
 from .models          import CourseGrade, AssessmentGrade, GpaCalcProgress
-import csv
-from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from io import BytesIO
 
+app_name = "GPA-Calculator"
+section_name = "Index"
 @require_GET
 def index(request):
+    log_app_activity(request, app_name,section_name)
     """
     Renders the GPA calculator page.
     If user is authenticated and has progress, prefill the form.
     """
+    log_info("GPA index page accessed", extra={"user": str(request.user)})
     terms = (
         Course.objects
         .filter(events__isnull=False)
@@ -38,6 +41,7 @@ def index(request):
     })
 @require_GET
 def get_offered_terms(request):
+    log_app_activity(request, app_name,section_name)
     terms = (
         Course.objects
         .filter(events__isnull=False)
@@ -48,6 +52,7 @@ def get_offered_terms(request):
     return JsonResponse(list(terms), safe=False)
 @require_POST
 def get_course_types(request):
+    log_app_activity(request, app_name,section_name)
     data = json.loads(request.body)
     cterm = data.get("offered_term")
     types = (
@@ -61,6 +66,7 @@ def get_course_types(request):
 @require_POST
 @csrf_exempt
 def get_course_codes(request):
+    log_app_activity(request, app_name,section_name)
     """
     AJAX endpoint.
     Request: JSON { "course_type": "CS" }
@@ -83,6 +89,7 @@ def get_course_codes(request):
 @require_POST
 @csrf_exempt
 def get_section_numbers(request):
+    log_app_activity(request, app_name,section_name)
     """
     AJAX endpoint.
     Request: JSON { "course_type": "CS", "course_code": "CS101" }
@@ -106,6 +113,7 @@ def get_section_numbers(request):
 @require_POST
 @csrf_exempt
 def get_course_events(request):
+    log_app_activity(request, app_name,section_name)
     """
     AJAX endpoint.
     Request: JSON { "course_type": "...", "course_code": "...", "section_number": "..." }
@@ -122,6 +130,7 @@ def get_course_events(request):
     code  = data.get("course_code")
     csn    = data.get("section_number")
     cterm = data.get("offered_term")
+    user = request.user if request.user.is_authenticated else None
     evs = CourseEvent.objects.filter(
         course__course_type=ctype,
         course__course_code=code,
@@ -132,6 +141,7 @@ def get_course_events(request):
 
 @require_POST
 def calculate_gpa(request):
+    log_app_activity(request, app_name,section_name)
     """
     Main GPA calculation endpoint.
     Request: JSON
@@ -168,6 +178,7 @@ def calculate_gpa(request):
         - Call after user enters all grades to get per-course and overall GPA.
     """
     payload = json.loads(request.body)
+    log_user_year_estimate(request)
     # print(f"Received payload: {payload}")
     offered_term = payload.get("offered_term")
     results = []
@@ -230,27 +241,46 @@ def calculate_gpa(request):
         if total_credits_for_percentage else 0
     )
     
+    clean_courses = []
+    for course in payload.get("courses", []):
+        clean_assessments = []
+        for a in course.get("assessments", []):
+            clean_assessments.append({
+                "event_id": int(a.get("event_id")) if a.get("event_id") is not None else None,
+                "achieved": float(a.get("achieved")) if a.get("achieved") is not None else None,
+            })
+        clean_courses.append({
+            "course_type": course.get("course_type", ""),
+            "course_code": course.get("course_code", ""),
+            "section_number": course.get("section_number", ""),
+            "assessments": clean_assessments,
+        })
+
+    result_data = {
+        "per_course": results,
+        "overall_gpa": float(overall_gpa),
+        "overall_final_percentage": float(overall_final_percentage),
+        "total_credit": float(total_credit),
+        "courses": clean_courses,
+        "offered_term": payload.get("offered_term", ""),
+    }
     # Save progress for logged-in users or by session
     if request.user.is_authenticated:
         from .models import GpaCalcProgress
         GpaCalcProgress.objects.update_or_create(
             user=request.user,
-            defaults={'data': payload}
+            defaults={'data': result_data}
         )
     else:
-        # Use session for anonymous users
-        request.session['gpacalc_progress'] = payload
-
-    return JsonResponse({
-        "per_course": results,
-        "overall_gpa": overall_gpa,
-        "overall_final_percentage": overall_final_percentage,
-        "total_credit": total_credit,
-    })
+        request.session['gpacalc_progress'] = result_data
+    
+    return JsonResponse(result_data)
 
 @require_GET
-@require_GET
+@csrf_exempt
 def progress_export_excel(request):
+    section_name = "Excel Export"
+    log_app_activity(request, app_name, section_name)
     if request.user.is_authenticated:
         try:
             progress = GpaCalcProgress.objects.get(user=request.user)
@@ -259,10 +289,9 @@ def progress_export_excel(request):
             data = {}
     else:
         data = request.session.get('gpacalc_progress', {})
-
     wb = Workbook()
     wb.remove(wb.active)
-    # print(data)
+
     # 1. Add Overall GPA Sheet
     overall_gpa = data.get('overall_gpa', '')
     overall_final_percentage = data.get('overall_final_percentage', '')
@@ -270,25 +299,25 @@ def progress_export_excel(request):
     per_course = data.get('per_course', [])
 
     ws_summary = wb.create_sheet(title="Overall GPA")
-    ws_summary.append(["Overall GPA", overall_gpa])
-    ws_summary.append(["Overall Final %", overall_final_percentage])
-    ws_summary.append(["Total Credits", total_credit])
+    ws_summary.append(["Overall GPA", overall_gpa if overall_gpa != '' else None])
+    ws_summary.append(["Overall Final %", overall_final_percentage if overall_final_percentage != '' else None])
+    ws_summary.append(["Total Credits", total_credit if total_credit != '' else None])
     ws_summary.append([])  # Blank row
     ws_summary.append(["Course", "Final %", "Letter Grade", "GPA Value", "Credits"])
     for c in per_course:
         ws_summary.append([
             c.get("course", ""),
-            c.get("final_percentage", ""),
+            c.get("final_percentage", None) if c.get("final_percentage", "") != "" else None,
             c.get("letter_grade", ""),
-            c.get("gpa_value", ""),
-            c.get("credits", ""),
+            c.get("gpa_value", None) if c.get("gpa_value", "") != "" else None,
+            c.get("credits", None) if c.get("credits", "") != "" else None,
         ])
     for col in range(1, 6):
         ws_summary.column_dimensions[get_column_letter(col)].width = 18
 
     # 2. Add per-course sheets as before
     for course in data.get('courses', []):
-        sheet_name = f"{course.get('course_type', '')}{course.get('course_code', '')}-{course.get('section_number', '')}"
+        sheet_name = f"{course.get('course_type', '')}-{course.get('course_code', '')}-{course.get('section_number', '')}"
         ws = wb.create_sheet(title=sheet_name[:31])
         ws.append(['Term', 'Assignment', 'Date', 'Weightage', 'Achieved', 'Achieved %'])
 
@@ -305,21 +334,38 @@ def progress_export_excel(request):
                 event_date = ''
                 weightage = ''
             achieved = assessment.get('achieved', '')
+            # Convert weightage to float if possible
             try:
-                achieved_pct = f"{(float(achieved)/100 * float(str(weightage).strip('%'))):.2f}%" if achieved and weightage else '0%'
+                weightage_val = float(str(weightage).strip('%')) if weightage not in (None, '') else None
             except Exception:
-                achieved_pct = ''
+                weightage_val = None
+            # Achieved as float
+            try:
+                achieved_val = float(achieved) if achieved not in (None, '') else None
+            except Exception:
+                achieved_val = None
+            # Achieved % as float (not string)
+            try:
+                achieved_pct = (achieved_val / 100 * weightage_val) if achieved_val is not None and weightage_val is not None else None
+            except Exception:
+                achieved_pct = None
             ws.append([
                 data.get('offered_term', ''),
                 description,
                 event_date,
-                weightage,
-                achieved,
+                weightage_val,
+                achieved_val,
                 achieved_pct
             ])
+        # Set percentage format for Achieved % column
+        for row in ws.iter_rows(min_row=2, min_col=6, max_col=6):
+            for cell in row:
+                cell.number_format = '0.00%'
+                if cell.value is not None:
+                    cell.value = cell.value / 100 if cell.value > 1 else cell.value  # Ensure value is in 0-1 range
+
         for col in range(1, 7):
             ws.column_dimensions[get_column_letter(col)].width = 18
-
     output = BytesIO()
     wb.save(output)
     output.seek(0)
