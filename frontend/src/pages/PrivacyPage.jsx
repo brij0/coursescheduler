@@ -119,7 +119,7 @@ const PrivacyPage = () => {
             {sections.map((section, index) => (
               <motion.div
                 key={index}
-                className="elegant-card rounded-2xl p-8 hover-lift"
+                className="elegant-card rounded-2xl p-8"
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
