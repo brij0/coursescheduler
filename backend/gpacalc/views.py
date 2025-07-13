@@ -4,7 +4,7 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
 from applogger.utils import log_info, log_error
-from applogger.views import log_user_year_estimate, log_app_activity
+from applogger.views import log_user_year_estimate, log_app_activity, log_api_timing
 from scheduler.models import Course, CourseEvent
 from .models import CourseGrade, AssessmentGrade, GpaCalcProgress, GradingScheme, AssessmentWeightage
 from openpyxl import Workbook
@@ -56,6 +56,7 @@ def index(request):
     })
 
 @require_GET
+@log_api_timing("get_offered_terms")
 def get_offered_terms(request):
     """
     API: Get all available terms
@@ -77,6 +78,7 @@ def get_offered_terms(request):
     return JsonResponse(list(terms), safe=False)
 
 @require_POST
+@log_api_timing("get_course_types")
 def get_course_types(request):
     """
     API: Get course types for a given term
@@ -104,6 +106,7 @@ def get_course_types(request):
 
 @require_POST
 @csrf_exempt
+@log_api_timing("get_course_codes")
 def get_course_codes(request):
     """
     API: Get course codes for a given course type and term
@@ -135,6 +138,7 @@ def get_course_codes(request):
 
 @require_POST
 @csrf_exempt
+@log_api_timing("get_section_numbers")
 def get_section_numbers(request):
     """
     API: Get section numbers for a given course type, code, and term
@@ -168,6 +172,7 @@ def get_section_numbers(request):
 
 @require_POST
 @csrf_exempt
+@log_api_timing("get_course_events")
 def get_course_events(request):
     """
     API: Get assessment events for a specific course section
@@ -212,6 +217,7 @@ def get_course_events(request):
     return JsonResponse(list(evs), safe=False)
 
 @require_POST
+@log_api_timing("calculate_gpa")
 def calculate_gpa(request):
     """
     API: Calculate GPA based on course selections and grades, considering multiple grading schemes
@@ -565,6 +571,7 @@ def calculate_for_scheme(course, scheme, assessments):
 
 @require_GET
 @csrf_exempt
+@log_api_timing("progress_export_excel")
 def progress_export_excel(request):
     """
     API: Export GPA calculation results to Excel file, including multiple grading schemes

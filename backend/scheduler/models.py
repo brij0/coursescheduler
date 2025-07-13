@@ -33,12 +33,12 @@ class CourseDropdown(models.Model):
 class CourseEvent(models.Model):
     course       = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="events")
     event_type   = models.CharField(max_length=50)
-    event_date   = models.DateField(null=True, blank=True)
+    event_date   = models.DateField(null=True, blank=True,)
     start_date   = models.DateField(null=True, blank=True)
     end_date     = models.DateField(null=True, blank=True)
-    days         = models.CharField(max_length=100)
-    time         = models.CharField(max_length=50)
-    location     = models.CharField(max_length=255)
+    days         = models.CharField(max_length=100, default="")
+    time         = models.CharField(max_length=50, default="")
+    location     = models.CharField(max_length=255, default="")
     description  = models.TextField()
     weightage    = models.CharField(max_length=50, null=True, blank=True)
 
@@ -53,9 +53,9 @@ class Event(models.Model):
     course_id = models.ForeignKey('Course', on_delete=models.CASCADE, db_column='course_id')
     event_type = models.CharField(max_length=50)
     times = models.CharField(max_length=100)
-    location = models.CharField(max_length=255, null=True, blank=True)
-    days = models.CharField(max_length=50, null=True, blank=True)
-    dates = models.CharField(max_length=100, null=True, blank=True)
+    location = models.CharField(max_length=255, null=True, blank=True, default="")
+    days = models.CharField(max_length=50, null=True, blank=True, default="")
+    dates = models.CharField(max_length=100, null=True, blank=True, default="")
 
     class Meta:
         db_table = "events"
