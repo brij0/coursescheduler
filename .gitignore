@@ -22,7 +22,9 @@ frontend/node_modules/
 *.log
 # Ignore SSL certificates
 *.github
-
+*.sql
+*.md
+backend/data.json
 # Ignore common private key filenames
 id_rsa
 id_rsa.pub

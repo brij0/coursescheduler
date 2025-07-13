@@ -4,7 +4,7 @@ from django.http        import JsonResponse ,HttpResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
 from applogger.utils import log_info, log_error
-from applogger.views import log_user_year_estimate, log_app_activity
+from applogger.views import log_user_year_estimate, log_app_activity, log_api_timing
 from scheduler.models import Course, CourseEvent
 from .models          import CourseGrade, AssessmentGrade, GpaCalcProgress, GradingScheme, AssessmentWeightage
 from openpyxl import Workbook
@@ -14,6 +14,7 @@ from io import BytesIO
 
 app_name = "GPA-Calculator"
 section_name = "Index"
+
 @require_GET
 def index(request):
     log_app_activity(request, app_name,section_name)
@@ -40,7 +41,9 @@ def index(request):
         "offered_terms": terms,
         "progress_data": progress_data,
     })
+
 @require_GET
+@log_api_timing("get_offered_terms")
 def get_offered_terms(request):
     log_app_activity(request, app_name,section_name)
     terms = (
@@ -52,6 +55,7 @@ def get_offered_terms(request):
     )
     return JsonResponse(list(terms), safe=False)
 @require_POST
+@log_api_timing("get_course_types")
 def get_course_types(request):
     log_app_activity(request, app_name,section_name)
     data = json.loads(request.body)
@@ -66,6 +70,7 @@ def get_course_types(request):
     return JsonResponse(list(types), safe=False)
 @require_POST
 @csrf_exempt
+@log_api_timing("get_course_codes")
 def get_course_codes(request):
     log_app_activity(request, app_name,section_name)
     """
@@ -89,6 +94,7 @@ def get_course_codes(request):
 
 @require_POST
 @csrf_exempt
+@log_api_timing("get_section_numbers")
 def get_section_numbers(request):
     log_app_activity(request, app_name,section_name)
     """
@@ -113,6 +119,7 @@ def get_section_numbers(request):
 
 @require_POST
 @csrf_exempt
+@log_api_timing("get_course_events")
 def get_course_events(request):
     log_app_activity(request, app_name, section_name)
     """
@@ -177,6 +184,8 @@ def get_course_events(request):
         return JsonResponse({"events": [], "grading_schemes": []})
 
 @require_POST
+@csrf_exempt
+@log_api_timing("calculate_gpa")
 def calculate_gpa(request):
     log_app_activity(request, app_name, section_name)
     
@@ -459,6 +468,7 @@ def update_scheme_results(scheme_data, course_grade, course_obj):
 
 @require_GET
 @csrf_exempt
+@log_api_timing("progress_export_excel")
 def progress_export_excel(request):
     section_name = "Excel Export"
     log_app_activity(request, app_name, section_name)

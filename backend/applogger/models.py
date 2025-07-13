@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 User = get_user_model()
 
@@ -34,3 +35,14 @@ class CoursetypetoSchool(models.Model):
 
     def __str__(self):
         return f"{self.course_type} - {self.school}"
+
+class ApiTimingLog(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    session_id = models.CharField(max_length=64, null=True, blank=True)  # Add this line
+    path = models.CharField(max_length=255)
+    method = models.CharField(max_length=10)
+    api_name = models.CharField(max_length=100)
+    duration = models.FloatField()
+    status_code = models.IntegerField(null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    extra = models.JSONField(null=True, blank=True)
