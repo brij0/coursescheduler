@@ -1,29 +1,35 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Sidebar from './components/Sidebar';
-import Footer from './components/Footer';
-import Home from './pages/Home';
-import About from './pages/About';
-import Events from './pages/Events';
-import Privacy from './pages/Privacy';
+import React, { useState, useEffect } from 'react'
+import { Routes, Route } from 'react-router-dom'
+import LoadingScreen from './components/LoadingScreen'
+import HomePage from './pages/HomePage'
+import AboutPage from './pages/AboutPage'
+import PrivacyPage from './pages/PrivacyPage'
 
-export default function App() {
+function App() {
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 2500)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (isLoading) {
+    return <LoadingScreen />
+  }
+
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8 max-w-screen-lg mx-auto">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/events" element={<Events />} />
-            <Route path="/privacy" element={<Privacy />} />
-          </Routes>
-        </main>
-      </div>
-      <Footer />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+      </Routes>
     </div>
-  );
+  )
 }
+
+export default App
