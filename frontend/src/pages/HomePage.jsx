@@ -1,7 +1,5 @@
 import React, { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Float, Text3D, Center } from '@react-three/drei'
 import { 
   GraduationCap, 
   BookOpen, 
@@ -12,66 +10,10 @@ import {
   ChevronDown,
   Star,
   Coffee,
-  Brain
+  Brain,
+  Sparkles
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
-
-// 3D Academic Scene Component
-const AcademicScene = () => {
-  return (
-    <group>
-      {/* Floating Books */}
-      <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
-        <mesh position={[-2, 1, 0]} rotation={[0.2, 0.3, 0.1]}>
-          <boxGeometry args={[0.3, 0.4, 0.05]} />
-          <meshStandardMaterial color="#3b82f6" />
-        </mesh>
-      </Float>
-      
-      <Float speed={1.2} rotationIntensity={0.3} floatIntensity={0.7}>
-        <mesh position={[2, -0.5, -1]} rotation={[-0.1, -0.4, 0.2]}>
-          <boxGeometry args={[0.25, 0.35, 0.04]} />
-          <meshStandardMaterial color="#8b5cf6" />
-        </mesh>
-      </Float>
-
-      {/* Graduation Cap */}
-      <Float speed={0.8} rotationIntensity={0.2} floatIntensity={0.4}>
-        <group position={[0, 2, -2]}>
-          <mesh>
-            <cylinderGeometry args={[0.8, 0.8, 0.1, 8]} />
-            <meshStandardMaterial color="#1f2937" />
-          </mesh>
-          <mesh position={[0, 0.1, 0]}>
-            <boxGeometry args={[1.6, 0.05, 1.6]} />
-            <meshStandardMaterial color="#1f2937" />
-          </mesh>
-        </group>
-      </Float>
-
-      {/* Calculator */}
-      <Float speed={1.8} rotationIntensity={0.4} floatIntensity={0.6}>
-        <mesh position={[1.5, 0.5, 1]} rotation={[0.1, -0.2, 0]}>
-          <boxGeometry args={[0.4, 0.6, 0.08]} />
-          <meshStandardMaterial color="#374151" />
-        </mesh>
-      </Float>
-
-      {/* Pencils */}
-      <Float speed={1.3} rotationIntensity={0.6} floatIntensity={0.5}>
-        <mesh position={[-1.5, -1, 1]} rotation={[0, 0, 0.3]}>
-          <cylinderGeometry args={[0.02, 0.02, 1, 8]} />
-          <meshStandardMaterial color="#fbbf24" />
-        </mesh>
-      </Float>
-
-      {/* Lighting */}
-      <ambientLight intensity={0.6} />
-      <pointLight position={[10, 10, 10]} intensity={1} />
-      <pointLight position={[-10, -10, -10]} intensity={0.5} color="#8b5cf6" />
-    </group>
-  )
-}
 
 const HomePage = () => {
   const containerRef = useRef(null)
@@ -88,19 +30,19 @@ const HomePage = () => {
       icon: <GraduationCap className="w-8 h-8" />,
       title: "Course Scheduling",
       description: "Never double-book again! Our AI finds the perfect schedule that fits your life.",
-      color: "from-blue-500 to-cyan-500"
+      color: "from-primary-500 to-primary-600"
     },
     {
       icon: <Calculator className="w-8 h-8" />,
       title: "GPA Calculator",
       description: "Track your grades and predict your GPA with scary accuracy. No more surprises!",
-      color: "from-purple-500 to-pink-500"
+      color: "from-accent-500 to-accent-600"
     },
     {
       icon: <Users className="w-8 h-8" />,
       title: "Co-op Forum",
       description: "Share job experiences, tips, and survive the co-op hunt together.",
-      color: "from-green-500 to-emerald-500"
+      color: "from-primary-600 to-accent-500"
     }
   ]
 
@@ -116,19 +58,37 @@ const HomePage = () => {
       
       {/* Hero Section */}
       <motion.section 
-        className="relative min-h-screen flex items-center justify-center overflow-hidden"
+        className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-neutral-50 via-primary-50 to-accent-50"
         style={{ y, opacity }}
       >
-        {/* 3D Background */}
-        <div className="absolute inset-0 z-0">
-          <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
-            <AcademicScene />
-            <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.5} />
-          </Canvas>
+        {/* Elegant background elements */}
+        <div className="absolute inset-0">
+          {/* Floating geometric shapes */}
+          {[...Array(12)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                y: [0, -30, 0],
+                x: [0, Math.random() * 20 - 10, 0],
+                rotate: [0, 360],
+                scale: [1, 1.1, 1],
+              }}
+              transition={{
+                duration: 8 + Math.random() * 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: i * 0.5,
+              }}
+            >
+              <div className={`w-${Math.floor(Math.random() * 4) + 2} h-${Math.floor(Math.random() * 4) + 2} bg-gradient-to-br from-primary-200/30 to-accent-200/30 rounded-full blur-sm`} />
+            </motion.div>
+          ))}
         </div>
-
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-pink-900/20 z-10" />
 
         {/* Hero Content */}
         <div className="relative z-20 text-center px-4 max-w-6xl mx-auto">
@@ -137,19 +97,29 @@ const HomePage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
+            <motion.div
+              className="inline-flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-primary-200/50 mb-6"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.5 }}
+            >
+              <Sparkles className="w-4 h-4 text-accent-500" />
+              <span className="text-sm font-medium text-neutral-700">Your Academic Success Starts Here</span>
+            </motion.div>
+
             <h1 className="text-5xl md:text-7xl font-display font-black mb-6">
               <span className="gradient-text">Smart</span>
-              <span className="text-gray-800">Gryph</span>
+              <span className="text-neutral-800">Gryph</span>
             </h1>
             
             <motion.p 
-              className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed"
+              className="text-xl md:text-2xl text-neutral-600 mb-8 max-w-3xl mx-auto leading-relaxed"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.5 }}
             >
               Your academic life just got an upgrade. Schedule courses, calculate GPAs, 
-              and navigate co-op like a pro. <span className="font-semibold text-primary-600">Because adulting is hard enough.</span>
+              and navigate co-op like a pro. <span className="font-semibold text-primary-700">Because adulting is hard enough.</span>
             </motion.p>
 
             <motion.div
@@ -159,7 +129,7 @@ const HomePage = () => {
               transition={{ duration: 0.8, delay: 0.8 }}
             >
               <motion.button
-                className="bg-gradient-to-r from-primary-600 to-accent-500 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                className="bg-emerald-gold text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-xl emerald-glow hover:shadow-2xl transition-all duration-300"
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -167,7 +137,7 @@ const HomePage = () => {
               </motion.button>
               
               <motion.button
-                className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg hover:border-primary-500 hover:text-primary-600 transition-all duration-300"
+                className="border-2 border-primary-300 text-primary-700 px-8 py-4 rounded-xl font-semibold text-lg hover:border-primary-500 hover:text-primary-800 hover:bg-primary-50 transition-all duration-300"
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -182,7 +152,7 @@ const HomePage = () => {
             animate={{ y: [0, 10, 0] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            <ChevronDown className="w-8 h-8 text-gray-400" />
+            <ChevronDown className="w-8 h-8 text-neutral-400" />
           </motion.div>
         </div>
       </motion.section>
@@ -197,10 +167,10 @@ const HomePage = () => {
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl md:text-5xl font-display font-bold mb-6">
+            <h2 className="text-4xl md:text-5xl font-display font-bold mb-6 text-neutral-800">
               Why Students <span className="gradient-text">Love Us</span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-neutral-600 max-w-3xl mx-auto">
               We've been in your shoes. Late nights, scheduling conflicts, GPA anxiety. 
               That's why we built tools that actually work.
             </p>
@@ -210,22 +180,22 @@ const HomePage = () => {
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                className="group relative p-8 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 hover:shadow-xl transition-all duration-300"
+                className="group relative p-8 rounded-2xl elegant-card hover-lift"
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 viewport={{ once: true }}
                 whileHover={{ y: -10 }}
               >
-                <div className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${feature.color} text-white mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                <div className={`inline-flex p-4 rounded-xl bg-gradient-to-r ${feature.color} text-white mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
                   {feature.icon}
                 </div>
                 
-                <h3 className="text-2xl font-bold mb-4 text-gray-800">
+                <h3 className="text-2xl font-bold mb-4 text-neutral-800 font-display">
                   {feature.title}
                 </h3>
                 
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-neutral-600 leading-relaxed">
                   {feature.description}
                 </p>
 
@@ -241,7 +211,7 @@ const HomePage = () => {
       <section className="py-20 px-4 bg-gradient-to-r from-primary-50 to-accent-50">
         <div className="max-w-4xl mx-auto text-center">
           <motion.h2
-            className="text-3xl md:text-4xl font-display font-bold mb-12 text-gray-800"
+            className="text-3xl md:text-4xl font-display font-bold mb-12 text-neutral-800"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -254,7 +224,7 @@ const HomePage = () => {
             {funFacts.map((fact, index) => (
               <motion.div
                 key={index}
-                className="flex flex-col items-center p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                className="flex flex-col items-center p-6 elegant-card rounded-xl hover-lift"
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
@@ -264,7 +234,7 @@ const HomePage = () => {
                 <div className="text-primary-600 mb-4">
                   {React.cloneElement(fact.icon, { size: 48 })}
                 </div>
-                <p className="text-gray-700 font-medium text-center">
+                <p className="text-neutral-700 font-medium text-center">
                   {fact.text}
                 </p>
               </motion.div>
@@ -274,7 +244,7 @@ const HomePage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-gradient-to-r from-primary-600 to-accent-600">
+      <section className="py-20 px-4 bg-emerald-gold">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -285,13 +255,13 @@ const HomePage = () => {
             <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-6">
               Ready to Level Up?
             </h2>
-            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
               Join thousands of students who've already discovered the secret to academic success. 
               Spoiler alert: it's not more coffee.
             </p>
             
             <motion.button
-              className="bg-white text-primary-600 px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+              className="bg-white text-primary-700 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 gold-glow"
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
             >

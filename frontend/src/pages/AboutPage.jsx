@@ -1,7 +1,5 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Float, Text3D, Center } from '@react-three/drei'
 import { 
   Github, 
   Linkedin, 
@@ -12,72 +10,10 @@ import {
   Lightbulb,
   Heart,
   MessageCircle,
-  Send
+  Send,
+  Sparkles
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
-
-// 3D Developer Scene
-const DeveloperScene = () => {
-  return (
-    <group>
-      {/* Floating Code Blocks */}
-      <Float speed={1.5} rotationIntensity={0.3} floatIntensity={0.5}>
-        <mesh position={[-2, 1, 0]} rotation={[0.2, 0.3, 0.1]}>
-          <boxGeometry args={[0.4, 0.3, 0.1]} />
-          <meshStandardMaterial color="#22c55e" />
-        </mesh>
-      </Float>
-      
-      <Float speed={1.2} rotationIntensity={0.4} floatIntensity={0.7}>
-        <mesh position={[2, -0.5, -1]} rotation={[-0.1, -0.4, 0.2]}>
-          <boxGeometry args={[0.3, 0.4, 0.08]} />
-          <meshStandardMaterial color="#3b82f6" />
-        </mesh>
-      </Float>
-
-      {/* Laptop */}
-      <Float speed={0.8} rotationIntensity={0.2} floatIntensity={0.4}>
-        <group position={[0, 0, 0]} rotation={[0, 0.3, 0]}>
-          <mesh position={[0, -0.1, 0]}>
-            <boxGeometry args={[1.2, 0.05, 0.8]} />
-            <meshStandardMaterial color="#374151" />
-          </mesh>
-          <mesh position={[0, 0.3, -0.35]} rotation={[-0.2, 0, 0]}>
-            <boxGeometry args={[1.2, 0.8, 0.05]} />
-            <meshStandardMaterial color="#1f2937" />
-          </mesh>
-        </group>
-      </Float>
-
-      {/* Coffee Cup */}
-      <Float speed={1.8} rotationIntensity={0.5} floatIntensity={0.6}>
-        <group position={[1.5, 0.5, 1]}>
-          <mesh>
-            <cylinderGeometry args={[0.15, 0.12, 0.3, 16]} />
-            <meshStandardMaterial color="#8b4513" />
-          </mesh>
-          <mesh position={[0.2, 0, 0]} rotation={[0, 0, Math.PI/2]}>
-            <torusGeometry args={[0.08, 0.02, 8, 16]} />
-            <meshStandardMaterial color="#8b4513" />
-          </mesh>
-        </group>
-      </Float>
-
-      {/* Lightbulb */}
-      <Float speed={1.3} rotationIntensity={0.3} floatIntensity={0.5}>
-        <mesh position={[-1.5, -1, 1]}>
-          <sphereGeometry args={[0.2, 16, 16]} />
-          <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.3} />
-        </mesh>
-      </Float>
-
-      {/* Lighting */}
-      <ambientLight intensity={0.6} />
-      <pointLight position={[10, 10, 10]} intensity={1} />
-      <pointLight position={[-10, -10, -10]} intensity={0.5} color="#3b82f6" />
-    </group>
-  )
-}
 
 const AboutPage = () => {
   const developers = [
@@ -106,21 +42,38 @@ const AboutPage = () => {
   ]
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-primary-50 to-accent-50">
       <Navbar />
       
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-        {/* 3D Background */}
-        <div className="absolute inset-0 z-0">
-          <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
-            <DeveloperScene />
-            <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.3} />
-          </Canvas>
+        {/* Elegant background elements */}
+        <div className="absolute inset-0">
+          {[...Array(10)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                y: [0, -20, 0],
+                x: [0, Math.random() * 15 - 7.5, 0],
+                scale: [1, 1.1, 1],
+                opacity: [0.3, 0.6, 0.3],
+              }}
+              transition={{
+                duration: 6 + Math.random() * 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: i * 0.5,
+              }}
+            >
+              <div className={`w-${Math.floor(Math.random() * 3) + 2} h-${Math.floor(Math.random() * 3) + 2} bg-gradient-to-br from-primary-200/40 to-accent-200/40 rounded-full blur-sm`} />
+            </motion.div>
+          ))}
         </div>
-
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-purple-900/10 to-green-900/10 z-10" />
 
         {/* Hero Content */}
         <div className="relative z-20 text-center px-4 max-w-4xl mx-auto">
@@ -129,12 +82,22 @@ const AboutPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
+            <motion.div
+              className="inline-flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-primary-200/50 mb-6"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <Sparkles className="w-4 h-4 text-accent-500" />
+              <span className="text-sm font-medium text-neutral-700">Meet the Team</span>
+            </motion.div>
+
             <h1 className="text-5xl md:text-6xl font-display font-black mb-6">
               <span className="gradient-text">About</span>
-              <span className="text-gray-800"> SmartGryph</span>
+              <span className="text-neutral-800"> SmartGryph</span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed">
+            <p className="text-xl md:text-2xl text-neutral-600 mb-8 leading-relaxed">
               Born from late-night study sessions and too much caffeine. 
               Built by students, for students who refuse to settle for mediocre tools.
             </p>
@@ -152,20 +115,20 @@ const AboutPage = () => {
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl font-display font-bold mb-6 text-gray-800">
+            <h2 className="text-4xl font-display font-bold mb-6 text-neutral-800">
               How It All Started
             </h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-primary-600 to-accent-500 mx-auto mb-8"></div>
+            <div className="w-24 h-1 bg-emerald-gold mx-auto mb-8 rounded-full"></div>
           </motion.div>
 
           <motion.div
-            className="prose prose-lg mx-auto text-gray-600"
+            className="prose prose-lg mx-auto text-neutral-600"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
             viewport={{ once: true }}
           >
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 rounded-2xl">
+            <div className="elegant-card p-8 rounded-2xl">
               <p className="text-lg leading-relaxed mb-6">
                 Picture this: It's 2 AM, you're trying to figure out if MATH*1200 conflicts with CIS*2750, 
                 your GPA calculator is giving you existential dread, and the co-op portal looks like it was 
@@ -189,7 +152,7 @@ const AboutPage = () => {
       </section>
 
       {/* Meet the Team */}
-      <section className="py-20 px-4 bg-gradient-to-br from-gray-50 to-blue-50">
+      <section className="py-20 px-4 bg-gradient-to-br from-primary-50 to-accent-50">
         <div className="max-w-6xl mx-auto">
           <motion.div
             className="text-center mb-16"
@@ -198,10 +161,10 @@ const AboutPage = () => {
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl font-display font-bold mb-6 text-gray-800">
+            <h2 className="text-4xl font-display font-bold mb-6 text-neutral-800">
               Meet the <span className="gradient-text">Dream Team</span>
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-neutral-600">
               Two developers, countless energy drinks, and one shared mission: 
               making student life less painful.
             </p>
@@ -211,7 +174,7 @@ const AboutPage = () => {
             {developers.map((dev, index) => (
               <motion.div
                 key={index}
-                className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300"
+                className="elegant-card rounded-2xl p-8 hover-lift"
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
@@ -220,16 +183,16 @@ const AboutPage = () => {
               >
                 <div className="text-center mb-6">
                   <div className="text-6xl mb-4">{dev.avatar}</div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">{dev.name}</h3>
+                  <h3 className="text-2xl font-bold text-neutral-800 mb-2 font-display">{dev.name}</h3>
                   <p className="text-primary-600 font-semibold">{dev.role}</p>
                 </div>
 
-                <p className="text-gray-600 mb-6 leading-relaxed">
+                <p className="text-neutral-600 mb-6 leading-relaxed">
                   {dev.description}
                 </p>
 
                 <div className="mb-6">
-                  <h4 className="font-semibold text-gray-800 mb-3">Tech Stack:</h4>
+                  <h4 className="font-semibold text-neutral-800 mb-3">Tech Stack:</h4>
                   <div className="flex flex-wrap gap-2">
                     {dev.skills.map((skill, skillIndex) => (
                       <span
@@ -242,8 +205,8 @@ const AboutPage = () => {
                   </div>
                 </div>
 
-                <div className="border-t pt-6">
-                  <p className="text-sm text-gray-500 italic mb-4">
+                <div className="border-t border-neutral-200 pt-6">
+                  <p className="text-sm text-neutral-500 italic mb-4">
                     "{dev.funFact}"
                   </p>
                   
@@ -252,7 +215,7 @@ const AboutPage = () => {
                       href={dev.github}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
+                      className="flex items-center space-x-2 text-neutral-600 hover:text-neutral-800 transition-colors"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -264,7 +227,7 @@ const AboutPage = () => {
                       href={dev.linkedin}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 transition-colors"
+                      className="flex items-center space-x-2 text-primary-600 hover:text-primary-800 transition-colors"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -276,7 +239,7 @@ const AboutPage = () => {
                       href={dev.portfolio}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center space-x-2 text-purple-600 hover:text-purple-800 transition-colors"
+                      className="flex items-center space-x-2 text-accent-600 hover:text-accent-800 transition-colors"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -301,10 +264,10 @@ const AboutPage = () => {
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl font-display font-bold mb-6 text-gray-800">
+            <h2 className="text-4xl font-display font-bold mb-6 text-neutral-800">
               Let's <span className="gradient-text">Connect</span>
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-neutral-600">
               Got feedback? Found a bug? Just want to say hi? We'd love to hear from you!
             </p>
           </motion.div>
@@ -317,7 +280,7 @@ const AboutPage = () => {
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
             >
-              <h3 className="text-2xl font-bold mb-6 text-gray-800">Get in Touch</h3>
+              <h3 className="text-2xl font-bold mb-6 text-neutral-800 font-display">Get in Touch</h3>
               
               <div className="space-y-4">
                 <div className="flex items-center space-x-4">
@@ -325,28 +288,28 @@ const AboutPage = () => {
                     <Mail className="w-6 h-6 text-primary-600" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-800">Email</p>
-                    <p className="text-gray-600">hello@smartgryph.com</p>
+                    <p className="font-semibold text-neutral-800">Email</p>
+                    <p className="text-neutral-600">hello@smartgryph.com</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <MessageCircle className="w-6 h-6 text-green-600" />
+                  <div className="w-12 h-12 bg-accent-100 rounded-lg flex items-center justify-center">
+                    <MessageCircle className="w-6 h-6 text-accent-600" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-800">Response Time</p>
-                    <p className="text-gray-600">Usually within 24 hours</p>
+                    <p className="font-semibold text-neutral-800">Response Time</p>
+                    <p className="text-neutral-600">Usually within 24 hours</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Heart className="w-6 h-6 text-purple-600" />
+                  <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                    <Heart className="w-6 h-6 text-primary-600" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-800">We Love</p>
-                    <p className="text-gray-600">Feature requests & bug reports</p>
+                    <p className="font-semibold text-neutral-800">We Love</p>
+                    <p className="text-neutral-600">Feature requests & bug reports</p>
                   </div>
                 </div>
               </div>
@@ -361,41 +324,41 @@ const AboutPage = () => {
             >
               <form className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
                     Name
                   </label>
                   <input
                     type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                     placeholder="Your awesome name"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
                     Email
                   </label>
                   <input
                     type="email"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                     placeholder="your.email@example.com"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
                     Message
                   </label>
                   <textarea
                     rows={5}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none"
+                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none"
                     placeholder="Tell us what's on your mind..."
                   />
                 </div>
                 
                 <motion.button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-primary-600 to-accent-500 text-white py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 hover:shadow-lg transition-all duration-300"
+                  className="w-full bg-emerald-gold text-white py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 hover:shadow-lg transition-all duration-300 emerald-glow"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >

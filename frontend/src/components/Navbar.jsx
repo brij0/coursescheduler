@@ -15,7 +15,7 @@ const Navbar = () => {
 
   return (
     <motion.nav
-      className="fixed top-0 left-0 right-0 z-40 glass-effect"
+      className="fixed top-0 left-0 right-0 z-40 glass-effect border-b border-primary-200/20"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
@@ -23,13 +23,13 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-3">
             <motion.div
-              className="w-10 h-10 bg-gradient-to-r from-primary-600 to-accent-500 rounded-lg flex items-center justify-center"
+              className="w-10 h-10 bg-emerald-gold rounded-xl flex items-center justify-center shadow-lg"
               whileHover={{ scale: 1.05, rotate: 5 }}
               whileTap={{ scale: 0.95 }}
             >
-              <span className="text-white font-bold text-lg">SG</span>
+              <span className="text-white font-bold text-lg font-display">SG</span>
             </motion.div>
             <span className="font-display font-bold text-xl gradient-text">
               SmartGryph
@@ -45,7 +45,7 @@ const Navbar = () => {
                 className={`relative px-3 py-2 text-sm font-medium transition-colors duration-200 ${
                   location.pathname === item.path
                     ? 'text-primary-600'
-                    : 'text-gray-700 hover:text-primary-600'
+                    : 'text-neutral-700 hover:text-primary-600'
                 }`}
               >
                 {item.name}
@@ -61,8 +61,8 @@ const Navbar = () => {
             
             {/* Login Button */}
             <motion.button
-              className="flex items-center space-x-2 bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors"
-              whileHover={{ scale: 1.05 }}
+              className="flex items-center space-x-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-2 rounded-xl font-medium hover:from-primary-700 hover:to-primary-800 transition-all duration-300 shadow-lg emerald-glow"
+              whileHover={{ scale: 1.05, y: -1 }}
               whileTap={{ scale: 0.95 }}
             >
               <User size={18} />
@@ -74,7 +74,7 @@ const Navbar = () => {
           <div className="md:hidden">
             <motion.button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded-lg text-gray-700 hover:bg-gray-100"
+              className="p-2 rounded-lg text-neutral-700 hover:bg-neutral-100"
               whileTap={{ scale: 0.95 }}
             >
               {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -92,7 +92,7 @@ const Navbar = () => {
           }}
           transition={{ duration: 0.3 }}
         >
-          <div className="px-2 pt-2 pb-3 space-y-1 bg-white/90 backdrop-blur-md rounded-lg mt-2">
+          <div className="px-2 pt-2 pb-3 space-y-1 bg-white/90 backdrop-blur-md rounded-lg mt-2 border border-neutral-200/50">
             {navItems.map((item) => (
               <Link
                 key={item.name}
@@ -100,14 +100,14 @@ const Navbar = () => {
                 className={`block px-3 py-2 text-base font-medium rounded-md transition-colors ${
                   location.pathname === item.path
                     ? 'text-primary-600 bg-primary-50'
-                    : 'text-gray-700 hover:text-primary-600 hover:bg-gray-50'
+                    : 'text-neutral-700 hover:text-primary-600 hover:bg-neutral-50'
                 }`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 {item.name}
               </Link>
             ))}
-            <button className="w-full flex items-center justify-center space-x-2 bg-primary-600 text-white px-4 py-2 rounded-lg font-medium mt-4">
+            <button className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 py-2 rounded-xl font-medium mt-4 shadow-lg">
               <User size={18} />
               <span>Login</span>
             </button>
