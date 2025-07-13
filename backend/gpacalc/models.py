@@ -1,6 +1,6 @@
 from django.db import models
 from scheduler.models import Course, CourseEvent
-
+from django.conf import settings
 class GradeScale(models.Model):
     """
     Maps a minimum percentage to a letter grade and its GPA value.
@@ -20,7 +20,6 @@ class CourseGrade(models.Model):
     Holds the computed grade for one Course.
     """
     course           = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="grades")
-    credits          = models.DecimalField(max_digits=4, decimal_places=2, default=1.0)
     final_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     letter_grade     = models.CharField(max_length=5, null=True, blank=True)
     gpa_value        = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True)
@@ -66,3 +65,13 @@ class AssessmentGrade(models.Model):
     def __str__(self):
         ev = self.course_event.event_type if self.course_event else "Unknown event"
         return f"{ev}: {self.achieved_percentage}% ({self.weightage}% of course)"
+
+#Added a new model so user can save their progress in the GPA calculator
+class GpaCalcProgress(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
+    session_key = models.CharField(max_length=40, null=True, blank=True)
+    data = models.JSONField()
+    updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"GPA Progress for {self.user or self.session_key}"

@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import pymysql
+from applogger.log_config import LOGGING
 pymysql.install_as_MySQLdb()
 load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
     "scheduler",
     "gpacalc",
     "coopforum",
+    "applogger", 
 ]
 
 SITE_ID = 1
@@ -125,29 +127,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_DIR = os.path.join(BASE_DIR, 'logs')
 os.makedirs(LOG_DIR, exist_ok=True)
-
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'django.log'),
-        },
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        '': {  # root logger
-            'handlers': ['file', 'console'],
-            'level': 'DEBUG',
-        },
-    },
-}
-from pathlib import Path
+LOGGING = LOGGING
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 # Session settings

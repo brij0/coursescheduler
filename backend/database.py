@@ -69,12 +69,12 @@ def insert_cleaned_sections(courses_data):
                     instructors = ', '.join(section_info.get('instructors', ['Unknown']))[:50]
                     course_type = section_info.get('course_type', 'Unknown')[:20]
                     section_number = section_info.get('section_number', '')[:20]
-
+                    credits = section_info.get('credits')  # Assuming credits is an integer
                     # Insert section into database
                     insert_section_query = """
                         INSERT INTO courses 
-                        (offered_term, section_name, seats, instructor, course_type, course_code, section_number)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        (offered_term, section_name, seats, instructor, course_type, course_code, section_number,credits)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s,%s)
                     """
                     params = (
                         offered_term,
@@ -83,7 +83,8 @@ def insert_cleaned_sections(courses_data):
                         instructors,
                         course_type,
                         course_code,  
-                        section_number
+                        section_number,
+                        credits
                     )
                     db_cursor.execute(insert_section_query, params)
                     course_id = db_cursor.lastrowid
