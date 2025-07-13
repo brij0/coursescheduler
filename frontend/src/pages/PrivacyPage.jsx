@@ -52,8 +52,37 @@ const PrivacyPage = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="pt-24 pb-16 px-4">
-        <div className="max-w-4xl mx-auto text-center">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+        {/* Elegant background elements */}
+        <div className="absolute inset-0">
+          {[...Array(10)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                y: [0, -20, 0],
+                x: [0, Math.random() * 15 - 7.5, 0],
+                scale: [1, 1.1, 1],
+                opacity: [0.3, 0.6, 0.3],
+              }}
+              transition={{
+                duration: 6 + Math.random() * 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: i * 0.5,
+              }}
+            >
+              <div className={`w-${Math.floor(Math.random() * 3) + 2} h-${Math.floor(Math.random() * 3) + 2} bg-gradient-to-br from-primary-200/40 to-accent-200/40 rounded-full blur-sm`} />
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Hero Content */}
+        <div className="relative z-20 text-center px-4 max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -69,15 +98,18 @@ const PrivacyPage = () => {
               <span className="text-sm font-medium text-neutral-700">Your Privacy Matters</span>
             </motion.div>
 
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full mb-6 shadow-lg emerald-glow">
-              <Shield className="w-10 h-10 text-white" />
+            <div className="flex items-center justify-center mb-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center shadow-lg emerald-glow">
+                <Shield className="w-10 h-10 text-white" />
+              </div>
             </div>
             
-            <h1 className="text-4xl md:text-5xl font-display font-bold mb-6 text-neutral-800">
-              Privacy Policy
+            <h1 className="text-5xl md:text-6xl font-display font-black mb-6">
+              <span className="gradient-text">Privacy</span>
+              <span className="text-neutral-800"> Policy</span>
             </h1>
             
-            <p className="text-xl text-neutral-600 mb-8 leading-relaxed">
+            <p className="text-xl md:text-2xl text-neutral-600 mb-8 leading-relaxed">
               Your privacy matters to us. Here's how we protect and handle your data 
               with complete transparency.
             </p>
@@ -92,7 +124,7 @@ const PrivacyPage = () => {
       </section>
 
       {/* Main Content */}
-      <section className="py-16 px-4 bg-white">
+      <section className="py-20 px-4 bg-white">
         <div className="max-w-4xl mx-auto">
           {/* Introduction */}
           <motion.div
@@ -223,9 +255,7 @@ const PrivacyPage = () => {
             </p>
             <motion.a
               href="mailto:privacy@smartgryph.com"
-              className="inline-flex items-center space-x-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg font-semibold hover:from-primary-700 hover:to-primary-800 transition-all duration-300 shadow-lg emerald-glow"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center space-x-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 shadow-lg emerald-glow"
             >
               <Mail size={20} />
               <span>privacy@smartgryph.com</span>
