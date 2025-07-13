@@ -52,7 +52,7 @@ const PrivacyPage = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24">
         {/* Elegant background elements */}
         <div className="absolute inset-0">
           {[...Array(10)].map((_, i) => (

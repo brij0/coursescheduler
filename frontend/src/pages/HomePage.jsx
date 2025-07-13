@@ -58,7 +58,7 @@ const HomePage = () => {
       
       {/* Hero Section */}
       <motion.section 
-        className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-neutral-50 via-primary-50 to-accent-50"
+        className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-neutral-50 via-primary-50 to-accent-50 pt-24"
         style={{ y, opacity }}
       >
         {/* Elegant background elements */}
