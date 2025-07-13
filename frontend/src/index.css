@@ -17,13 +17,9 @@
   .glass-effect {
     @apply bg-white/20 backdrop-blur-md border border-white/30 shadow-xl;
   }
-  
-  .hover-lift {
-    @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl;
-  }
 
   .elegant-card {
-    @apply bg-white/80 backdrop-blur-sm border border-neutral-200/50 shadow-lg hover:shadow-xl transition-all duration-300;
+    @apply bg-white/80 backdrop-blur-sm border border-neutral-200/50 shadow-lg hover:shadow-xl transition-shadow duration-300;
   }
 
   .emerald-glow {

@@ -58,7 +58,7 @@ const HomePage = () => {
       
       {/* Hero Section */}
       <motion.section 
-        className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-neutral-50 via-primary-50 to-accent-50"
+        className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-neutral-50 via-primary-50 to-accent-50 pt-24"
         style={{ y, opacity }}
       >
         {/* Elegant background elements */}
@@ -130,7 +130,7 @@ const HomePage = () => {
             >
               <motion.button
                 className="bg-emerald-gold text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-xl emerald-glow hover:shadow-2xl transition-all duration-300"
-                whileHover={{ scale: 1.05, y: -2 }}
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
                 Start Your Journey
@@ -138,7 +138,7 @@ const HomePage = () => {
               
               <motion.button
                 className="border-2 border-primary-300 text-primary-700 px-8 py-4 rounded-xl font-semibold text-lg hover:border-primary-500 hover:text-primary-800 hover:bg-primary-50 transition-all duration-300"
-                whileHover={{ scale: 1.05, y: -2 }}
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
                 Watch Demo
@@ -147,7 +147,7 @@ const HomePage = () => {
           </motion.div>
         </div>
 
-        {/* Scroll Indicator - Fixed positioning */}
+        {/* Scroll Indicator */}
         <motion.div
           className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30"
           animate={{ y: [0, 10, 0] }}
@@ -180,12 +180,11 @@ const HomePage = () => {
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                className="group relative p-8 rounded-2xl elegant-card hover-lift"
+                className="group relative p-8 rounded-2xl elegant-card"
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 viewport={{ once: true }}
-                whileHover={{ y: -10 }}
               >
                 <div className={`inline-flex p-4 rounded-xl bg-gradient-to-r ${feature.color} text-white mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
                   {feature.icon}
@@ -224,12 +223,11 @@ const HomePage = () => {
             {funFacts.map((fact, index) => (
               <motion.div
                 key={index}
-                className="flex flex-col items-center p-6 elegant-card rounded-xl hover-lift"
+                className="flex flex-col items-center p-6 elegant-card rounded-xl"
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 viewport={{ once: true }}
-                whileHover={{ y: -5 }}
               >
                 <div className="text-primary-600 mb-4">
                   {React.cloneElement(fact.icon, { size: 48 })}
@@ -262,7 +260,7 @@ const HomePage = () => {
             
             <motion.button
               className="bg-white text-primary-700 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 gold-glow"
-              whileHover={{ scale: 1.05, y: -2 }}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
               Get Started Free
