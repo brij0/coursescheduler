@@ -1,6 +1,38 @@
 from django.db import models
 from scheduler.models import Course, CourseEvent
 from django.conf import settings
+
+class GradingScheme(models.Model):
+    """
+    Defines a grading scheme for a course with a name and description.
+    """
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="grading_schemes")
+    name = models.CharField(max_length=100)  # e.g., "Standard", "Alternative", etc.
+    description = models.TextField(blank=True, null=True)
+    is_default = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "gpacalc_gradingscheme"
+        unique_together = ['course', 'name']
+
+    def __str__(self):
+        return f"{self.course}: {self.name}"
+
+class AssessmentWeightage(models.Model):
+    """
+    Defines weightage for a course event within a specific grading scheme.
+    """
+    grading_scheme = models.ForeignKey(GradingScheme, on_delete=models.CASCADE, related_name="weightages")
+    course_event = models.ForeignKey(CourseEvent, on_delete=models.CASCADE, related_name="scheme_weightages")
+    weightage = models.DecimalField(max_digits=5, decimal_places=2)  # Weight in percentage
+    
+    class Meta:
+        db_table = "gpacalc_assessmentweightage"
+        unique_together = ['grading_scheme', 'course_event']
+
+    def __str__(self):
+        return f"{self.grading_scheme.name}: {self.course_event.event_type} ({self.weightage}%)"
+
 class GradeScale(models.Model):
     """
     Maps a minimum percentage to a letter grade and its GPA value.
