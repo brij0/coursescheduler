@@ -27,4 +27,7 @@ urlpatterns = [
     # Calculation and export endpoints
     path('calculate/', views.calculate_gpa, name='calculate_gpa'),
     path('progress_export_excel/', views.progress_export_excel, name='progress_export_excel'),
-]
+
+    # User progress endpoint
+    path('user_progress/', views.get_user_progress, name='get_user_progress'),
+    ]

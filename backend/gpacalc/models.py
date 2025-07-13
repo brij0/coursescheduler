@@ -2,6 +2,56 @@ from django.db import models
 from django.contrib.auth.models import User
 from scheduler.models import Course, CourseEvent
 
+class GradingScheme(models.Model):
+    """
+    Represents a grading scheme for a course.
+    
+    Courses can have multiple grading schemes with different weightages
+    for each assessment component. This allows calculating grades under
+    different scenarios.
+    
+    API relevance:
+    - Used in the calculate_gpa endpoint to find optimal grading schemes
+    - Each course can have multiple schemes, each with different weightages
+    - The API finds the best combination of schemes across all courses
+    """
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='grading_schemes')
+    name = models.CharField(max_length=100)
+    description = models.TextField(null=True, blank=True)
+    is_default = models.BooleanField(default=False)
+    
+    def __str__(self):
+        return f"{self.course} - {self.name}"
+    
+    class Meta:
+        unique_together = ('course', 'name')
+        db_table = 'gpacalc_gradingscheme'
+
+
+class AssessmentWeightage(models.Model):
+    """
+    Represents the weightage of an assessment within a grading scheme.
+    
+    This model connects a grading scheme to individual course events
+    and specifies the weight of each event within that scheme.
+    
+    API relevance:
+    - Used when calculating grades with specific grading schemes
+    - Defines custom weightages that may differ from the default
+    - Allows flexible grade calculation based on different weighting options
+    """
+    grading_scheme = models.ForeignKey(GradingScheme, on_delete=models.CASCADE, related_name='weightages')
+    course_event = models.ForeignKey(CourseEvent, on_delete=models.CASCADE)
+    weightage = models.DecimalField(max_digits=5, decimal_places=2)
+    
+    def __str__(self):
+        return f"{self.course_event.event_type} - {self.weightage}%"
+    
+    class Meta:
+        unique_together = ('grading_scheme', 'course_event')
+        db_table = 'gpacalc_assessmentweightage'
+
+
 class CourseGrade(models.Model):
     """
     Represents a student's grade for a specific course.

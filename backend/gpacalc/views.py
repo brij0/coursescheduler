@@ -6,8 +6,9 @@ from django.views.decorators.csrf import csrf_exempt
 from applogger.utils import log_info, log_error
 from applogger.views import log_user_year_estimate, log_app_activity
 from scheduler.models import Course, CourseEvent
-from .models import CourseGrade, AssessmentGrade, GpaCalcProgress
+from .models import CourseGrade, AssessmentGrade, GpaCalcProgress, GradingScheme, AssessmentWeightage
 from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
 from io import BytesIO
 
@@ -213,7 +214,7 @@ def get_course_events(request):
 @require_POST
 def calculate_gpa(request):
     """
-    API: Calculate GPA based on course selections and grades
+    API: Calculate GPA based on course selections and grades, considering multiple grading schemes
     
     Request:
         JSON: {
@@ -234,41 +235,68 @@ def calculate_gpa(request):
     
     Returns:
         JSON: {
-            "per_course": [
+            "combinations": [
                 {
-                    "course": "CS101-001",
-                    "final_percentage": 85.0,
-                    "letter_grade": "A",
-                    "gpa_value": 4.0,
-                    "credits": 0.5
+                    "scheme_id": "combo_0",
+                    "scheme_name": "CS 101: Default + MATH 135: Scheme A",
+                    "per_course": [
+                        {
+                            "course": "CS101-001",
+                            "final_percentage": 85.0,
+                            "letter_grade": "A",
+                            "gpa_value": 4.0,
+                            "credits": 0.5,
+                            "scheme_name": "Default"
+                        },
+                        ...
+                    ],
+                    "overall_gpa": 3.7,
+                    "overall_final_percentage": 82.5,
+                    "schemes_used": ["CS 101: Default", "MATH 135: Scheme A"]
                 },
                 ...
             ],
-            "overall_gpa": 3.7,
-            "overall_final_percentage": 82.5,
+            "best_combination": {...},  // The combination with the highest GPA
+            "individual_schemes": [
+                {
+                    "course": "CS101-001",
+                    "course_type": "CS",
+                    "course_code": "101",
+                    "section_number": "001",
+                    "scheme_id": "default",
+                    "scheme_name": "Default",
+                    "scheme_description": "Default grading scheme",
+                    "weightages": {"Midterm": "30%", "Final": "50%"},
+                    "final_percentage": 85.0,
+                    "letter_grade": "A",
+                    "gpa_value": 4.0
+                },
+                ...
+            ],
             "total_credit": 2.5,
-            "courses": [...], // Cleaned course data
+            "courses": [...],  // Cleaned course data
             "offered_term": "Fall 2025"
         }
     
     Frontend usage:
     - Call after user enters all grades to calculate GPA
-    - Display the overall GPA and per-course breakdown
+    - Display the overall GPA for the best combination of grading schemes
+    - Allow users to explore different grading scheme combinations
+    - Show how each grading scheme affects individual course grades
     - For logged-in users, this data is automatically saved
     """
     log_app_activity(request, app_name, section_name)
+    
     payload = json.loads(request.body)
     log_user_year_estimate(request)
-    
     offered_term = payload.get("offered_term")
-    results = []
-    total_points = 0
+    
+    # Store course objects and their schemes for permutation calculation
+    course_schemes = []
     total_credit = 0
-    total_weighted_percentage = 0
-    total_credits_for_percentage = 0
-
+    
+    # First pass: Gather all courses and their available schemes
     for c in payload.get("courses", []):
-        # create CourseGrade
         course_obj = Course.objects.get(
             course_type=c["course_type"],
             course_code=c["course_code"],
@@ -276,53 +304,146 @@ def calculate_gpa(request):
             offered_term=offered_term,
         )
         
-        cg = CourseGrade.objects.create(
-            course=course_obj,
-        )
+        total_credit += float(course_obj.credits)
         
-        # for each assessment input
-        for a in c.get("assessments", []):
-            ev = CourseEvent.objects.get(id=a["event_id"])
-            # Parse weightage to decimal (strip % if present)
-            raw_weight = ev.weightage or 0
-            if isinstance(raw_weight, str) and raw_weight.endswith("%"):
-                raw_weight = raw_weight.rstrip("%")
-            try:
-                weight = float(raw_weight)
-            except Exception:
-                weight = 0
-            AssessmentGrade.objects.create(
-                course_grade=cg,
-                course_event=ev,
-                weightage=weight,
-                achieved_percentage=a["achieved"]
-            )
-            
-        # compute final & letter & gpa
-        cg.calculate_from_assessments()
+        # Get all grading schemes for this course
+        grading_schemes = list(GradingScheme.objects.filter(course=course_obj))
         
-        results.append({
-            "course": str(cg.course),
-            "final_percentage": float(cg.final_percentage) if cg.final_percentage is not None else None,
-            "letter_grade": cg.letter_grade,
-            "gpa_value": float(cg.gpa_value) if cg.gpa_value is not None else None,
-            "credits": float(cg.course.credits)
-        })
-        
-        if cg.gpa_value is not None:
-            total_points += float(cg.gpa_value) * float(cg.course.credits)
-            total_credit += float(cg.course.credits)
-        if cg.final_percentage is not None:
-            total_weighted_percentage += float(cg.final_percentage) * float(cg.course.credits)
-            total_credits_for_percentage += float(cg.course.credits)
-
-    overall_gpa = round(total_points / total_credit, 2) if total_credit else 0
-    overall_final_percentage = (
-        round(total_weighted_percentage / total_credits_for_percentage, 2)
-        if total_credits_for_percentage else 0
-    )
+        # If no schemes exist, create a virtual default one
+        if not grading_schemes:
+            course_schemes.append({
+                "course": course_obj,
+                "assessments": c.get("assessments", []),
+                "schemes": ["default"]  # Use special marker for default scheme
+            })
+        else:
+            course_schemes.append({
+                "course": course_obj,
+                "assessments": c.get("assessments", []),
+                "schemes": grading_schemes
+            })
     
-    # Clean up course data for storage
+    # Generate all possible scheme combinations
+    def get_scheme_combinations(courses_with_schemes, current=None, index=0):
+        if current is None:
+            current = []
+        
+        if index >= len(courses_with_schemes):
+            return [current]
+        
+        result = []
+        course_data = courses_with_schemes[index]
+        for scheme in course_data["schemes"]:
+            new_current = current + [(course_data["course"], course_data["assessments"], scheme)]
+            result.extend(get_scheme_combinations(courses_with_schemes, new_current, index+1))
+        
+        return result
+    
+    all_combinations = get_scheme_combinations(course_schemes)
+    
+    # Calculate GPA for each combination
+    combination_results = []
+    
+    for combo in all_combinations:
+        combo_total_points = 0
+        combo_total_weighted_percentage = 0
+        combo_courses = []
+        scheme_names = []
+        
+        for course_obj, assessments, scheme in combo:
+            if scheme == "default":
+                # Use default weightages
+                course_grade = calculate_for_default_scheme(course_obj, assessments)
+                scheme_name = "Default"
+            else:
+                # Use scheme weightages
+                course_grade = calculate_for_scheme(course_obj, scheme, assessments)
+                scheme_name = scheme.name
+            
+            scheme_names.append(f"{course_obj.course_type} {course_obj.course_code}: {scheme_name}")
+            
+            course_result = {
+                "course": str(course_obj),
+                "final_percentage": float(course_grade.final_percentage) if course_grade.final_percentage else 0,
+                "letter_grade": course_grade.letter_grade or "N/A",
+                "gpa_value": float(course_grade.gpa_value) if course_grade.gpa_value else 0,
+                "credits": float(course_obj.credits),
+                "scheme_name": scheme_name
+            }
+            
+            combo_courses.append(course_result)
+            
+            if course_grade.gpa_value:
+                combo_total_points += float(course_grade.gpa_value) * float(course_obj.credits)
+                
+            if course_grade.final_percentage:
+                combo_total_weighted_percentage += float(course_grade.final_percentage) * float(course_obj.credits)
+        
+        # Calculate overall GPA for this combination
+        combo_overall_gpa = round(combo_total_points / total_credit, 2) if total_credit > 0 else 0
+        combo_overall_percentage = round(combo_total_weighted_percentage / total_credit, 2) if total_credit > 0 else 0
+        
+        combination_results.append({
+            "scheme_id": f"combo_{len(combination_results)}",
+            "scheme_name": " + ".join(scheme_names),
+            "per_course": combo_courses,
+            "overall_gpa": combo_overall_gpa,
+            "overall_final_percentage": combo_overall_percentage,
+            "schemes_used": scheme_names
+        })
+    
+    # Find the best combination
+    best_combo = max(
+        combination_results, 
+        key=lambda x: (x["overall_gpa"], x["overall_final_percentage"])
+    ) if combination_results else {}
+    
+    # Also prepare individual scheme results for each course (for UI display)
+    individual_scheme_results = []
+    
+    for course_data in course_schemes:
+        course_obj = course_data["course"]
+        assessments = course_data["assessments"]
+        
+        for scheme in course_data["schemes"]:
+            if scheme == "default":
+                course_grade = calculate_for_default_scheme(course_obj, assessments)
+                scheme_name = "Default"
+                scheme_id = "default"
+                scheme_description = "Default grading scheme"
+                weightages = {}
+                
+                # Get weightages for display
+                for event in CourseEvent.objects.filter(course=course_obj):
+                    if event.weightage:
+                        weightages[event.event_type] = event.weightage
+                
+            else:
+                course_grade = calculate_for_scheme(course_obj, scheme, assessments)
+                scheme_name = scheme.name
+                scheme_id = str(scheme.id)
+                scheme_description = scheme.description or ""
+                
+                # Get weightages for display
+                weightages = {}
+                for w in AssessmentWeightage.objects.filter(grading_scheme=scheme):
+                    weightages[w.course_event.event_type] = f"{w.weightage}%"
+            
+            individual_scheme_results.append({
+                "course": str(course_obj),
+                "course_type": course_obj.course_type,
+                "course_code": course_obj.course_code,
+                "section_number": course_obj.section_number,
+                "scheme_id": scheme_id,
+                "scheme_name": scheme_name,
+                "scheme_description": scheme_description,
+                "weightages": weightages,
+                "final_percentage": float(course_grade.final_percentage) if course_grade.final_percentage else 0,
+                "letter_grade": course_grade.letter_grade or "N/A",
+                "gpa_value": float(course_grade.gpa_value) if course_grade.gpa_value else 0,
+            })
+    
+    # Save the original assessments for progress tracking
     clean_courses = []
     for course in payload.get("courses", []):
         clean_assessments = []
@@ -339,15 +460,15 @@ def calculate_gpa(request):
         })
 
     result_data = {
-        "per_course": results,
-        "overall_gpa": float(overall_gpa),
-        "overall_final_percentage": float(overall_final_percentage),
+        "combinations": combination_results,
+        "best_combination": best_combo,
+        "individual_schemes": individual_scheme_results,
         "total_credit": float(total_credit),
         "courses": clean_courses,
         "offered_term": payload.get("offered_term", ""),
     }
     
-    # Save progress for logged-in users or by session
+    # Save progress for logged-in users
     if request.user.is_authenticated:
         GpaCalcProgress.objects.update_or_create(
             user=request.user,
@@ -358,27 +479,115 @@ def calculate_gpa(request):
     
     return JsonResponse(result_data)
 
+
+def calculate_for_default_scheme(course, assessments):
+    """
+    Calculate grades using the default weightages from CourseEvent
+    
+    Args:
+        course: Course object
+        assessments: List of assessment data with event_id and achieved percentage
+        
+    Returns:
+        CourseGrade object with calculated final percentage, letter grade and GPA value
+    """
+    cg = CourseGrade.objects.create(course=course)
+    
+    for a in assessments:
+        try:
+            ev = CourseEvent.objects.get(id=a["event_id"])
+            # Parse weightage to decimal (strip % if present)
+            raw_weight = ev.weightage or 0
+            if isinstance(raw_weight, str) and raw_weight.endswith("%"):
+                raw_weight = raw_weight.rstrip("%")
+            try:
+                weight = float(raw_weight)
+            except Exception:
+                weight = 0
+                
+            AssessmentGrade.objects.create(
+                course_grade=cg,
+                course_event=ev,
+                weightage=weight,
+                achieved_percentage=a["achieved"]
+            )
+        except Exception as e:
+            log_error(f"Error processing assessment: {str(e)}")
+    
+    cg.calculate_from_assessments()
+    return cg
+
+
+def calculate_for_scheme(course, scheme, assessments):
+    """
+    Calculate grades using a specific grading scheme
+    
+    Args:
+        course: Course object
+        scheme: GradingScheme object
+        assessments: List of assessment data with event_id and achieved percentage
+        
+    Returns:
+        CourseGrade object with calculated final percentage, letter grade and GPA value
+    """
+    cg = CourseGrade.objects.create(course=course)
+    
+    for a in assessments:
+        try:
+            ev = CourseEvent.objects.get(id=a["event_id"])
+            
+            # Get weightage from the grading scheme
+            try:
+                aw = AssessmentWeightage.objects.get(grading_scheme=scheme, course_event=ev)
+                weight = float(aw.weightage)
+            except AssessmentWeightage.DoesNotExist:
+                # Fall back to event's weightage
+                raw_weight = ev.weightage or 0
+                if isinstance(raw_weight, str) and raw_weight.endswith("%"):
+                    raw_weight = raw_weight.rstrip("%")
+                try:
+                    weight = float(raw_weight)
+                except Exception:
+                    weight = 0
+            
+            AssessmentGrade.objects.create(
+                course_grade=cg,
+                course_event=ev,
+                weightage=weight,
+                achieved_percentage=a["achieved"]
+            )
+        except Exception as e:
+            log_error(f"Error processing assessment: {str(e)}")
+    
+    cg.calculate_from_assessments()
+    return cg
+
+
 @require_GET
 @csrf_exempt
 def progress_export_excel(request):
     """
-    API: Export GPA calculation results to Excel file
+    API: Export GPA calculation results to Excel file, including multiple grading schemes
     
     Request: GET request (no parameters needed)
     
     Returns:
         Excel file as attachment with the following sheets:
-        - Overall GPA: Summary with overall GPA and per-course breakdown
+        - Best Combination: Summary of the optimal grading scheme combination
+        - All Combinations: Overview of all possible grading scheme combinations
+        - Individual Schemes: How each scheme affects each course
+        - Scheme Weightages: Detailed breakdown of assessment weights per scheme
         - Per-course sheets: One sheet per course with assessment details
     
     Frontend usage:
     - Provide an "Export to Excel" button that links to this endpoint
     - Uses the saved progress data (for logged-in users) or session data
+    - Comprehensive report showing optimal grading scheme selection
     """
     section_name = "Excel Export"
     log_app_activity(request, app_name, section_name)
     
-    # Get saved data
+    # Get progress data
     if request.user.is_authenticated:
         try:
             progress = GpaCalcProgress.objects.get(user=request.user)
@@ -388,43 +597,131 @@ def progress_export_excel(request):
     else:
         data = request.session.get('gpacalc_progress', {})
     
-    # Create workbook
     wb = Workbook()
     wb.remove(wb.active)
 
-    # 1. Add Overall GPA Sheet
-    overall_gpa = data.get('overall_gpa', '')
-    overall_final_percentage = data.get('overall_final_percentage', '')
-    total_credit = data.get('total_credit', '')
-    per_course = data.get('per_course', [])
+    # 1. Add Best Combination Sheet
+    best_combo = data.get('best_combination', {})
+    if best_combo:
+        ws_best = wb.create_sheet(title="Best Combination")
+        ws_best.append(["Overall GPA", best_combo.get('overall_gpa', 'N/A')])
+        ws_best.append(["Overall Final %", best_combo.get('overall_final_percentage', 'N/A')])
+        ws_best.append(["Total Credits", data.get('total_credit', 'N/A')])
+        ws_best.append([])  # Blank row
+        
+        # Add schemes used
+        ws_best.append(["Schemes Used:"])
+        for scheme in best_combo.get('schemes_used', []):
+            ws_best.append(["• " + scheme])
+        
+        ws_best.append([])  # Blank row
+        ws_best.append(["Course", "Final %", "Letter Grade", "GPA Value", "Credits", "Scheme Used"])
+        
+        for c in best_combo.get('per_course', []):
+            ws_best.append([
+                c.get("course", ""),
+                c.get("final_percentage", 'N/A'),
+                c.get("letter_grade", ""),
+                c.get("gpa_value", 'N/A'),
+                c.get("credits", 'N/A'),
+                c.get("scheme_name", "")
+            ])
+        
+        # Format the sheet
+        for col in range(1, 7):
+            ws_best.column_dimensions[get_column_letter(col)].width = 18
 
-    ws_summary = wb.create_sheet(title="Overall GPA")
-    ws_summary.append(["Overall GPA", overall_gpa if overall_gpa != '' else None])
-    ws_summary.append(["Overall Final %", overall_final_percentage if overall_final_percentage != '' else None])
-    ws_summary.append(["Total Credits", total_credit if total_credit != '' else None])
-    ws_summary.append([])  # Blank row
-    ws_summary.append(["Course", "Final %", "Letter Grade", "GPA Value", "Credits"])
-    for c in per_course:
-        ws_summary.append([
-            c.get("course", ""),
-            c.get("final_percentage", None) if c.get("final_percentage", "") != "" else None,
-            c.get("letter_grade", ""),
-            c.get("gpa_value", None) if c.get("gpa_value", "") != "" else None,
-            c.get("credits", None) if c.get("credits", "") != "" else None,
-        ])
-    for col in range(1, 6):
-        ws_summary.column_dimensions[get_column_letter(col)].width = 18
+    # 2. Add All Combinations Sheet
+    combinations = data.get('combinations', [])
+    if combinations:
+        ws_all = wb.create_sheet(title="All Combinations")
+        ws_all.append(["Combination", "Overall GPA", "Overall Final %", "Schemes Used"])
+        
+        for i, combo in enumerate(combinations):
+            is_best = combo.get('scheme_id') == best_combo.get('scheme_id')
+            row_num = i + 2  # +2 because we have a header row and Excel is 1-indexed
+            
+            ws_all.append([
+                f"Combination {i+1}" + (" (Best)" if is_best else ""),
+                combo.get('overall_gpa', 'N/A'),
+                combo.get('overall_final_percentage', 'N/A'),
+                ", ".join(combo.get('schemes_used', []))
+            ])
+            
+            # Highlight the best combination
+            if is_best:
+                for col in range(1, 5):
+                    cell = ws_all.cell(row=row_num, column=col)
+                    cell.font = Font(bold=True)
+                    cell.fill = PatternFill(
+                        start_color="E6FFE6", end_color="E6FFE6", fill_type="solid"
+                    )
+        
+        # Format the sheet
+        for col in range(1, 5):
+            ws_all.column_dimensions[get_column_letter(col)].width = 30
 
-    # 2. Add per-course sheets with assessment details
+    # 3. Add Individual Schemes Sheet
+    individual_schemes = data.get('individual_schemes', [])
+    if individual_schemes:
+        ws_schemes = wb.create_sheet(title="Individual Schemes")
+        ws_schemes.append(["Course", "Scheme", "GPA Value", "Final %", "Letter Grade"])
+        
+        for scheme in individual_schemes:
+            ws_schemes.append([
+                scheme.get('course', ''),
+                scheme.get('scheme_name', ''),
+                scheme.get('gpa_value', 'N/A'),
+                scheme.get('final_percentage', 'N/A'),
+                scheme.get('letter_grade', '')
+            ])
+        
+        # Format the sheet
+        for col in range(1, 6):
+            ws_schemes.column_dimensions[get_column_letter(col)].width = 18
+
+    # 4. Add Scheme Weightages Sheet
+    ws_weights = wb.create_sheet(title="Scheme Weightages")
+    ws_weights.append(["Course", "Scheme", "Assessment", "Weight"])
+    
+    row = 2
+    for scheme in individual_schemes:
+        course = scheme.get('course', '')
+        scheme_name = scheme.get('scheme_name', '')
+        weightages = scheme.get('weightages', {})
+        
+        if weightages:
+            first_row = True
+            for assessment, weight in weightages.items():
+                if first_row:
+                    ws_weights.append([course, scheme_name, assessment, weight])
+                    first_row = False
+                else:
+                    ws_weights.append(['', '', assessment, weight])
+                row += 1
+        else:
+            ws_weights.append([course, scheme_name, 'No weightages available', ''])
+            row += 1
+    
+    # Format the sheet
+    for col in range(1, 5):
+        ws_weights.column_dimensions[get_column_letter(col)].width = 20
+
+    # 5. Add individual course sheets with assessment data
     for course in data.get('courses', []):
         sheet_name = f"{course.get('course_type', '')}-{course.get('course_code', '')}-{course.get('section_number', '')}"
-        ws = wb.create_sheet(title=sheet_name[:31])
-        ws.append(['Term', 'Assignment', 'Date', 'Weightage', 'Achieved', 'Achieved %'])
+        sheet_name = sheet_name[:31]  # Excel sheet name length limit
+        
+        # Skip if a sheet with this name already exists
+        if sheet_name in [ws.title for ws in wb.worksheets]:
+            sheet_name = f"{sheet_name[:27]}-{len(wb.worksheets)}"
+        
+        ws = wb.create_sheet(title=sheet_name)
+        ws.append(['Term', 'Assessment', 'Date', 'Weightage', 'Achieved', 'Achieved %'])
 
         for assessment in course.get('assessments', []):
             event_id = assessment.get('event_id', '')
             try:
-                from scheduler.models import CourseEvent
                 event = CourseEvent.objects.get(id=event_id)
                 description = event.event_type
                 event_date = event.event_date
@@ -433,22 +730,27 @@ def progress_export_excel(request):
                 description = ''
                 event_date = ''
                 weightage = ''
+            
             achieved = assessment.get('achieved', '')
+            
             # Convert weightage to float if possible
             try:
                 weightage_val = float(str(weightage).strip('%')) if weightage not in (None, '') else None
             except Exception:
                 weightage_val = None
+            
             # Achieved as float
             try:
                 achieved_val = float(achieved) if achieved not in (None, '') else None
             except Exception:
                 achieved_val = None
+            
             # Achieved % as float (not string)
             try:
                 achieved_pct = (achieved_val / 100 * weightage_val) if achieved_val is not None and weightage_val is not None else None
             except Exception:
                 achieved_pct = None
+            
             ws.append([
                 data.get('offered_term', ''),
                 description,
@@ -457,23 +759,50 @@ def progress_export_excel(request):
                 achieved_val,
                 achieved_pct
             ])
+        
         # Set percentage format for Achieved % column
         for row in ws.iter_rows(min_row=2, min_col=6, max_col=6):
             for cell in row:
                 cell.number_format = '0.00%'
                 if cell.value is not None:
                     cell.value = cell.value / 100 if cell.value > 1 else cell.value  # Ensure value is in 0-1 range
-
+        
+        # Format the sheet
         for col in range(1, 7):
             ws.column_dimensions[get_column_letter(col)].width = 18
-    
-    # Generate file response
+
+    # Save and return the Excel file
     output = BytesIO()
     wb.save(output)
     output.seek(0)
+    
     response = HttpResponse(
         output,
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     response['Content-Disposition'] = 'attachment; filename="gpacalc_progress.xlsx"'
+    
     return response
+
+
+@require_GET
+def get_user_progress(request):
+    """
+    API: Get the user's saved GPA calculation progress
+    
+    Returns:
+        JSON: The user's most recent GPA calculation data or empty object if none exists
+    
+    Frontend usage:
+    - Call when loading the GPA calculator page to restore previous state
+    - Used to prefill form fields and display previously calculated results
+    - Returns empty object if no previous calculations exist
+    """
+    if request.user.is_authenticated:
+        try:
+            progress = GpaCalcProgress.objects.get(user=request.user)
+            return JsonResponse(progress.data)
+        except GpaCalcProgress.DoesNotExist:
+            return JsonResponse({})
+    else:
+        return JsonResponse(request.session.get('gpacalc_progress', {}))
