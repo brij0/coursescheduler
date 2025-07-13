@@ -15,7 +15,7 @@ const Navbar = () => {
 
   return (
     <motion.nav
-      className="fixed top-6 left-1/2 transform -translate-x-1/2 z-40 w-full max-w-4xl px-4"
+      className="fixed top-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-4xl px-4"
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
