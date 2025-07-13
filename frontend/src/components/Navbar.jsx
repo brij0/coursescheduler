@@ -24,14 +24,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
-            <motion.div
-              className="w-10 h-10 bg-emerald-gold rounded-xl flex items-center justify-center shadow-lg"
-              whileHover={{ scale: 1.05, rotate: 5 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <span className="text-white font-bold text-lg font-display">SG</span>
-            </motion.div>
-            <span className="font-display font-bold text-xl gradient-text">
+            <span className="font-display font-bold text-2xl gradient-text">
               SmartGryph
             </span>
           </Link>
@@ -112,7 +105,7 @@ const Navbar = () => {
               <span>Login</span>
             </button>
           </div>
-        </motion.div>
+        </div>
       </div>
     </motion.nav>
   )

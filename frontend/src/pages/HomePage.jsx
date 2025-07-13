@@ -145,16 +145,16 @@ const HomePage = () => {
               </motion.button>
             </motion.div>
           </motion.div>
-
-          {/* Scroll Indicator */}
-          <motion.div
-            className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <ChevronDown className="w-8 h-8 text-neutral-400" />
-          </motion.div>
         </div>
+
+        {/* Scroll Indicator - Fixed positioning */}
+        <motion.div
+          className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30"
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <ChevronDown className="w-8 h-8 text-neutral-400" />
+        </motion.div>
       </motion.section>
 
       {/* Features Section */}

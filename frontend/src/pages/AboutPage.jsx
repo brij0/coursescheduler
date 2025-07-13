@@ -18,25 +18,25 @@ import Navbar from '../components/Navbar'
 const AboutPage = () => {
   const developers = [
     {
-      name: "Brijesh Thakrar",
+      name: "Frontend Developer",
       role: "Frontend Developer & UI/UX Designer",
       description: "The one who makes things look pretty and actually work. Obsessed with user experience and probably has strong opinions about button colors.",
       skills: ["React", "TypeScript", "Tailwind CSS", "Framer Motion", "Three.js"],
-      github: "https://github.com/brij0",
-      linkedin: "https://linkedin.com/in/brijesh-thakrar",
-      portfolio: "https://brijesh-portfolio.dev",
-      avatar: "🎨",
+      github: "https://github.com/frontend-dev",
+      linkedin: "https://linkedin.com/in/frontend-dev",
+      portfolio: "https://frontend-portfolio.dev",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format&q=80",
       funFact: "Can debug CSS for hours but still can't center a div on the first try"
     },
     {
-      name: "Your Backend Wizard",
+      name: "Backend Developer",
       role: "Backend Developer & System Architect",
       description: "The mastermind behind the scenes. Builds APIs that actually work and databases that don't crash at 3 AM.",
       skills: ["Django", "Python", "PostgreSQL", "REST APIs", "System Design"],
       github: "https://github.com/backend-wizard",
       linkedin: "https://linkedin.com/in/backend-wizard",
       portfolio: "https://backend-wizard.dev",
-      avatar: "⚡",
+      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face&auto=format&q=80",
       funFact: "Speaks fluent SQL and dreams in JSON"
     }
   ]
@@ -182,7 +182,11 @@ const AboutPage = () => {
                 whileHover={{ y: -10 }}
               >
                 <div className="text-center mb-6">
-                  <div className="text-6xl mb-4">{dev.avatar}</div>
+                  <img 
+                    src={dev.avatar} 
+                    alt={dev.name}
+                    className="w-24 h-24 rounded-full mx-auto mb-4 object-cover shadow-lg"
+                  />
                   <h3 className="text-2xl font-bold text-neutral-800 mb-2 font-display">{dev.name}</h3>
                   <p className="text-primary-600 font-semibold">{dev.role}</p>
                 </div>

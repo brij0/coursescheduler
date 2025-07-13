@@ -92,7 +92,7 @@ const LoadingScreen = () => {
               transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
             />
             
-            {/* Center logo */}
+            {/* Center dot */}
             <motion.div
               className="absolute inset-6 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full flex items-center justify-center shadow-lg"
               animate={{ 
@@ -106,12 +106,10 @@ const LoadingScreen = () => {
               transition={{ duration: 3, repeat: Infinity }}
             >
               <motion.div
-                className="text-white text-lg font-bold font-display"
+                className="w-3 h-3 bg-white rounded-full"
                 animate={{ opacity: [0.8, 1, 0.8] }}
                 transition={{ duration: 2, repeat: Infinity }}
-              >
-                SG
-              </motion.div>
+              />
             </motion.div>
           </motion.div>
         </div>
