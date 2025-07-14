@@ -15,142 +15,50 @@ import time
 import logging
 from datetime import datetime
 from .models import Course, CourseEvent,Event, Suggestion
-
+from applogger.views import log_api_timing
 #-----------------------------------------
 # API endpoint for getting course types
 #-----------------------------------------
-@require_GET
-def get_offered_terms(request):
-    terms = (
-        Course.objects
-        .filter(events__isnull=False)
-        .values_list("offered_term", flat=True)
-        .distinct()
-        .order_by("offered_term")
-    )
-    return JsonResponse(list(terms), safe=False)
-@require_POST
-def get_course_types(request):
-    try:
-        data = json.loads(request.body)
-        cterm = data.get("offered_term")
-        
-        types = (
-            Course.objects
-            .filter(events__isnull=False, offered_term=cterm)
-            .values_list("course_type", flat=True)
-            .distinct()
-            .order_by("course_type")
-        )
-        return JsonResponse(list(types), safe=False)
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
-def conflict_test(request):
-    return render(request, "conflict_free_schedule.html")
-def index(request):
-    # SHOW COURSE TYPES
-    course_types = (
-        Course.objects
-        .filter(events__isnull=False)
-        .values_list("course_type", flat=True)
-        .distinct()
-        .order_by("course_type")
-    )
-    return render(request, "index.html", {"course_types": course_types})
-
-@require_POST
-# @csrf_exempt
-def get_course_codes(request):
-    try:
-        data = json.loads(request.body)
-        ctype = data.get("course_type")
-        cterm = data.get("offered_term")
-        if not ctype:
-            return JsonResponse({"error": "Course type is required"}, status=400)
-            
-        codes = (
-            Course.objects
-            .filter(course_type=ctype,offered_term = cterm, events__isnull=False)
-            .values_list("course_code", flat=True)
-            .distinct()
-            .order_by("course_code")
-        )
-        return JsonResponse(list(codes), safe=False)
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
 
 @require_POST
 @csrf_exempt
-def get_section_numbers(request):
-    try:
-        data = json.loads(request.body)
-        ctype = data.get("course_type")
-        code = data.get("course_code")
-        cterm = data.get("offered_term")
-        print(f"Received course_type: {ctype}, course_code: {code}")
-        if not ctype or not code:
-            return JsonResponse({"error": "Course type and code are required"}, status=400)
-            
-        secs = (
-            Course.objects
-            .filter(course_type=ctype,offered_term = cterm, course_code=code, events__isnull=False)
-            .values_list("section_number", flat=True)
-            .distinct()
-            .order_by("section_number")
-        )
-        return JsonResponse(list(secs), safe=False)
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+@log_api_timing("course_events_schedule")
+def course_events_schedule(request):
+    """
+    API: Get all events for multiple course sections
 
-@require_POST
-@csrf_exempt
-def search_courses(request):
-    try:
-        # Parse dynamic form fields course_type_0, course_code_0, section_number_0, …
-        all_events = {}
-        i = 0
-        while True:
-            ct = request.POST.get(f"course_type_{i}")
-            cc = request.POST.get(f"course_code_{i}")
-            sn = request.POST.get(f"section_number_{i}")
-            
-            if not any([ct, cc, sn]):
-                break
-                
-            if all([ct, cc, sn]):
-                key = f"{ct}*{cc}*{sn}"
-                evs = list(CourseEvent.objects.filter(
-                    course__course_type=ct,
-                    course__course_code=cc,
-                    course__section_number=sn
-                ).values(
-                    "event_type","event_date","days","time","location","description","weightage"
-                ))
-                serializable_evs = []
-                for e in evs:
-                    e["event_date"] = e["event_date"].isoformat() if e.get("event_date") else None
-                    serializable_evs.append(e)
-                all_events[key] = serializable_evs
-            i += 1
+    Request:
+        JSON: {
+            "sections": [
+                {
+                    "course_type": "CIS",
+                    "course_code": "3750",
+                    "section_number": "01",
+                    "offered_term": "Fall 2025"
+                },
+                ...
+            ]
+        }
 
-        # Store in session for calendar functionality
-        request.session["all_events"] = all_events
-        print(f"All events stored in session: {all_events}")
-        # Return JSON response for API calls
-        if request.headers.get('Content-Type') == 'multipart/form-data' or 'application/json' in request.headers.get('Accept', ''):
-            return JsonResponse({"events": all_events})
-        
-        # Return HTML template for traditional form submissions
-        return render(request, "events.html", {"events": all_events})
-        
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    Response:
+        {
+            "CIS*3750*01": [ ...events... ],
+            ...
+        }
+    """
+    data = json.loads(request.body)
+    courses = data.get("sections") or data.get("courses", [])
+    result = {}
+    for c in courses:
+        key = f"{c['course_type']}*{c['course_code']}*{c['section_number']}"
+        evs = CourseEvent.objects.filter(
+            course__course_type=c["course_type"],
+            course__course_code=c["course_code"],
+            course__section_number=c["section_number"],
+            course__offered_term=c["offered_term"]
+        ).values("id", "event_type", "weightage", "event_date", "location", "description", "time")
+        result[key] = list(evs)
+    return JsonResponse(result, safe=False)
 
 def add_to_calendar(request):
     if not request.user.is_authenticated:
@@ -216,18 +124,36 @@ def insert_events_to_calendar(request):
 
 #Removed commented out conflict_free_schedule function to make the code cleaner
 @csrf_exempt
+@log_api_timing("conflict_free_schedule")
 def conflict_free_schedule(request):
     """
-    Expects JSON:
-    {
-      "courses": [
-        {"course_type": "ENGG", "course_code": "3380"},
-        {"course_type": "CIS", "course_code": "3750"}
-      ],
-      "offset": 0,
-      "limit": 100
-    }
-    Returns paginated conflict-free schedules.
+    API: Generate paginated conflict-free schedules for selected courses.
+
+    Request:
+        JSON: {
+            "courses": [
+                {"course_type": "ENGG", "course_code": "3380"},
+                {"course_type": "CIS", "course_code": "3750"}
+            ],
+            "offered_term": "Fall 2025",
+            "offset": 0,
+            "limit": 100
+        }
+
+    Response:
+        {
+            "schedules": [...],   # List of dicts, each representing a schedule (mapping section key to events)
+            "total": "CPU is Cooking",  # Not calculated for performance
+            "offset": 0,
+            "limit": 100,
+            "has_more": true/false,
+            "message": "Showing N conflict-free schedules"
+        }
+
+    Frontend usage:
+    - Call this endpoint with selected courses and term to get conflict-free schedules.
+    - Use offset/limit for pagination.
+    - Each schedule is a dict mapping section key (e.g. "CIS*3750*01") to a list of event dicts.
     """
     logger = logging.getLogger(__name__)
     total_start = time.time()
@@ -271,12 +197,12 @@ def conflict_free_schedule(request):
                             end_24 = datetime.strptime(end, "%I:%M %p").time()
                         except:
                             start_24 = end_24 = None
-                        print(f"Start: {start_24}, End: {end_24}, Days: {days}")
+                        # print(f"Start: {start_24}, End: {end_24}, Days: {days}")
                     else:
                         start_24 = end_24 = None
                     for d in days:
                         time_slots.append((d, start_24, end_24, e["event_type"]))
-                    print(time_slots)
+                    # print(time_slots)
                 section_events.append({
                     'section': section,
                     'events': events,
@@ -291,18 +217,36 @@ def conflict_free_schedule(request):
             for day1, start1, end1, _ in slots1:
                 for day2, start2, end2, _ in slots2:
                     if day1 == day2:
+                        # Skip if any time is None
+                        if None in (start1, end1, start2, end2):
+                            continue
                         if not (end1 <= start2 or start1 >= end2):
                             return True
             return False
 
-        # Backtracking to find ALL schedules first
-        all_schedules = []
+        # Modified backtracking to find schedules lazily
+        found_schedules = []
+        schedules_skipped = 0
 
         def build_schedules(course_index, current_schedule, current_slots):
-            if course_index >= len(course_data):
-                all_schedules.append(current_schedule.copy())
+            nonlocal schedules_skipped
+            
+            # Stop if we have enough schedules for this page
+            if len(found_schedules) >= limit:
                 return
+                
+            if course_index >= len(course_data):
+                if schedules_skipped < offset:
+                    schedules_skipped += 1
+                else:
+                    found_schedules.append(current_schedule.copy())
+                return
+                
             for section_data in course_data[course_index]:
+                # Stop if we have enough schedules for this page
+                if len(found_schedules) >= limit:
+                    return
+                    
                 new_slots = section_data['time_slots']
                 conflict_found = False
                 for existing_slots in current_slots:
@@ -317,30 +261,78 @@ def conflict_free_schedule(request):
 
         build_schedules(0, {}, [])
 
-        # Now paginate the results
-        total_found = len(all_schedules)
-        paginated_schedules = all_schedules[offset:offset+limit]
-
+        # Check if we potentially have more schedules by trying to find one more
+        has_more = False
+        if len(found_schedules) == limit:
+            # Try to find one more schedule to see if there are more available
+            temp_found = []
+            temp_skipped = schedules_skipped
+            
+            def check_more_schedules(course_index, current_schedule, current_slots):
+                nonlocal temp_skipped
+                
+                if len(temp_found) >= 1:  # We only need to find one more
+                    return
+                    
+                if course_index >= len(course_data):
+                    if temp_skipped < offset + limit:
+                        temp_skipped += 1
+                    else:
+                        temp_found.append(current_schedule.copy())
+                    return
+                    
+                for section_data in course_data[course_index]:
+                    if len(temp_found) >= 1:
+                        return
+                        
+                    new_slots = section_data['time_slots']
+                    conflict_found = False
+                    for existing_slots in current_slots:
+                        if events_conflict(existing_slots, new_slots):
+                            conflict_found = True
+                            break
+                    if not conflict_found:
+                        new_schedule = current_schedule.copy()
+                        new_schedule[section_data['key']] = section_data['events']
+                        new_slot_list = current_slots + [new_slots]
+                        check_more_schedules(course_index + 1, new_schedule, new_slot_list)
+            
+            check_more_schedules(0, {}, [])
+            has_more = len(temp_found) > 0
+        
         response_data = {
-            "schedules": paginated_schedules,
-            "total": total_found,
+            "schedules": found_schedules,
+            "total": "unknown",  # We don't calculate total anymore for performance
             "offset": offset,
             "limit": limit,
-            "message": f"Showing {len(paginated_schedules)} of {total_found} conflict-free schedules"
+            "has_more": has_more,
+            "message": f"Showing {len(found_schedules)} conflict-free schedules"
         }
-        logger.info(f"Found {total_found} conflict-free schedules in {time.time() - total_start:.2f}s")
-        logger.info(f"Returned {len(paginated_schedules)} schedules out of {total_found} found in {time.time() - total_start:.2f}s")
+        logger.info(f"Found {len(found_schedules)} conflict-free schedules in {time.time() - total_start:.2f}s")
+        logger.info(f"Returned {len(found_schedules)} schedules in {time.time() - total_start:.2f}s")
         return JsonResponse(response_data)
     except Exception as e:
         logger.error(f"Error in conflict_free_schedule: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)
-
-def privacy_policy(request):
-    return render(request, "privacy.html")
-
+    
+# -----------------------------------------
+# API: Submit a suggestion/feedback
+# -----------------------------------------
 @require_POST
 @csrf_exempt
 def submit_suggestion(request):
+    """
+    API: Submit a suggestion or feedback
+
+    Request:
+        JSON: { "suggestion": "Please add more course sections for popular classes" }
+
+    Response:
+        { "message": "Thank you for your feedback!" }
+
+    Frontend usage:
+    - Call to submit user suggestions or feedback.
+    """
     try:
         data = json.loads(request.body)
         text = data.get("suggestion")
@@ -350,30 +342,5 @@ def submit_suggestion(request):
         return JsonResponse({"message": "Thank you for your feedback!"})
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
-
-@require_POST
-@csrf_exempt
-def upload_course_outline(request):
-    try:
-        ctype = request.POST.get("course_type")
-        ccode = request.POST.get("course_code")
-        file = request.FILES.get("course_outline")
-        
-        if not (ctype and ccode and file):
-            return JsonResponse({"error": "All fields are required"}, status=400)
-
-        UPLOAD_DIR = settings.BASE_DIR / "Sample Course Outlines"
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        filename = f"{ctype}_{ccode}.pdf"
-        fs = FileSystemStorage(location=UPLOAD_DIR)
-        
-        if fs.exists(filename):
-            return JsonResponse({"message": "File already exists"})
-            
-        fs.save(filename, file)
-        return JsonResponse({"message": "File uploaded successfully"})
-        
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

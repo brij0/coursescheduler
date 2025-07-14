@@ -78,6 +78,7 @@ def get_offered_terms(request):
     return JsonResponse(list(terms), safe=False)
 
 @require_POST
+@csrf_exempt
 @log_api_timing("get_course_types")
 def get_course_types(request):
     """
