@@ -1,269 +1,225 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Schedule Results - CourseScheduler{% endblock %}
+{% block title %}Events - CourseScheduler{% endblock %}
 
 {% block extra_css %}
 <style>
-  /* General Styles */
-    body {
-        font-family: 'Poppins', sans-serif;
-        background-color: #f5f4f0;
-        color: #333;
-    }
-
-    .results-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 3rem 0;
-        margin: -2rem -2rem 2rem -2rem;
-        border-radius: 0 0 20px 20px;
-        text-align: center;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    .course-card {
-        margin-bottom: 2rem;
-        border: none;
-        border-radius: 15px;
-        overflow: hidden;
-        background: white;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-    }
-
-    .course-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-    }
-
-    .course-header {
-        background: #667eea;
-        color: white;
-        padding: 1rem;
-        font-size: 1.25rem;
-        font-weight: bold;
-        border-radius: 15px 15px 0 0;
-    }
-
-    .table {
-        margin-bottom: 0;
-        background-color: white;
-        border-radius: 0 0 15px 15px;
-    }
-
-    .table th {
-        background: #f5f4f0;
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.85rem;
-        color: #495057;
-        border-bottom: 2px solid #e1e8ed;
-    }
-
-    .table td {
-        padding: 1rem;
-        border-color: #e1e8ed;
-    }
-
-    .table tbody tr:hover {
-        background-color: #f8f9fa;
-    }
-
-    .action-buttons {
-        margin-top: 2rem;
-        text-align: center;
-    }
-
-    .btn-back {
-        background: #764ba2;
-        color: white;
-        border: none;
-        padding: 0.75rem 1.5rem;
-        border-radius: 10px;
-        transition: all 0.3s;
-    }
-
-    .btn-back:hover {
-        background: #5e3b82;
-        transform: translateY(-2px);
-    }
-
-    .export-button {
-        margin-left: 1rem;
-        background: #28a745;
-        color: white;
-        border: none;
-        padding: 0.75rem 1.5rem;
-        border-radius: 10px;
-        transition: all 0.3s;
-    }
-
-    .export-button:hover {
-        background: #218838;
-        transform: translateY(-2px);
-    }
-
-    .no-events {
-        background: #f8f9fa;
-        padding: 2rem;
-        text-align: center;
-        border-radius: 10px;
-        color: #666;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    }
+    body { font-family: 'Poppins', sans-serif; background-color: #f5f4f0; color: #333; }
+    .event-query-box { background: #fff; border-radius: 15px; box-shadow: 0 2px 10px #ccc; max-width: 900px; margin: 2rem auto; }
+    .course-row { display: flex; gap: 1rem; margin-bottom: 1rem; }
+    select, button { padding: 0.5rem; border-radius: 5px; border: 1px solid #ccc; }
+    .btn { min-width: 120px; }
+    .btn-danger { background: #e74c3c; color: #fff; border: none; }
+    .btn-danger:hover { background: #c0392b; }
+    .btn-primary { background: #764ba2; color: #fff; border: none; }
+    .btn-primary:hover { background: #5a357d; }
+    .table { margin-top: 2rem; background: #fff; border-radius: 10px; }
+    .table th, .table td { padding: 0.75rem; border-color: #e1e8ed; }
 </style>
 {% endblock %}
+
 {% block content %}
-<div class="results-header animate-fade-in">
-    <h1 class="display-4">Your Course Schedule</h1>
-    <p class="lead">Here's your personalized course schedule</p>
+<div class="event-query-box card p-4 mb-4">
+    <h3 class="mb-3">Get Events for Multiple Courses</h3>
+    <form id="event-query-form" autocomplete="off">
+        <div id="course-rows"></div>
+        <button type="button" id="add-course" class="btn btn-secondary mb-3">Add Course</button>
+        <button type="submit" class="btn btn-primary mb-3">Show Events</button>
+    </form>
+    <div id="course-events-result" class="mt-4"></div>
 </div>
 
-<div class="schedule-container animate-fade-in">
-    {% if events %}
-    {% for course_id, course_events in events.items %}
-    <div class="course-card card">
-        <div class="card-body">
-            <h5 class="course-header">{{ course_id }}</h5>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Event Type</th>
-                        <th>Event Date</th>
-                        <th>Days</th>
-                        <th>Time</th>
-                        <th>Location</th>
-                        <th>Description</th>
-                        <th>Weightage</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for event in course_events %}
-                    <tr>
-                        <td>{{ event.event_type }}</td>
-                        <td>{{ event.event_date }}</td>
-                        <td>{{ event.days }}</td>
-                        <td>{{ event.time }}</td>
-                        <td>{{ event.location }}</td>
-                        <td>{{ event.description }}</td>
-                        <td>{{ event.weightage }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    {% endfor %}
-    {% else %}
-    <div class="no-events text-center mt-4">
-        <i class="fas fa-calendar-times fa-3x mb-3"></i>
-        <h3>No Events Found</h3>
-        <p>Please select at least one course to view the schedule.</p>
-    </div>
-    {% endif %}
-</div>
-<form action="/add_to_calendar/" method="POST">
-    <a href="/" class="btn btn-back">
-        <i class="fas fa-arrow-left mr-2"></i>Search Another Course
-    </a>
-    <button type="submit" class="btn export-button">
-        <i class="fas fa-calendar-plus mr-2"></i>Add to Google Calendar
-    </button>
-</form>
-
-
-{% endblock %}
-
-{% block extra_js %}
 <script>
-    $(document).ready(function () {
-        // Debounce function for optimized event handling
-        function debounce(func, delay) {
-            let timer;
-            return function (...args) {
-                const context = this;
-                clearTimeout(timer);
-                timer = setTimeout(() => func.apply(context, args), delay);
-            };
-        }
+document.addEventListener('DOMContentLoaded', function() {
+    // Helper to enable/disable fields
+    function setEnabled(el, enabled) { el.disabled = !enabled; }
 
-        // Button animations on click
-        $(".btn").on('click', function () {
-            $(this).addClass('animate__animated animate__pulse');
-            setTimeout(() => {
-                $(this).removeClass('animate__animated animate__pulse');
-            }, 1000);
+    // Fetch terms once
+    let terms = [];
+    fetch('/api/scheduler/offered_terms/')
+        .then(res => res.json())
+        .then(data => { terms = data; });
+
+    // Add a new course row
+    function addCourseRow() {
+        const idx = Date.now() + Math.floor(Math.random()*1000);
+        const row = document.createElement('div');
+        row.className = 'course-row';
+        row.dataset.idx = idx;
+        row.innerHTML = `
+            <select class="term form-control" required>
+                <option value="">Term</option>
+            </select>
+            <select class="type form-control" required disabled>
+                <option value="">Type</option>
+            </select>
+            <select class="code form-control" required disabled>
+                <option value="">Code</option>
+            </select>
+            <select class="section form-control" required disabled>
+                <option value="">Section</option>
+            </select>
+            <button type="button" class="btn btn-danger remove-row">Remove</button>
+        `;
+        // Populate terms
+        const termSel = row.querySelector('.term');
+        terms.forEach(term => {
+            let opt = document.createElement('option');
+            opt.value = term;
+            opt.textContent = term;
+            termSel.appendChild(opt);
         });
 
-        // Scroll animations with IntersectionObserver
-        const courseCards = document.querySelectorAll('.course-card');
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('animate__animated', 'animate__fadeInUp');
-                        observer.unobserve(entry.target); // Stop observing after animation
-                    }
+        // Remove row handler
+        row.querySelector('.remove-row').onclick = function() {
+            row.remove();
+        };
+
+        // When term changes, fetch types
+        row.querySelector('.term').onchange = function() {
+            const term = this.value;
+            const typeSel = row.querySelector('.type');
+            typeSel.innerHTML = '<option value="">Type</option>';
+            setEnabled(typeSel, false);
+            setEnabled(row.querySelector('.code'), false);
+            setEnabled(row.querySelector('.section'), false);
+            row.querySelector('.code').innerHTML = '<option value="">Code</option>';
+            row.querySelector('.section').innerHTML = '<option value="">Section</option>';
+            if (!term) return;
+            fetch('/api/scheduler/course_types/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({offered_term: term})
+            })
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(type => {
+                    let opt = document.createElement('option');
+                    opt.value = type;
+                    opt.textContent = type;
+                    typeSel.appendChild(opt);
                 });
-            },
-            { threshold: 0.2 } // Trigger animation when 20% of the element is visible
-        );
-
-        courseCards.forEach((card) => observer.observe(card));
-
-        // Hover animations with cleanup
-        $(".course-card").hover(
-            function () {
-                $(this).addClass('animate__animated animate__pulse');
-            },
-            function () {
-                $(this).removeClass('animate__animated animate__pulse');
-            }
-        );
-
-        // Ripple effect on buttons
-        $(".btn").on('mousedown', function (e) {
-            const ripple = $('<span class="ripple"></span>');
-            const x = e.pageX - $(this).offset().left;
-            const y = e.pageY - $(this).offset().top;
-
-            ripple.css({
-                left: `${x}px`,
-                top: `${y}px`,
+                setEnabled(typeSel, true);
             });
+        };
 
-            $(this).append(ripple);
+        // When type changes, fetch codes
+        row.querySelector('.type').onchange = function() {
+            const term = row.querySelector('.term').value;
+            const type = this.value;
+            const codeSel = row.querySelector('.code');
+            codeSel.innerHTML = '<option value="">Code</option>';
+            setEnabled(codeSel, false);
+            setEnabled(row.querySelector('.section'), false);
+            row.querySelector('.section').innerHTML = '<option value="">Section</option>';
+            if (!type) return;
+            fetch('/api/scheduler/course_codes/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({offered_term: term, course_type: type})
+            })
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(code => {
+                    let opt = document.createElement('option');
+                    opt.value = code;
+                    opt.textContent = code;
+                    codeSel.appendChild(opt);
+                });
+                setEnabled(codeSel, true);
+            });
+        };
 
-            setTimeout(() => {
-                ripple.remove();
-            }, 600); // Reduced timeout for a smoother effect
+        // When code changes, fetch sections
+        row.querySelector('.code').onchange = function() {
+            const term = row.querySelector('.term').value;
+            const type = row.querySelector('.type').value;
+            const code = this.value;
+            const sectionSel = row.querySelector('.section');
+            sectionSel.innerHTML = '<option value="">Section</option>';
+            setEnabled(sectionSel, false);
+            if (!code) return;
+            fetch('/api/scheduler/section_numbers/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({offered_term: term, course_type: type, course_code: code})
+            })
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(section => {
+                    let opt = document.createElement('option');
+                    opt.value = section;
+                    opt.textContent = section;
+                    sectionSel.appendChild(opt);
+                });
+                setEnabled(sectionSel, true);
+            });
+        };
+
+        document.getElementById('course-rows').appendChild(row);
+    }
+
+    // Add initial row
+    setTimeout(addCourseRow, 300);
+
+    document.getElementById('add-course').onclick = addCourseRow;
+
+    // Handle form submit
+    document.getElementById('event-query-form').onsubmit = function(e) {
+        e.preventDefault();
+        const rows = document.querySelectorAll('.course-row');
+        const courses = [];
+        for (let row of rows) {
+            const term = row.querySelector('.term').value;
+            const type = row.querySelector('.type').value;
+            const code = row.querySelector('.code').value;
+            const section = row.querySelector('.section').value;
+            if (term && type && code && section) {
+                courses.push({
+                    offered_term: term,
+                    course_type: type,
+                    course_code: code,
+                    section_number: section
+                });
+            }
+        }
+        if (!courses.length) {
+            document.getElementById('course-events-result').innerHTML = '<div class="alert alert-warning">Please select at least one course.</div>';
+            return;
+        }
+        fetch('/api/scheduler/events_view/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({courses: courses})
+        })
+        .then(res => res.json())
+        .then(data => {
+            const events = data.events || [];
+            let html = '';
+            if (!events.length) {
+                html = '<div class="alert alert-warning">No events found for these courses.</div>';
+            } else {
+                html = `<div class="course-card card"><div class="card-body"><h5 class="course-header">Events</h5>
+                <table class="table"><thead><tr>
+                <th>Course</th><th>Event Type</th><th>Event Date</th><th>Time</th><th>Location</th><th>Description</th><th>Weightage</th>
+                </tr></thead><tbody>`;
+                events.forEach(event => {
+                    html += `<tr>
+                        <td>${event.course || ''}</td>
+                        <td>${event.event_type}</td>
+                        <td>${event.event_date || ''}</td>
+                        <td>${event.time || ''}</td>
+                        <td>${event.location || ''}</td>
+                        <td>${event.description || ''}</td>
+                        <td>${event.weightage || ''}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table></div></div>';
+            }
+            document.getElementById('course-events-result').innerHTML = html;
         });
-
-        // Ripple CSS styles (optional for smoother integration)
-        $("<style>")
-            .prop("type", "text/css")
-            .html(`
-                .ripple {
-                    position: absolute;
-                    width: 100px;
-                    height: 100px;
-                    background: rgba(255, 255, 255, 0.5);
-                    border-radius: 50%;
-                    transform: scale(0);
-                    animation: ripple-animation 0.6s linear;
-                    pointer-events: none;
-                }
-
-                @keyframes ripple-animation {
-                    to {
-                        transform: scale(4);
-                        opacity: 0;
-                    }
-                }
-            `)
-            .appendTo("head");
-    });
+    };
+});
 </script>
 {% endblock %}

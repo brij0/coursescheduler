@@ -397,6 +397,18 @@
     </form>
 </div>
 
+<div class="choose-action text-center my-5">
+    <h2 class="mb-4">What would you like to do?</h2>
+    <div class="d-flex justify-content-center gap-4">
+        <a href="/conflictfree_home/" class="btn btn-primary btn-lg">
+            Find Conflict-Free Schedule
+        </a>
+        <a href="/events/" class="btn btn-success btn-lg">
+            Get Events for a Specific Course
+        </a>
+    </div>
+</div>
+
 <div class="container">
     <h1><span class="blue-text">SMART TOOLS</span> TO SIMPLIFY YOUR SCHEDULING</h1>
     <div class="content">
@@ -525,7 +537,7 @@
 
             if (courseType) {
                 $.ajax({
-                    url: "api/scheduler/get_course_codes/",
+                    url: "api/scheduler/course_codes/",
                     type: "POST",
                     contentType: "application/json",
                     data: JSON.stringify({ course_type: courseType }),
@@ -548,7 +560,7 @@
 
             if (courseType && courseCode) {
                 $.ajax({
-                    url: "api/scheduler/get_section_numbers/",
+                    url: "api/scheduler/section_numbers/",
                     type: "POST",
                     contentType: "application/json",
                     data: JSON.stringify({ course_type: courseType, course_code: courseCode }),

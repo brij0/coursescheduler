@@ -12,6 +12,18 @@
         select, button { padding: 0.5rem; border-radius: 5px; border: 1px solid #ccc; }
         #result { margin-top: 2rem; }
         .term-selector { margin-bottom: 1.5rem; }
+        .btn-secondary, .btn-primary {
+            padding: 0.5rem 1.2rem;
+            border-radius: 5px;
+            border: none;
+            margin: 0 0.5rem;
+            cursor: pointer;
+        }
+        .btn-secondary { background: #aaa; color: #fff; }
+        .btn-primary { background: #764ba2; color: #fff; }
+        .btn-secondary:disabled, .btn-primary:disabled { background: #e0e0e0; color: #888; cursor: not-allowed; }
+        h4 { margin-bottom: 0.5rem; }
+        pre { background: #f8f8f8; padding: 1rem; border-radius: 5px; }
     </style>
 </head>
 <body>
@@ -22,7 +34,6 @@
             <label for="offered-term">Select Term:</label>
             <select id="offered-term" name="offered_term">
                 <option value="">Select Term</option>
-                <!-- Term options will be populated by JavaScript -->
             </select>
         </div>
         <div id="course-rows"></div>
@@ -30,18 +41,20 @@
         <button type="button" id="find-schedule">Find Conflict-Free Schedule</button>
     </form>
     <div id="result"></div>
+    <div class="d-flex justify-content-between mt-3">
+        <button id="prev-page" class="btn btn-secondary" disabled>Previous</button>
+        <button id="next-page" class="btn btn-primary" disabled>Next</button>
+    </div>
 </div>
 <script>
 $(document).ready(function() {
     let courseTypes = [];
     let courseCodes = {};
     let rowCount = 0;
-    let lastOffset = 0;
-    let lastCourses = [];
-    let lastTotal = 0;
-    let lastLimit = 100;
-    
-    // Get CSRF token for POST requests
+    let offset = 0;
+    const limit = 10;
+
+    // CSRF setup
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -56,8 +69,6 @@ $(document).ready(function() {
         }
         return cookieValue;
     }
-    
-    // Setup CSRF token for all AJAX requests
     $.ajaxSetup({
         beforeSend: function(xhr, settings) {
             if (!(/^GET|HEAD|OPTIONS|TRACE$/i.test(settings.type))) {
@@ -78,14 +89,10 @@ $(document).ready(function() {
     $('#offered-term').change(function() {
         const term = $(this).val();
         if (!term) return;
-        
-        // Clear course rows and reset state
         $('#course-rows').empty();
         rowCount = 0;
         courseTypes = [];
         courseCodes = {};
-        
-        // Fetch course types for the selected term
         $.ajax({
             url: '/api/scheduler/course_types/',
             method: 'POST',
@@ -93,22 +100,20 @@ $(document).ready(function() {
             data: JSON.stringify({ offered_term: term }),
             success: function(data) {
                 courseTypes = data;
-                addCourseRow(); // Add initial row with new course types
+                addCourseRow();
             }
         });
     });
 
-    // Fetch codes for a type
     function fetchCodes(type, cb) {
         const term = $('#offered-term').val();
         if (!term) {
             alert('Please select a term first');
             return;
         }
-        
         if (courseCodes[type]) return cb(courseCodes[type]);
         $.ajax({
-            url: '/api/scheduler/get_course_codes/',
+            url: '/api/scheduler/course_codes/',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({ 
@@ -122,7 +127,6 @@ $(document).ready(function() {
         });
     }
 
-    // Add a new course row
     function addCourseRow() {
         const idx = rowCount++;
         const row = $(`
@@ -136,11 +140,8 @@ $(document).ready(function() {
                 <button type="button" class="remove-row">Remove</button>
             </div>
         `);
-        // Populate types
         courseTypes.forEach(t => row.find('.course-type').append(`<option value="${t}">${t}</option>`));
-        // Remove row
         row.find('.remove-row').click(function() { row.remove(); });
-        // On type change, fetch codes
         row.find('.course-type').change(function() {
             const type = $(this).val();
             const codeSel = row.find('.course-code');
@@ -153,26 +154,27 @@ $(document).ready(function() {
         });
         $('#course-rows').append(row);
     }
-
     $('#add-course').click(addCourseRow);
 
-    function fetchSchedules(offset = 0, append = false) {
+    // Helper to collect selected courses
+    function getSelectedCourses() {
+        const courses = [];
+        $('#course-rows .dropdown-row').each(function() {
+            const type = $(this).find('.course-type').val();
+            const code = $(this).find('.course-code').val();
+            if (type && code) courses.push({ course_type: type, course_code: code });
+        });
+        return courses;
+    }
+
+    // Main fetch function for schedules
+    function fetchSchedules() {
         const term = $('#offered-term').val();
         if (!term) {
             $('#result').html('<span style="color:red;">Please select a term.</span>');
             return;
         }
-        
-        const courses = [];
-        $('#course-rows .dropdown-row').each(function() {
-            const type = $(this).find('.course-type').val();
-            const code = $(this).find('.course-code').val();
-            if (type && code) courses.push({ 
-                course_type: type, 
-                course_code: code,
-                offered_term: term
-            });
-        });
+        const courses = getSelectedCourses();
         if (!courses.length) {
             $('#result').html('<span style="color:red;">Please select at least one course.</span>');
             return;
@@ -186,27 +188,12 @@ $(document).ready(function() {
                 courses, 
                 offered_term: term,
                 offset, 
-                limit: lastLimit 
+                limit
             }),
             success: function(data) {
-                lastOffset = offset;
-                lastCourses = courses;
-                lastTotal = data.total;
-                let html = '';
-                if (!append) {
-                    html += `<h3>Found ${data.total} conflict-free schedule(s):</h3>`;
-                }
-                data.schedules.forEach((sched, idx) => {
-                    html += `<h4>Schedule ${offset + idx + 1}</h4><pre>${JSON.stringify(sched, null, 2)}</pre>`;
-                });
-                if (offset + data.schedules.length < data.total) {
-                    html += `<button id="load-more">Load More</button>`;
-                }
-                if (append) {
-                    $('#result').append(html);
-                } else {
-                    $('#result').html(html);
-                }
+                renderResults(data.schedules, offset, limit);
+                $('#prev-page').prop('disabled', offset === 0);
+                $('#next-page').prop('disabled', !data.has_more);
             },
             error: function(xhr) {
                 $('#result').html('<span style="color:red;">' + (xhr.responseJSON?.error || 'Error') + '</span>');
@@ -214,13 +201,33 @@ $(document).ready(function() {
         });
     }
 
-    $('#find-schedule').click(function() {
-        lastOffset = 0;
-        fetchSchedules(0, false);
-    });
+    // Render results in #result
+    function renderResults(schedules, offset, limit) {
+        let html = '';
+        if (!schedules.length) {
+            html = '<div>No conflict-free schedules found.</div>';
+        } else {
+            schedules.forEach((sched, idx) => {
+                html += `<h4>Schedule ${offset + idx + 1}</h4><pre>${JSON.stringify(sched, null, 2)}</pre>`;
+            });
+        }
+        $('#result').html(html);
+    }
 
-    $(document).on('click', '#load-more', function() {
-        fetchSchedules(lastOffset + lastLimit, true);
+    // Button handlers
+    $('#find-schedule').click(function() {
+        offset = 0;
+        fetchSchedules();
+    });
+    $('#prev-page').click(function() {
+        if (offset >= limit) {
+            offset -= limit;
+            fetchSchedules();
+        }
+    });
+    $('#next-page').click(function() {
+        offset += limit;
+        fetchSchedules();
     });
 });
 </script>
