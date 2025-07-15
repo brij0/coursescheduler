@@ -46,8 +46,6 @@ class Suggestion(models.Model):
     text         = models.TextField()
     submitted_at = models.DateTimeField(auto_now_add=True)
 
-from django.db import models
-
 class Event(models.Model):
     id = models.AutoField(primary_key=True)
     course_id = models.ForeignKey('Course', on_delete=models.CASCADE, db_column='course_id')

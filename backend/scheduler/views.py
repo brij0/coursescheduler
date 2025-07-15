@@ -1,35 +1,35 @@
 # scheduler/views.py
-import os, json, pathlib
+import json
 from datetime import datetime
-from django.shortcuts import render, redirect
-from django.http import JsonResponse, HttpResponseBadRequest
-from django.views.decorators.http import require_POST, require_GET
+from django.shortcuts import redirect, render
+from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
+from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
-from django.core.files.storage import FileSystemStorage
-from allauth.socialaccount.models import SocialToken
-from google.oauth2.credentials import Credentials as GoogleCredentials
-from googleapiclient.discovery import build
-import re
 import time
 import logging
-from datetime import datetime
-from .models import Course, CourseEvent,Event, Suggestion
+from datetime import datetime, timedelta
+from .models import Course, CourseEvent, Event, Suggestion
 from applogger.views import log_api_timing
-#-----------------------------------------
-# API endpoint for getting course types
-#-----------------------------------------
+from icalendar import Calendar
+from icalendar import Event as calendarEvent
+import pytz
 
+# -----------------------------------------
+# API: Get Course Events for selected sections
+# -----------------------------------------
 @require_POST
 @csrf_exempt
 @log_api_timing("course_events_schedule")
 def course_events_schedule(request):
     """
     API: Get all events for multiple course sections
+    
+    This endpoint returns detailed event information for specified course sections.
+    Frontend can use this to display event details in a calendar or list view.
 
     Request:
         JSON: {
-            "sections": [
+            "sections/courses": [
                 {
                     "course_type": "CIS",
                     "course_code": "3750",
@@ -42,7 +42,18 @@ def course_events_schedule(request):
 
     Response:
         {
-            "CIS*3750*01": [ ...events... ],
+            "CIS*3750*01": [
+                {
+                    "id": 123,
+                    "event_type": "Lecture",
+                    "weightage": "20%",
+                    "event_date": "2025-09-10",
+                    "location": "Room 101",
+                    "description": "Introduction to concepts",
+                    "time": "10:00 AM - 11:20 AM"
+                },
+                ...
+            ],
             ...
         }
     """
@@ -60,74 +71,17 @@ def course_events_schedule(request):
         result[key] = list(evs)
     return JsonResponse(result, safe=False)
 
-def add_to_calendar(request):
-    if not request.user.is_authenticated:
-        return redirect("/accounts/google/login/")
-    if "all_events" not in request.session:
-        return redirect("scheduler:index")
-    return redirect("scheduler:insert_events")
-
-def insert_events_to_calendar(request):
-    all_events = request.session.get("all_events", {})
-    
-    try:
-        # Rebuild credentials from allauth SocialToken
-        token = SocialToken.objects.get(account__user=request.user, account__provider="google")
-        creds = GoogleCredentials(
-            token=token.token,
-            refresh_token=token.token_secret,
-            token_uri="https://oauth2.googleapis.com/token",
-            client_id=os.getenv("GOOGLE_CLIENT_ID"),
-            client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
-            scopes=[
-                "https://www.googleapis.com/auth/calendar",
-                "https://www.googleapis.com/auth/userinfo.email",
-                "https://www.googleapis.com/auth/userinfo.profile",
-                "openid",
-            ],
-        )
-        service = build("calendar", "v3", credentials=creds)
-
-        for course_key, events in all_events.items():
-            for e in events:
-                date_str = e.get("event_date")
-                if not date_str:
-                    continue
-                    
-                try:
-                    date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
-                except ValueError:
-                    continue
-
-                event_body = {
-                    "summary": f"{course_key} - {e['event_type']}",
-                    "location": e.get("location", ""),
-                    "description": e.get("description", ""),
-                    "start": {"date": date_obj.isoformat()},
-                    "end": {"date": date_obj.isoformat()},
-                    "reminders": {
-                        "useDefault": False, 
-                        "overrides": [
-                            {"method": "email", "minutes": 24*60},
-                            {"method": "popup", "minutes": 10},
-                        ]
-                    },
-                }
-                service.events().insert(calendarId="primary", body=event_body).execute()
-
-        return JsonResponse({"message": "Events added to calendar successfully"})
-        
-    except SocialToken.DoesNotExist:
-        return JsonResponse({"error": "Google authentication required"}, status=401)
-    except Exception as e:
-        return JsonResponse({"error": f"Failed to add events: {str(e)}"}, status=500)
-
-#Removed commented out conflict_free_schedule function to make the code cleaner
+# -----------------------------------------
+# API: Generate Conflict-Free Schedules
+# -----------------------------------------
 @csrf_exempt
 @log_api_timing("conflict_free_schedule")
 def conflict_free_schedule(request):
     """
     API: Generate paginated conflict-free schedules for selected courses.
+
+    This endpoint uses a backtracking algorithm to find schedules without time conflicts.
+    Pagination is implemented to avoid overloading the browser with too many schedules.
 
     Request:
         JSON: {
@@ -142,18 +96,32 @@ def conflict_free_schedule(request):
 
     Response:
         {
-            "schedules": [...],   # List of dicts, each representing a schedule (mapping section key to events)
-            "total": "CPU is Cooking",  # Not calculated for performance
+            "schedules": [
+                {
+                    "CIS*3750*01": [
+                        {event details...},
+                        ...
+                    ],
+                    "ENGG*3380*02": [
+                        {event details...},
+                        ...
+                    ]
+                },
+                ... more schedules ...
+            ],
+            "total": "unknown",  
             "offset": 0,
             "limit": 100,
             "has_more": true/false,
             "message": "Showing N conflict-free schedules"
         }
 
-    Frontend usage:
-    - Call this endpoint with selected courses and term to get conflict-free schedules.
-    - Use offset/limit for pagination.
-    - Each schedule is a dict mapping section key (e.g. "CIS*3750*01") to a list of event dicts.
+    Frontend Implementation Notes:
+    - Use offset/limit for pagination - load more schedules as user scrolls
+    - Display schedules in calendar format with color-coding by course
+    - For each schedule, display all sections with their events
+    - Provide a "Next Schedule" / "Previous Schedule" navigation
+    - Consider adding filters (e.g., "no early mornings", "compact schedule")
     """
     logger = logging.getLogger(__name__)
     total_start = time.time()
@@ -178,8 +146,10 @@ def conflict_free_schedule(request):
                 events = list(Event.objects.filter(course_id=section.course_id).values(
                     "event_type", "times", "location", "days"
                 ))
+                
                 if not events:
                     continue
+                    
                 # Parse time slots for conflict checking
                 time_slots = []
                 for e in events:
@@ -189,31 +159,34 @@ def conflict_free_schedule(request):
                         for words in e["days"].split(','):
                             if words.strip():
                                 days.append(words.strip())
+                    
                     time_part = e["times"]
                     if times:
-                        try :
+                        try:
                             start, end = [t.strip() for t in time_part.split('-')]
                             start_24 = datetime.strptime(start, "%I:%M %p").time()
                             end_24 = datetime.strptime(end, "%I:%M %p").time()
                         except:
                             start_24 = end_24 = None
-                        # print(f"Start: {start_24}, End: {end_24}, Days: {days}")
                     else:
                         start_24 = end_24 = None
+                        
                     for d in days:
                         time_slots.append((d, start_24, end_24, e["event_type"]))
-                    # print(time_slots)
+                        
                 section_events.append({
                     'section': section,
                     'events': events,
                     'time_slots': time_slots,
                     'key': f"{section.course_type}*{section.course_code}*{section.section_number}"
                 })
+                
             course_data.append(section_events)
             logger.info(f"Course {course['course_type']}{course['course_code']}: {len(section_events)} sections with events")
-        # print(course_data)
-        # Conflict checking helper
+
+        # Conflict checking helper function
         def events_conflict(slots1, slots2):
+            """Check if two sets of time slots have any conflicts"""
             for day1, start1, end1, _ in slots1:
                 for day2, start2, end2, _ in slots2:
                     if day1 == day2:
@@ -229,12 +202,21 @@ def conflict_free_schedule(request):
         schedules_skipped = 0
 
         def build_schedules(course_index, current_schedule, current_slots):
+            """
+            Recursive backtracking to build conflict-free schedules
+            
+            Args:
+                course_index: Index of current course in course_data
+                current_schedule: Current partial schedule being built
+                current_slots: List of time slots already in the schedule
+            """
             nonlocal schedules_skipped
             
             # Stop if we have enough schedules for this page
             if len(found_schedules) >= limit:
                 return
                 
+            # Base case: all courses have been processed
             if course_index >= len(course_data):
                 if schedules_skipped < offset:
                     schedules_skipped += 1
@@ -242,6 +224,7 @@ def conflict_free_schedule(request):
                     found_schedules.append(current_schedule.copy())
                 return
                 
+            # Try each section of the current course
             for section_data in course_data[course_index]:
                 # Stop if we have enough schedules for this page
                 if len(found_schedules) >= limit:
@@ -249,16 +232,20 @@ def conflict_free_schedule(request):
                     
                 new_slots = section_data['time_slots']
                 conflict_found = False
+                
+                # Check for conflicts with existing slots
                 for existing_slots in current_slots:
                     if events_conflict(existing_slots, new_slots):
                         conflict_found = True
                         break
+                        
                 if not conflict_found:
                     new_schedule = current_schedule.copy()
                     new_schedule[section_data['key']] = section_data['events']
                     new_slot_list = current_slots + [new_slots]
                     build_schedules(course_index + 1, new_schedule, new_slot_list)
-
+        
+        # Start the recursive schedule building
         build_schedules(0, {}, [])
 
         # Check if we potentially have more schedules by trying to find one more
@@ -269,6 +256,7 @@ def conflict_free_schedule(request):
             temp_skipped = schedules_skipped
             
             def check_more_schedules(course_index, current_schedule, current_slots):
+                """Helper function to check if more schedules exist beyond current limit"""
                 nonlocal temp_skipped
                 
                 if len(temp_found) >= 1:  # We only need to find one more
@@ -308,13 +296,112 @@ def conflict_free_schedule(request):
             "has_more": has_more,
             "message": f"Showing {len(found_schedules)} conflict-free schedules"
         }
+        
         logger.info(f"Found {len(found_schedules)} conflict-free schedules in {time.time() - total_start:.2f}s")
-        logger.info(f"Returned {len(found_schedules)} schedules in {time.time() - total_start:.2f}s")
         return JsonResponse(response_data)
+        
     except Exception as e:
         logger.error(f"Error in conflict_free_schedule: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)
+
+
+# -----------------------------------------
+# API: Export Events to Calendar Format
+# -----------------------------------------
+@require_POST
+@csrf_exempt
+def export_events_ics_format(request):
+    """
+    Export events as ICS file for download
     
+    This endpoint generates a standard iCalendar format file that can be imported
+    into Google Calendar, Apple Calendar, Outlook, etc.
+    
+    Request:
+        JSON: {
+            "CIS*3750*01": [
+                {
+                    "course": "CIS*3750",
+                    "event_type": "Lecture",
+                    "event_date": "2025-09-10",
+                    "location": "Room 101",
+                    "description": "Introduction",
+                    "weightage": "20%",
+                    "time": "10:00 AM - 11:20 AM"
+                },
+                ...
+            ],
+            ...
+        }
+        
+    Response:
+        Binary ICS file with Content-Disposition: attachment
+        
+    Frontend Implementation Notes:
+    - Send selected schedule data to this endpoint
+    - Handle the response as a file download
+    - Display success message after download
+    - Provide instructions for importing to different calendar apps
+    """
+    calendar = Calendar()
+    calendar.add('prodid', '-//My calendar product//example.com//')
+    calendar.add('version', '2.0')
+    
+    try:
+        data = json.loads(request.body)
+        
+        for _, value in data.items():
+            for event in value:
+                course = event.get("course", {})
+                event_type = event.get("event_type", {})
+                event_date = event.get("event_date", "")
+                location = event.get("location", "")
+                description = f"{event.get('description', '')} with weightage of {event.get('weightage', '')}"
+                time_str = event.get("time", "").replace("?", "-")
+                
+                # Split time range and extract start time
+                start_time = ""
+                if "-" in time_str:
+                    start_time = time_str.split("-")[0].strip()
+                else:
+                    start_time = time_str.strip()
+                
+                # Try to detect AM/PM, if missing, default to AM
+                if not (start_time.lower().endswith("am") or start_time.lower().endswith("pm")):
+                    start_time += " AM"
+                
+                cal_event = calendarEvent()
+                cal_event.add('summary', f"{course} {event_type}")
+                cal_event.add('description', description)
+                cal_event.add('location', location)
+                
+                try:
+                    dtstart = datetime.strptime(event_date + ' ' + start_time, '%Y-%m-%d %I:%M %p')
+                except ValueError:
+                    # fallback: try without AM/PM
+                    try:
+                        dtstart = datetime.strptime(event_date + ' ' + start_time.replace(" AM", ""), '%Y-%m-%d %H:%M')
+                    except Exception:
+                        continue  # skip this event if parsing fails
+                
+                cal_event.add('dtstart', pytz.timezone('US/Eastern').localize(dtstart))
+                cal_event.add('dtend', pytz.timezone('US/Eastern').localize(dtstart + timedelta(hours=1)))
+                calendar.add_component(cal_event)
+        
+        # Generate the ICS content
+        ics_content = calendar.to_ical()
+        
+        # Create HTTP response with the ICS file
+        response = HttpResponse(ics_content, content_type='text/calendar')
+        response['Content-Disposition'] = 'attachment; filename="events.ics"'
+        
+        return response
+        
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("Invalid JSON data")
+    except Exception as e:
+        return HttpResponseBadRequest(f"Error processing request: {str(e)}")
+
 # -----------------------------------------
 # API: Submit a suggestion/feedback
 # -----------------------------------------
@@ -322,25 +409,38 @@ def conflict_free_schedule(request):
 @csrf_exempt
 def submit_suggestion(request):
     """
-    API: Submit a suggestion or feedback
-
+    API: Submit a suggestion or feedback for the course scheduler
+    
+    This endpoint allows users to submit feedback which gets stored in the database.
+    
     Request:
-        JSON: { "suggestion": "Please add more course sections for popular classes" }
-
+        JSON: {
+            "suggestion": "Please add more course sections for popular classes"
+        }
+        
     Response:
-        { "message": "Thank you for your feedback!" }
-
-    Frontend usage:
-    - Call to submit user suggestions or feedback.
+        JSON: {
+            "message": "Thank you for your feedback!"
+        }
+        
+    Frontend Implementation Notes:
+    - Add a feedback form on the scheduler page
+    - Show success message after submission
+    - Consider adding categories for feedback types
     """
     try:
         data = json.loads(request.body)
-        text = data.get("suggestion")
-        if not text:
+        suggestion_text = data.get("suggestion", "").strip()
+        
+        if not suggestion_text:
             return JsonResponse({"error": "Suggestion text is required"}, status=400)
-        Suggestion.objects.create(text=text)
-        return JsonResponse({"message": "Thank you for your feedback!"})
+            
+        # Create and save the suggestion
+        suggestion = Suggestion(text=suggestion_text)
+        suggestion.save()
+        
+        return JsonResponse({"message": "Thank you for your feedback!"})     
     except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
+        return JsonResponse({"error": "Invalid JSON data"}, status=400)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
