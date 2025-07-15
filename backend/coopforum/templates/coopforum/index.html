@@ -100,6 +100,8 @@
     <div class="auth-section">
       <div id="auth-logged-out" class="hidden">
         <button id="login-btn">Login</button>
+        <!-- Add Register Button -->
+        <button id="register-btn">Register</button>
       </div>
       <div id="auth-logged-in" class="hidden">
         <span>Welcome, <span id="username"></span>!</span>
@@ -119,6 +121,18 @@
       />
       <button id="login-submit">Login</button>
       <button id="login-cancel">Cancel</button>
+    </div>
+
+    <!-- Registration Modal/Section (hidden by default) -->
+    <div id="register-modal" style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%,0); background:#fff; border:1px solid #ccc; padding:20px; z-index:1000;">
+      <h3>Register</h3>
+      <form id="register-form">
+        <input type="email" id="register-email" placeholder="UoGuelph Email" required /><br>
+        <input type="password" id="register-password" placeholder="Password" required /><br>
+        <button type="submit">Register</button>
+        <button type="button" id="register-cancel">Cancel</button>
+      </form>
+      <div id="register-error" style="color:red;"></div>
     </div>
 
     <div id="search-section" class="hidden">
@@ -833,6 +847,44 @@
             '<p style="color: red;">Search failed. Please try again.</p>';
         }
       }
+
+      // Show registration modal
+      document.getElementById("register-btn").onclick = function() {
+        document.getElementById("register-modal").style.display = "block";
+        document.getElementById("register-error").innerText = "";
+      };
+
+      // Hide registration modal
+      document.getElementById("register-cancel").onclick = function() {
+        document.getElementById("register-modal").style.display = "none";
+      };
+
+      // Handle registration form submit
+      document.getElementById("register-form").onsubmit = async function(e) {
+        e.preventDefault();
+        const email = document.getElementById("register-email").value.trim();
+        const password = document.getElementById("register-password").value;
+        const errorDiv = document.getElementById("register-error");
+        errorDiv.innerText = "";
+
+        try {
+          const res = await fetch("/api/auth/register/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            alert("Registration successful! Please log in.");
+            document.getElementById("register-modal").style.display = "none";
+          } else {
+            errorDiv.innerText = data.error || "Registration failed.";
+          }
+        } catch (err) {
+          errorDiv.innerText = "Network error.";
+        }
+      };
+
       // Initialize
       checkAuthStatus();
     </script>
