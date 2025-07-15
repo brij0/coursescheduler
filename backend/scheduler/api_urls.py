@@ -13,7 +13,6 @@ urlpatterns = [
     path('submit_suggestion/', views.submit_suggestion, name='submit_suggestion'),
     # path('upload_course_outline/', views.upload_course_outline, name='upload_course_outline'),
     path('course_events', gpacalc_views.get_course_events, name='get_course_events'),
-    path('add_to_calendar/', views.add_to_calendar, name='add_to_calendar'),
-    path('insert_events/', views.insert_events_to_calendar, name='insert_events'),
+    path('export_events/', views.export_events_ics_format, name='export_event'),
     path('events_view/', views.course_events_schedule, name='events_view'),
 ]

@@ -3,179 +3,183 @@
 
 {% block title %}Events - CourseScheduler{% endblock %}
 
-{% block extra_css %}
-<style>
-    body { font-family: 'Poppins', sans-serif; background-color: #f5f4f0; color: #333; }
-    .event-query-box { background: #fff; border-radius: 15px; box-shadow: 0 2px 10px #ccc; max-width: 900px; margin: 2rem auto; }
-    .course-row { display: flex; gap: 1rem; margin-bottom: 1rem; }
-    select, button { padding: 0.5rem; border-radius: 5px; border: 1px solid #ccc; }
-    .btn { min-width: 120px; }
-    .btn-danger { background: #e74c3c; color: #fff; border: none; }
-    .btn-danger:hover { background: #c0392b; }
-    .btn-primary { background: #764ba2; color: #fff; border: none; }
-    .btn-primary:hover { background: #5a357d; }
-    .table { margin-top: 2rem; background: #fff; border-radius: 10px; }
-    .table th, .table td { padding: 0.75rem; border-color: #e1e8ed; }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="event-query-box card p-4 mb-4">
-    <h3 class="mb-3">Get Events for Multiple Courses</h3>
-    <form id="event-query-form" autocomplete="off">
-        <div id="course-rows"></div>
-        <button type="button" id="add-course" class="btn btn-secondary mb-3">Add Course</button>
-        <button type="submit" class="btn btn-primary mb-3">Show Events</button>
-    </form>
-    <div id="course-events-result" class="mt-4"></div>
+<div class="container mt-4">
+    <h3>API Test Interface - Course Events</h3>
+    <div class="card p-3 mb-3">
+        <form id="event-query-form">
+            <div class="form-group">
+                <label>Term</label>
+                <select id="term" class="form-control" required>
+                    <option value="">Select Term</option>
+                </select>
+            </div>
+            <div id="course-rows" class="mb-3"></div>
+            <button type="button" id="add-course" class="btn btn-secondary">Add Course</button>
+            <button type="submit" class="btn btn-primary">Show Events</button>
+        </form>
+    </div>
+
+    <div id="api-response" class="card p-3 mb-3">
+        <h5>API Response</h5>
+        <pre id="response-data">Submit a request to see response</pre>
+    </div>
+
+    <div id="export-section" class="card p-3" style="display: none;">
+        <h5>Export Test</h5>
+        <button id="export-ics" class="btn btn-success">Test Export to Calendar (ICS)</button>
+        <div id="export-result" class="mt-2"></div>
+    </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Helper to enable/disable fields
-    function setEnabled(el, enabled) { el.disabled = !enabled; }
+    let currentEventsData = null;
 
-    // Fetch terms once
-    let terms = [];
+    // Fetch terms and populate dropdown
     fetch('/api/scheduler/offered_terms/')
         .then(res => res.json())
-        .then(data => { terms = data; });
-
-    // Add a new course row
-    function addCourseRow() {
-        const idx = Date.now() + Math.floor(Math.random()*1000);
-        const row = document.createElement('div');
-        row.className = 'course-row';
-        row.dataset.idx = idx;
-        row.innerHTML = `
-            <select class="term form-control" required>
-                <option value="">Term</option>
-            </select>
-            <select class="type form-control" required disabled>
-                <option value="">Type</option>
-            </select>
-            <select class="code form-control" required disabled>
-                <option value="">Code</option>
-            </select>
-            <select class="section form-control" required disabled>
-                <option value="">Section</option>
-            </select>
-            <button type="button" class="btn btn-danger remove-row">Remove</button>
-        `;
-        // Populate terms
-        const termSel = row.querySelector('.term');
-        terms.forEach(term => {
-            let opt = document.createElement('option');
-            opt.value = term;
-            opt.textContent = term;
-            termSel.appendChild(opt);
+        .then(terms => {
+            const termSelect = document.getElementById('term');
+            terms.forEach(term => {
+                const option = document.createElement('option');
+                option.value = term;
+                option.textContent = term;
+                termSelect.appendChild(option);
+            });
         });
 
-        // Remove row handler
-        row.querySelector('.remove-row').onclick = function() {
-            row.remove();
-        };
+    // Add course row
+    document.getElementById('add-course').addEventListener('click', function() {
+        const term = document.getElementById('term').value;
+        if (!term) {
+            alert('Please select a term first');
+            return;
+        }
 
-        // When term changes, fetch types
-        row.querySelector('.term').onchange = function() {
-            const term = this.value;
-            const typeSel = row.querySelector('.type');
-            typeSel.innerHTML = '<option value="">Type</option>';
-            setEnabled(typeSel, false);
-            setEnabled(row.querySelector('.code'), false);
-            setEnabled(row.querySelector('.section'), false);
-            row.querySelector('.code').innerHTML = '<option value="">Code</option>';
-            row.querySelector('.section').innerHTML = '<option value="">Section</option>';
-            if (!term) return;
-            fetch('/api/scheduler/course_types/', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({offered_term: term})
-            })
-            .then(res => res.json())
-            .then(data => {
-                data.forEach(type => {
-                    let opt = document.createElement('option');
-                    opt.value = type;
-                    opt.textContent = type;
-                    typeSel.appendChild(opt);
-                });
-                setEnabled(typeSel, true);
+        const row = document.createElement('div');
+        row.className = 'course-row mb-2 p-2 border';
+        row.innerHTML = `
+            <div class="form-row">
+                <div class="col">
+                    <select class="form-control type" required>
+                        <option value="">Type</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <select class="form-control code" required disabled>
+                        <option value="">Code</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <select class="form-control section" required disabled>
+                        <option value="">Section</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <button type="button" class="btn btn-sm btn-danger remove-row">Remove</button>
+                </div>
+            </div>
+        `;
+
+        // Populate types
+        fetch('/api/scheduler/course_types/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({offered_term: term})
+        })
+        .then(res => res.json())
+        .then(types => {
+            const typeSelect = row.querySelector('.type');
+            types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                typeSelect.appendChild(option);
             });
-        };
+        });
 
-        // When type changes, fetch codes
-        row.querySelector('.type').onchange = function() {
-            const term = row.querySelector('.term').value;
+        // Type change handler
+        row.querySelector('.type').addEventListener('change', function() {
             const type = this.value;
-            const codeSel = row.querySelector('.code');
-            codeSel.innerHTML = '<option value="">Code</option>';
-            setEnabled(codeSel, false);
-            setEnabled(row.querySelector('.section'), false);
+            const codeSelect = row.querySelector('.code');
+            codeSelect.innerHTML = '<option value="">Code</option>';
+            codeSelect.disabled = true;
             row.querySelector('.section').innerHTML = '<option value="">Section</option>';
+            row.querySelector('.section').disabled = true;
+
             if (!type) return;
+
             fetch('/api/scheduler/course_codes/', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({offered_term: term, course_type: type})
             })
             .then(res => res.json())
-            .then(data => {
-                data.forEach(code => {
-                    let opt = document.createElement('option');
-                    opt.value = code;
-                    opt.textContent = code;
-                    codeSel.appendChild(opt);
+            .then(codes => {
+                codes.forEach(code => {
+                    const option = document.createElement('option');
+                    option.value = code;
+                    option.textContent = code;
+                    codeSelect.appendChild(option);
                 });
-                setEnabled(codeSel, true);
+                codeSelect.disabled = false;
             });
-        };
+        });
 
-        // When code changes, fetch sections
-        row.querySelector('.code').onchange = function() {
-            const term = row.querySelector('.term').value;
+        // Code change handler
+        row.querySelector('.code').addEventListener('change', function() {
             const type = row.querySelector('.type').value;
             const code = this.value;
-            const sectionSel = row.querySelector('.section');
-            sectionSel.innerHTML = '<option value="">Section</option>';
-            setEnabled(sectionSel, false);
+            const sectionSelect = row.querySelector('.section');
+            sectionSelect.innerHTML = '<option value="">Section</option>';
+            sectionSelect.disabled = true;
+
             if (!code) return;
+
             fetch('/api/scheduler/section_numbers/', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({offered_term: term, course_type: type, course_code: code})
+                body: JSON.stringify({
+                    offered_term: term,
+                    course_type: type,
+                    course_code: code
+                })
             })
             .then(res => res.json())
-            .then(data => {
-                data.forEach(section => {
-                    let opt = document.createElement('option');
-                    opt.value = section;
-                    opt.textContent = section;
-                    sectionSel.appendChild(opt);
+            .then(sections => {
+                sections.forEach(section => {
+                    const option = document.createElement('option');
+                    option.value = section;
+                    option.textContent = section;
+                    sectionSelect.appendChild(option);
                 });
-                setEnabled(sectionSel, true);
+                sectionSelect.disabled = false;
             });
-        };
+        });
+
+        // Remove row handler
+        row.querySelector('.remove-row').addEventListener('click', function() {
+            row.remove();
+        });
 
         document.getElementById('course-rows').appendChild(row);
-    }
+    });
 
-    // Add initial row
-    setTimeout(addCourseRow, 300);
-
-    document.getElementById('add-course').onclick = addCourseRow;
-
-    // Handle form submit
-    document.getElementById('event-query-form').onsubmit = function(e) {
+    // Form submission
+    document.getElementById('event-query-form').addEventListener('submit', function(e) {
         e.preventDefault();
+        
+        const term = document.getElementById('term').value;
         const rows = document.querySelectorAll('.course-row');
         const courses = [];
-        for (let row of rows) {
-            const term = row.querySelector('.term').value;
+
+        rows.forEach(row => {
             const type = row.querySelector('.type').value;
             const code = row.querySelector('.code').value;
             const section = row.querySelector('.section').value;
-            if (term && type && code && section) {
+
+            if (type && code && section) {
                 courses.push({
                     offered_term: term,
                     course_type: type,
@@ -183,43 +187,102 @@ document.addEventListener('DOMContentLoaded', function() {
                     section_number: section
                 });
             }
-        }
-        if (!courses.length) {
-            document.getElementById('course-events-result').innerHTML = '<div class="alert alert-warning">Please select at least one course.</div>';
+        });
+
+        if (courses.length === 0) {
+            document.getElementById('response-data').textContent = 'Error: Please select at least one valid course';
+            document.getElementById('export-section').style.display = 'none';
             return;
         }
-        fetch('/api/scheduler/events_view/', {
+
+        // Display the request payload
+        document.getElementById('response-data').textContent = 
+            'Request payload:\n' + JSON.stringify({sections: courses}, null, 2) + '\n\nWaiting for response...';
+
+        // Make API call
+        fetch('/api/scheduler/course_events_schedule/', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({courses: courses})
+            body: JSON.stringify({sections: courses})
         })
         .then(res => res.json())
         .then(data => {
-            const events = data.events || [];
-            let html = '';
-            if (!events.length) {
-                html = '<div class="alert alert-warning">No events found for these courses.</div>';
-            } else {
-                html = `<div class="course-card card"><div class="card-body"><h5 class="course-header">Events</h5>
-                <table class="table"><thead><tr>
-                <th>Course</th><th>Event Type</th><th>Event Date</th><th>Time</th><th>Location</th><th>Description</th><th>Weightage</th>
-                </tr></thead><tbody>`;
+            document.getElementById('response-data').textContent = 
+                'Request payload:\n' + JSON.stringify({sections: courses}, null, 2) + 
+                '\n\nResponse:\n' + JSON.stringify(data, null, 2);
+            
+            // Store data for export test
+            currentEventsData = [];
+            for (const [courseKey, events] of Object.entries(data)) {
                 events.forEach(event => {
-                    html += `<tr>
-                        <td>${event.course || ''}</td>
-                        <td>${event.event_type}</td>
-                        <td>${event.event_date || ''}</td>
-                        <td>${event.time || ''}</td>
-                        <td>${event.location || ''}</td>
-                        <td>${event.description || ''}</td>
-                        <td>${event.weightage || ''}</td>
-                    </tr>`;
+                    currentEventsData.push({
+                        course: courseKey,
+                        event_type: event.event_type,
+                        event_date: event.event_date,
+                        time: event.time,
+                        location: event.location,
+                        description: event.description,
+                        weightage: event.weightage
+                    });
                 });
-                html += '</tbody></table></div></div>';
             }
-            document.getElementById('course-events-result').innerHTML = html;
+            
+            if (currentEventsData.length > 0) {
+                document.getElementById('export-section').style.display = 'block';
+                document.getElementById('export-result').textContent = 
+                    'Export test ready - ' + currentEventsData.length + ' events loaded';
+            } else {
+                document.getElementById('export-section').style.display = 'none';
+            }
+        })
+        .catch(error => {
+            document.getElementById('response-data').textContent = 
+                'Error:\n' + error.toString();
+            document.getElementById('export-section').style.display = 'none';
         });
-    };
+    });
+
+    // Export test handler
+    document.getElementById('export-ics').addEventListener('click', function() {
+        if (!currentEventsData || currentEventsData.length === 0) {
+            document.getElementById('export-result').textContent = 'No events data to export';
+            return;
+        }
+
+        document.getElementById('export-result').textContent = 'Sending export request...';
+        
+        fetch("{% url 'scheduler-api:export_event' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ events: currentEventsData })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'course_events.ics';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+            document.getElementById('export-result').textContent = 
+                'Export successful - file downloaded as course_events.ics';
+        })
+        .catch(error => {
+            console.error('Export error:', error);
+            document.getElementById('export-result').textContent = 
+                'Export error: ' + error.message;
+        });
+    });
 });
 </script>
 {% endblock %}
