@@ -148,3 +148,6 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')  # or @hotmail.com
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 SITE_URL = 'http://localhost:8000'
+# Add to your settings.py
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY')  # Service key, not anon key

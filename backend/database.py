@@ -51,7 +51,7 @@ def insert_cleaned_sections(courses_data):
     }
 
     db_connection, db_cursor = get_db_connection()
-
+    # print(f"course_data = {courses_data}")
     try:
         # Process each course
         for course_codes, term_sections in courses_data.items():
@@ -86,6 +86,7 @@ def insert_cleaned_sections(courses_data):
                         section_number,
                         credits
                     )
+                    print(f"Inserting section: {params}")
                     db_cursor.execute(insert_section_query, params)
                     course_id = db_cursor.lastrowid
 
@@ -163,6 +164,7 @@ def insert_cleaned_sections(courses_data):
                             (course_id, event_type, times, location, days, dates)
                             VALUES (%s, %s, %s, %s, %s, %s)
                         """
+                        print(f"Inserting event: {course_id}, {event_type}, {time_range_str}, {location}, {days_str}, {date_range_str}")
                         db_cursor.execute(insert_event_query, 
                                         (course_id, event_type, time_range_str, location, 
                                         days_str, date_range_str))
