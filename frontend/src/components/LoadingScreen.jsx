@@ -39,7 +39,7 @@ const LoadingScreen = () => {
 
   return (
     <motion.div
-      className="fixed inset-0 animated-bg flex items-center justify-center z-50 overflow-hidden"
+      className="fixed inset-0 bg-gradient-to-br from-primary-900 via-primary-800 to-accent-900 flex items-center justify-center z-50 overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 1.1 }}
@@ -94,13 +94,13 @@ const LoadingScreen = () => {
             
             {/* Center dot */}
             <motion.div
-              className="absolute inset-6 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full flex items-center justify-center shadow-lg animate-gradient-xy"
+              className="absolute inset-6 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full flex items-center justify-center shadow-lg"
               animate={{ 
                 scale: [1, 1.05, 1],
                 boxShadow: [
-                  "0 0 20px rgba(14, 165, 233, 0.3)",
-                  "0 0 30px rgba(217, 70, 239, 0.5)",
-                  "0 0 20px rgba(14, 165, 233, 0.3)"
+                  "0 0 20px rgba(16, 185, 129, 0.3)",
+                  "0 0 30px rgba(245, 158, 11, 0.5)",
+                  "0 0 20px rgba(16, 185, 129, 0.3)"
                 ]
               }}
               transition={{ duration: 3, repeat: Infinity }}
@@ -138,7 +138,7 @@ const LoadingScreen = () => {
         <div className="w-80 max-w-sm mx-auto">
           <div className="bg-white/20 rounded-full h-1 overflow-hidden backdrop-blur-sm">
             <motion.div
-              className="h-full animated-bg rounded-full"
+              className="h-full bg-gradient-to-r from-primary-400 via-accent-500 to-primary-400 rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.1 }}

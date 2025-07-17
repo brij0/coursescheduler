@@ -11,8 +11,7 @@
 
 @layer components {
   .gradient-text {
-    @apply bg-animated-gradient bg-clip-text text-transparent animate-gradient-x;
-    background-size: 400% 400%;
+    @apply bg-emerald-gold bg-clip-text text-transparent;
   }
   
   .glass-effect {
@@ -20,29 +19,15 @@
   }
 
   .elegant-card {
-    @apply bg-white/80 backdrop-blur-sm border border-neutral-200/50 shadow-lg transition-shadow duration-300;
+    @apply bg-white/80 backdrop-blur-sm border border-neutral-200/50 shadow-lg hover:shadow-xl transition-shadow duration-300;
   }
 
-  .elegant-card:hover {
-    @apply shadow-xl;
-  }
-
-  .primary-glow {
+  .emerald-glow {
     @apply shadow-lg shadow-primary-500/25;
   }
 
-  .accent-glow {
+  .gold-glow {
     @apply shadow-lg shadow-accent-500/25;
-  }
-
-  .animated-bg {
-    @apply bg-animated-gradient animate-gradient-xy;
-    background-size: 400% 400%;
-  }
-
-  .animated-bg-subtle {
-    @apply bg-animated-gradient-subtle animate-gradient-xy;
-    background-size: 400% 400%;
   }
 }
 
