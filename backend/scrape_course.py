@@ -1,8 +1,15 @@
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'coursescheduler.settings')
+import django
+django.setup()
+from applogger.utils import log_info, log_error
+import time
 from seleniumbase import SB
 from bs4 import BeautifulSoup
 from database import *
 import re
-
+import json
+from scheduler.models import Course
 def init_selenium_driver():
     """
     Initialize the SeleniumBase driver with specific settings.
@@ -44,6 +51,15 @@ def extract_course_list(page_source):
             continue
     return list_of_courses
 
+def get_missing_courses(course_codes):
+    missing = []
+    for code in course_codes:
+        exists = Course.objects.filter(section_name__startswith=code).exists()
+        if not exists:
+            missing.append(code)
+
+    return missing
+
 def extract_course_sections(course_html):
     """
     Extract relevant course details from HTML content, grouped by term.
@@ -63,7 +79,6 @@ def extract_course_sections(course_html):
         match = re.search(r'\(([\d.]+)\s*Credits?\)', text)
         if match:
             credits = match.group(1)
-            print(f"Credits found: {credits}")
         else:
             credits = '0.5'  # Default if not found
     else:
@@ -137,40 +152,104 @@ def scrape_courses(list_of_course_types):
     """
     Scrape multiple courses and return their section information.
     """
+    total_start_time = time.perf_counter()
+    scraping_stats = {}
+    
     for course_type in list_of_course_types:
+        course_type_start_time = time.perf_counter()
         all_scraped_courses = {}
+        courses_scraped = 0
         base_url = 'https://colleague-ss.uoguelph.ca/Student/Courses/Search?keyword={}'
-        with SB(browser="chrome") as sb:
-            url = base_url.format(course_type)
-            sb.open(url)
-            sb.wait(5)
-            total_pages = get_total_pages(sb.get_page_source())
-            print(f"Initial page loaded. Total pages: {total_pages}")
-            for page in range(1, total_pages + 1):
-                page_scraped_courses = {}
-                try:
-                    # If needed, navigate to the correct page here
-                    page_source = sb.get_page_source()
-                    list_of_courses = extract_course_list(page_source)
-                    print(f"list of courses on page {page}: {list_of_courses}")
-                    for course in list_of_courses:
-                        try:
-                            print(f"Scraping sections for course: {course}")
-                            button_selector = f'button[aria-controls="collapsible-view-available-sections-for-{course}-collapseBody"]'
-                            sb.click(button_selector, timeout=15, delay=0.01)
-                            sb.wait(10)
-                            page_source = sb.get_page_source()
-                            page_scraped_courses[course] = extract_course_sections(page_source)
-                            sb.refresh_page()
-                        except Exception:
-                            continue
-                except Exception:
-                    continue
-                sb.click_if_visible('button[id="course-results-next-page"]', timeout=10)
-                sb.wait(5)
-                insert_cleaned_sections(page_scraped_courses)
-                all_scraped_courses.update(page_scraped_courses)
-        return all_scraped_courses
+        
+        log_info(f"Starting scrape for course type: {course_type}")
+        
+        try:
+            with SB(browser="chrome") as sb:
+                url = base_url.format(course_type)
+                sb.open(url)
+                sb.wait(3)
+                total_pages = get_total_pages(sb.get_page_source())
+                log_info(f"Found {total_pages} pages for {course_type}")
+                
+                for page in range(1, total_pages + 1):
+                    sb.type('input[id="course-results-current-page"]', str(page))
+                    sb.wait(2)
+                    page_start_time = time.perf_counter()
+                    page_scraped_courses = {}
+                    try:
+                        page_source = sb.get_page_source()
+                        list_of_courses = extract_course_list(page_source)
+                        list_of_missing_courses = get_missing_courses(list_of_courses)
+                        
+                        log_info(f"Page {page}/{total_pages} for {course_type}: Found {list_of_missing_courses} courses to scrape")
+                        
+                        for course in list_of_missing_courses:
+                            course_start_time = time.perf_counter()
+                            try:
+                                button_selector = f'button[aria-controls="collapsible-view-available-sections-for-{course}-collapseBody"]'
+                                if button_selector:
+                                    sb.click(button_selector, delay=0.01)
+                                    # Changing wait time from hard coded sb.wait(10) to wait for table to load improved 
+                                    # performance 5x (previously avg 14s per course now 3s per course) and with hard coded time
+                                    # we missed the courses where it took longer then 10 seconds to load.
+                                    sb.wait_for_element('h4[data-bind="text: $data.Term.Description()"]', timeout=60)
+                                    page_source = sb.get_page_source()
+                                    page_scraped_courses[course] = extract_course_sections(page_source)
+                                    courses_scraped += 1
+                                    sb.refresh_page()
+                                    sb.wait(2)
+                                    sb.type('input[id="course-results-current-page"]', str(page))
+                                    course_duration = time.perf_counter() - course_start_time
+                                    log_info(f"Scraped course {course} in {course_duration:.2f}s", 
+                                             extra={"course": course, "duration": course_duration})
+                                else:
+                                    continue
+                            except Exception as e:
+                                log_error(f"Error scraping course {course}", extra={"error": str(e), "course": course})
+                                continue
+                    
+                        page_duration = time.perf_counter() - page_start_time
+                        log_info(f"Completed page {page}/{total_pages} for {course_type} in {page_duration:.2f}s", 
+                                 extra={"page": page, "total_pages": total_pages, "course_type": course_type, "duration": page_duration})
+                        
+                    except Exception as e:
+                        log_error(f"Error processing page {page} for {course_type}", extra={"error": str(e)})
+                        continue
+                    insert_cleaned_sections(page_scraped_courses)
+                    all_scraped_courses.update(page_scraped_courses)
+                    next_page = page + 1
+                    sb.type('input[id="course-results-current-page"]', str(next_page))
+                    sb.wait(1)
+            course_type_duration = time.perf_counter() - course_type_start_time
+            avg_time_per_course = course_type_duration / courses_scraped if courses_scraped > 0 else 0
+            
+            scraping_stats[course_type] = {
+                "total_courses": courses_scraped,
+                "total_duration": course_type_duration,
+                "avg_time_per_course": avg_time_per_course
+            }
+            
+            log_info(f"Completed scraping {course_type}: {courses_scraped} courses in {course_type_duration:.2f}s (avg: {avg_time_per_course:.2f}s per course)",
+                     extra={"course_type": course_type, 
+                            "courses_scraped": courses_scraped, 
+                            "duration": course_type_duration,
+                            "avg_time_per_course": avg_time_per_course})
+            
+        except Exception as e:
+            log_error(f"Fatal error scraping course type {course_type}", extra={"error": str(e)})
+    
+    total_duration = time.perf_counter() - total_start_time
+    total_courses = sum(stats["total_courses"] for stats in scraping_stats.values())
+    avg_time_overall = total_duration / total_courses if total_courses > 0 else 0
+    
+    log_info(f"Completed scraping all course types: {total_courses} courses in {total_duration:.2f}s (avg: {avg_time_overall:.2f}s per course)",
+             extra={"total_courses": total_courses, 
+                    "total_duration": total_duration,
+                    "avg_time_per_course": avg_time_overall,
+                    "stats_by_course_type": scraping_stats})
+    
+    return True
 if __name__ == '__main__':
-    course_types = ['ENGG'] #['ENGG', 'CIS', 'MATH', 'PHIL', 'CHEM', 'BIOC', 'BIOL', 'STAT', 'ECON', 'PSYC']
+    course_types = ['PSYC','HIST','MGMT','POLS']
+    # course_types = ['HK']
     scraped = scrape_courses(course_types)

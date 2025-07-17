@@ -11,9 +11,8 @@ router.register(r'comments', forum_views.CommentViewSet, basename='coopforum-com
 urlpatterns = [
     # Admin & main pages
     path('admin/', admin.site.urls),
-    path('', include('scheduler.urls', namespace='scheduler')),  # Main landing and scheduler web pages
+    # path('', include('scheduler.urls', namespace='scheduler')),  # Main landing and scheduler web pages
     path('scheduler/', include('scheduler.urls', namespace='scheduler')),  # Scheduler web pages
-    path('privacy/', include('scheduler.urls', namespace='scheduler')),  # Privacy policy page
     path('forum/', include('coopforum.urls', namespace='coopforum')),  # CoopForum web pages
     path('gpacalc/', include('gpacalc.urls', namespace='gpacalc')),  # GPA calculator web pages
 
