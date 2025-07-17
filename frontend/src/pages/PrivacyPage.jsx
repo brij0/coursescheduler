@@ -48,7 +48,7 @@ const PrivacyPage = () => {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-primary-50 to-accent-50">
+    <div className="min-h-screen animated-bg-subtle">
       <Navbar />
       
       {/* Hero Section */}
@@ -99,7 +99,7 @@ const PrivacyPage = () => {
             </motion.div>
 
             <div className="flex items-center justify-center mb-6">
-              <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center shadow-lg emerald-glow">
+              <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center shadow-lg primary-glow">
                 <Shield className="w-10 h-10 text-white" />
               </div>
             </div>
@@ -219,7 +219,7 @@ const PrivacyPage = () => {
 
           {/* Google Services Notice */}
           <motion.div
-            className="mt-16 bg-gradient-to-r from-primary-50 to-accent-50 border border-primary-200 rounded-2xl p-8"
+            className="mt-16 animated-bg-subtle border border-primary-200 rounded-2xl p-8"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -255,7 +255,7 @@ const PrivacyPage = () => {
             </p>
             <motion.a
               href="mailto:privacy@smartgryph.com"
-              className="inline-flex items-center space-x-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 shadow-lg emerald-glow"
+              className="inline-flex items-center space-x-2 animated-bg text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 shadow-lg primary-glow"
             >
               <Mail size={20} />
               <span>privacy@smartgryph.com</span>

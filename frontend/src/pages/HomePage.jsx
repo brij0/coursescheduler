@@ -58,7 +58,7 @@ const HomePage = () => {
       
       {/* Hero Section */}
       <motion.section 
-        className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-neutral-50 via-primary-50 to-accent-50 pt-24"
+        className="relative min-h-screen flex items-center justify-center overflow-hidden animated-bg-subtle pt-24"
         style={{ y, opacity }}
       >
         {/* Elegant background elements */}
@@ -129,8 +129,7 @@ const HomePage = () => {
               transition={{ duration: 0.8, delay: 0.8 }}
             >
               <motion.button
-                className="bg-emerald-gold text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-xl emerald-glow hover:shadow-2xl transition-all duration-300"
-                whileHover={{ scale: 1.05 }}
+                className="animated-bg text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-xl primary-glow transition-all duration-300"
                 whileTap={{ scale: 0.95 }}
               >
                 Start Your Journey
@@ -138,7 +137,6 @@ const HomePage = () => {
               
               <motion.button
                 className="border-2 border-primary-300 text-primary-700 px-8 py-4 rounded-xl font-semibold text-lg hover:border-primary-500 hover:text-primary-800 hover:bg-primary-50 transition-all duration-300"
-                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
                 Watch Demo
@@ -149,7 +147,7 @@ const HomePage = () => {
 
         {/* Scroll Indicator */}
         <motion.div
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30"
           animate={{ y: [0, 10, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
         >
@@ -186,7 +184,7 @@ const HomePage = () => {
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 viewport={{ once: true }}
               >
-                <div className={`inline-flex p-4 rounded-xl bg-gradient-to-r ${feature.color} text-white mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+                <div className={`inline-flex p-4 rounded-xl bg-gradient-to-r ${feature.color} text-white mb-6 transition-transform duration-300 shadow-lg`}>
                   {feature.icon}
                 </div>
                 
@@ -207,7 +205,7 @@ const HomePage = () => {
       </section>
 
       {/* Fun Facts Section */}
-      <section className="py-20 px-4 bg-gradient-to-r from-primary-50 to-accent-50">
+      <section className="py-20 px-4 animated-bg-subtle">
         <div className="max-w-4xl mx-auto text-center">
           <motion.h2
             className="text-3xl md:text-4xl font-display font-bold mb-12 text-neutral-800"
@@ -242,7 +240,7 @@ const HomePage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-emerald-gold">
+      <section className="py-20 px-4 animated-bg">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -259,8 +257,7 @@ const HomePage = () => {
             </p>
             
             <motion.button
-              className="bg-white text-primary-700 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 gold-glow"
-              whileHover={{ scale: 1.05 }}
+              className="bg-white text-primary-700 px-8 py-4 rounded-xl font-bold text-lg shadow-xl transition-all duration-300 accent-glow"
               whileTap={{ scale: 0.95 }}
             >
               Get Started Free

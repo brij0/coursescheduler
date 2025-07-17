@@ -14,7 +14,7 @@ const Navbar = () => {
   ]
 
   return (
-    <div className="fixed top-6 left-0 right-0 z-40 flex justify-center px-4">
+    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-40 px-4">
       <motion.nav
         className="w-full max-w-4xl"
         initial={{ y: -100, opacity: 0 }}
@@ -38,7 +38,7 @@ const Navbar = () => {
                   to={item.path}
                   className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 rounded-full ${
                     location.pathname === item.path
-                      ? 'text-white bg-primary-600 shadow-lg'
+                      ? 'text-white animated-bg shadow-lg'
                       : 'text-neutral-700 hover:text-primary-600 hover:bg-white/30'
                   }`}
                 >
@@ -50,8 +50,7 @@ const Navbar = () => {
             {/* Login Button */}
             <div className="hidden md:flex">
               <motion.button
-                className="flex items-center space-x-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 py-2 rounded-full font-medium hover:from-primary-700 hover:to-primary-800 transition-all duration-300 shadow-lg"
-                whileHover={{ scale: 1.05 }}
+                className="flex items-center space-x-2 animated-bg text-white px-4 py-2 rounded-full font-medium transition-all duration-300 shadow-lg"
                 whileTap={{ scale: 0.95 }}
               >
                 <User size={16} />
@@ -87,7 +86,7 @@ const Navbar = () => {
                     to={item.path}
                     className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
                       location.pathname === item.path
-                        ? 'text-white bg-primary-600 shadow-lg'
+                        ? 'text-white animated-bg shadow-lg'
                         : 'text-neutral-700 hover:text-primary-600 hover:bg-white/30'
                     }`}
                     onClick={() => setIsMenuOpen(false)}
@@ -96,7 +95,7 @@ const Navbar = () => {
                   </Link>
                 ))}
                 <motion.button
-                  className="flex items-center justify-center space-x-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 py-2 rounded-full font-medium mt-2 shadow-lg"
+                  className="flex items-center justify-center space-x-2 animated-bg text-white px-4 py-2 rounded-full font-medium mt-2 shadow-lg"
                   whileTap={{ scale: 0.95 }}
                 >
                   <User size={16} />

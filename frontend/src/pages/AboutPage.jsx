@@ -42,7 +42,7 @@ const AboutPage = () => {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-primary-50 to-accent-50">
+    <div className="min-h-screen animated-bg-subtle">
       <Navbar />
       
       {/* Hero Section */}
@@ -118,7 +118,7 @@ const AboutPage = () => {
             <h2 className="text-4xl font-display font-bold mb-6 text-neutral-800">
               How It All Started
             </h2>
-            <div className="w-24 h-1 bg-emerald-gold mx-auto mb-8 rounded-full"></div>
+            <div className="w-24 h-1 animated-bg mx-auto mb-8 rounded-full"></div>
           </motion.div>
 
           <motion.div
@@ -152,7 +152,7 @@ const AboutPage = () => {
       </section>
 
       {/* Meet the Team */}
-      <section className="py-20 px-4 bg-gradient-to-br from-primary-50 to-accent-50">
+      <section className="py-20 px-4 animated-bg-subtle">
         <div className="max-w-6xl mx-auto">
           <motion.div
             className="text-center mb-16"
@@ -219,7 +219,6 @@ const AboutPage = () => {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center space-x-2 text-neutral-600 hover:text-neutral-800 transition-colors"
-                      whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
                       <Github size={20} />
@@ -231,7 +230,6 @@ const AboutPage = () => {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center space-x-2 text-primary-600 hover:text-primary-800 transition-colors"
-                      whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
                       <Linkedin size={20} />
@@ -243,7 +241,6 @@ const AboutPage = () => {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center space-x-2 text-accent-600 hover:text-accent-800 transition-colors"
-                      whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
                       <ExternalLink size={20} />
@@ -361,8 +358,7 @@ const AboutPage = () => {
                 
                 <motion.button
                   type="submit"
-                  className="w-full bg-emerald-gold text-white py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 hover:shadow-lg transition-all duration-300 emerald-glow"
-                  whileHover={{ scale: 1.02 }}
+                  className="w-full animated-bg text-white py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 transition-all duration-300 primary-glow"
                   whileTap={{ scale: 0.98 }}
                 >
                   <Send size={20} />
