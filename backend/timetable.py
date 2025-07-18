@@ -64,7 +64,11 @@ def extract_and_sanitize_pdf_text(pdf_path):
     text = ""
     
     # Loop through each page to extract the text
-    for page_num in range(doc.page_count - 2):
+    if doc.page_count >8:
+        page_range = doc.page_count - 2  # Exclude the last 2 pages
+    else:
+        page_range = doc.page_count
+    for page_num in range(page_range):
         page = doc.load_page(page_num)
         text += page.get_text("text")  # Extract text from the page
     
@@ -83,22 +87,26 @@ def create_llm_prompt(course_details, student_details):
     lec_details = {
         "My_Lecture_timings_are": "",
         "Location": "",
-        "days" : ""
+        "days" : "",
+        "dates": ""
     }
     lab_details = {
         "My_Lab_timings_are": "",
         "Location": "",
-        "days" : ""
+        "days" : "",
+        "dates": ""
     }
     final_exam_details = {
         "My_Final_Exam_timings_are": "",
         "Location": "",
-        "days" : ""
+        "days" : "",
+        "dates": ""
     }
     seminar_details = {
         "My_Seminar_timings_are": "",
         "Location": "",
-        "days" : ""
+        "days" : "",
+        "dates": ""
     }
     
     # Extract details from student_details
@@ -108,18 +116,22 @@ def create_llm_prompt(course_details, student_details):
             lec_details["My_Lecture_timings_are"] = event.get('times', '')
             lec_details["Location"] = event.get('location', '')
             lec_details["days"] = event.get('days', '')
+            lec_details["dates"] = event.get('dates', '')
         elif event_type == 'LAB':
             lab_details["My_Lab_timings_are"] = event.get('times', '')
             lab_details["Location"] = event.get('location', '')
-            lab_details["days"] = event.get('days', '')
+            lab_details["days"] = event.get('days', ''),
+            lab_details["dates"] = event.get('dates', '')
         elif event_type in ['EXAM', 'FINAL EXAM']:
             final_exam_details["My_Final_Exam_timings_are"] = event.get('times', '')
             final_exam_details["Location"] = event.get('location', '')
-            final_exam_details["days"] = event.get('days', '')
+            final_exam_details["days"] = event.get('days', ''),
+            final_exam_details["dates"] = event.get('dates', '')
         elif event_type == 'SEM':
             seminar_details["My_Seminar_timings_are"] = event.get('times', '')
             seminar_details["Location"] = event.get('location', '')
-            seminar_details["days"] = event.get('days', '')
+            seminar_details["days"] = event.get('days', ''),
+            seminar_details["dates"] = event.get('dates', '')
 
     # Use f-strings for proper string interpolation
         prompt_template = f"""You are tasked with extracting **academic events** from a course outline with 100% accuracy. Your output will be used for automated GPA calculations and must follow the structure and rules below:
@@ -162,9 +174,9 @@ def create_llm_prompt(course_details, student_details):
 
         WEIGHTAGE RULES:
         1. NEVER duplicate category weightage across all events (e.g., don't assign “Labs: 25%” to each lab)
-        2. If “Labs: 25%” and there are 10 lab sessions, each lab = 2.5%
+        2. If “Labs: 25%” and 12 sessions exist but only best 10 count, extract **only 10 labs** and assign 2.5% to each (25 ÷ 10)
         3. If “Quizzes: 15%” and 5 quizzes but only best 4 count, include only 4 events and each = 3.75%
-        4. Always distribute weightage **only across counted events**
+        4. Always distribute weightage **only across counted events** — never divide by total possible events
         5. If events have individual weightages (e.g., “Assignment 1: 5%”), preserve those exactly
 
         GRADE EXTRACTION STRATEGY:
@@ -288,7 +300,7 @@ def process_pdfs_to_event_list(pdf_input, student_details):
 
 if __name__ == "__main__":  
     course_listt = [
-            {"course_type": "CHEM", "course_code": "2700", "course_section": "0101","offered_term":"Summer 2025"}
+            {"course_type": "MATH", "course_code": "1210", "course_section": "0101","offered_term":"Summer 2025"}
             ]
     for course in course_listt:
         course_type = course.get("course_type")
@@ -297,7 +309,7 @@ if __name__ == "__main__":
         offered_term = course.get("offered_term")
         student_details = get_section_details(course_type, course_code, course_section,offered_term)
         # print(f"Student details: {student_details}")
-        events = process_pdfs_to_event_list(f"C:/Users/brijesh.thakrar/Downloads/coursescheduler-backendtesting/coursescheduler/backend/course_outlines/chem_2700_S25.pdf", student_details)
+        events = process_pdfs_to_event_list(f"C:/Users/brijesh.thakrar/Downloads/coursescheduler-backendtesting/coursescheduler/backend/course_outlines/math_1210_S25.pdf", student_details)
         # print(f"Events for {course_type} {course_code} {course_section}:")
         
         # for event in events:
