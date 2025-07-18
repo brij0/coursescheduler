@@ -13,11 +13,11 @@ from django.contrib.auth.decorators import login_required
 import json
 from django.db.models import Q
 
-def index(request):
-    """
-    Renders the CoopForum main page.
-    """
-    return render(request, 'coopforum/index.html')
+# def index(request):
+#     """
+#     Renders the CoopForum main page.
+#     """
+#     return render(request, 'coopforum/index.html')
 
 # Authentication Views
 
