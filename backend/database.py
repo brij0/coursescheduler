@@ -221,7 +221,7 @@ def batch_insert_events(events_list, course_id):
         db_cursor.close()
         db_connection.close()
 
-def get_section_details(school_code, course_code, section_number):
+def get_section_details(school_code, course_code, section_number, offered_term):
     """
     Extract section information (event type, times, location) and course_id for a specific course and section.
 
@@ -238,12 +238,12 @@ def get_section_details(school_code, course_code, section_number):
 
     try:
         query = """
-            SELECT c.course_id, e.event_type, e.times, e.location
+            SELECT c.course_id, e.event_type, e.times, e.location, e.days, e.dates
             FROM events e
             JOIN courses c ON e.course_id = c.course_id
-            WHERE c.section_name = %s
+            WHERE c.section_name = %s AND c.offered_term = %s
         """
-        db_cursor.execute(query, (full_section_code,))
+        db_cursor.execute(query, (full_section_code, offered_term,))
         query_results = db_cursor.fetchall()
 
         # Extract course_id and section information
@@ -258,7 +258,9 @@ def get_section_details(school_code, course_code, section_number):
             section_details['section_details'].append({
                 'event_type': result_row[1],
                 'times': result_row[2],
-                'location': result_row[3]
+                'location': result_row[3],
+                'days': result_row[4],
+                'dates': result_row[5]
             })
 
         return section_details
