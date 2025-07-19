@@ -61,32 +61,80 @@ const HomePage = () => {
         className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24"
         style={{ y, opacity }}
       >
-        {/* Elegant background elements */}
+        {/* Fireflies Animation */}
         <div className="absolute inset-0">
-          {/* Floating geometric shapes */}
-          {[...Array(12)].map((_, i) => (
+          {/* Fireflies */}
+          {[...Array(20)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute"
+              className="absolute w-1 h-1 bg-primary-500 rounded-full shadow-lg"
               style={{
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
+                boxShadow: `0 0 6px #456882, 0 0 12px #456882, 0 0 18px #456882`,
               }}
               animate={{
-                y: [0, -30, 0],
-                x: [0, Math.random() * 20 - 10, 0],
-                rotate: [0, 360],
-                scale: [1, 1.1, 1],
+                x: [
+                  0,
+                  Math.random() * 200 - 100,
+                  Math.random() * 150 - 75,
+                  Math.random() * 100 - 50,
+                  0
+                ],
+                y: [
+                  0,
+                  Math.random() * 150 - 75,
+                  Math.random() * 200 - 100,
+                  Math.random() * 100 - 50,
+                  0
+                ],
+                scale: [0, 1, 0.8, 1.2, 0.6, 1, 0],
+                opacity: [0, 0.8, 0.3, 1, 0.4, 0.9, 0],
               }}
               transition={{
-                duration: 8 + Math.random() * 4,
+                duration: 8 + Math.random() * 6,
+                repeat: Infinity,
+                ease: "easeInOut", 
+                delay: Math.random() * 5,
+                repeatDelay: Math.random() * 3,
+              }}
+            />
+          ))}
+          
+          {/* Additional smaller fireflies */}
+          {[...Array(15)].map((_, i) => (
+            <motion.div
+              key={`small-${i}`}
+              className="absolute w-0.5 h-0.5 bg-primary-400 rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                boxShadow: `0 0 4px #456882, 0 0 8px #456882`,
+              }}
+              animate={{
+                x: [
+                  0,
+                  Math.random() * 100 - 50,
+                  Math.random() * 80 - 40,
+                  0
+                ],
+                y: [
+                  0,
+                  Math.random() * 100 - 50,
+                  Math.random() * 120 - 60,
+                  0
+                ],
+                opacity: [0, 0.6, 0.2, 0.8, 0],
+                scale: [0, 0.8, 1.2, 0.6, 0],
+              }}
+              transition={{
+                duration: 6 + Math.random() * 4,
                 repeat: Infinity,
                 ease: "easeInOut",
-                delay: i * 0.5,
+                delay: Math.random() * 4,
+                repeatDelay: Math.random() * 2,
               }}
-            >
-              <div className={`w-${Math.floor(Math.random() * 4) + 2} h-${Math.floor(Math.random() * 4) + 2} bg-primary-200/30 rounded-full blur-sm`} />
-            </motion.div>
+            />
           ))}
         </div>
 
