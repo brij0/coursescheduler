@@ -5,6 +5,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import font configuration */
+@import './styles/fonts.css';
+
 @layer base {
   body {
     font-feature-settings: "rlig" 1, "calt" 1;
