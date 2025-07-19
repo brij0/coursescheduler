@@ -58,35 +58,83 @@ const HomePage = () => {
       
       {/* Hero Section */}
       <motion.section 
-        className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-neutral-50 via-primary-50 to-accent-50 pt-24"
+        className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24"
         style={{ y, opacity }}
       >
-        {/* Elegant background elements */}
+        {/* Fireflies Animation */}
         <div className="absolute inset-0">
-          {/* Floating geometric shapes */}
-          {[...Array(12)].map((_, i) => (
+          {/* Fireflies */}
+          {[...Array(20)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute"
+              className="absolute w-1 h-1 bg-primary-500 rounded-full shadow-lg"
               style={{
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
+                boxShadow: `0 0 6px #456882, 0 0 12px #456882, 0 0 18px #456882`,
               }}
               animate={{
-                y: [0, -30, 0],
-                x: [0, Math.random() * 20 - 10, 0],
-                rotate: [0, 360],
-                scale: [1, 1.1, 1],
+                x: [
+                  0,
+                  Math.random() * 200 - 100,
+                  Math.random() * 150 - 75,
+                  Math.random() * 100 - 50,
+                  0
+                ],
+                y: [
+                  0,
+                  Math.random() * 150 - 75,
+                  Math.random() * 200 - 100,
+                  Math.random() * 100 - 50,
+                  0
+                ],
+                scale: [0, 1, 0.8, 1.2, 0.6, 1, 0],
+                opacity: [0, 0.8, 0.3, 1, 0.4, 0.9, 0],
               }}
               transition={{
-                duration: 8 + Math.random() * 4,
+                duration: 8 + Math.random() * 6,
+                repeat: Infinity,
+                ease: "easeInOut", 
+                delay: Math.random() * 5,
+                repeatDelay: Math.random() * 3,
+              }}
+            />
+          ))}
+          
+          {/* Additional smaller fireflies */}
+          {[...Array(15)].map((_, i) => (
+            <motion.div
+              key={`small-${i}`}
+              className="absolute w-0.5 h-0.5 bg-primary-400 rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                boxShadow: `0 0 4px #456882, 0 0 8px #456882`,
+              }}
+              animate={{
+                x: [
+                  0,
+                  Math.random() * 100 - 50,
+                  Math.random() * 80 - 40,
+                  0
+                ],
+                y: [
+                  0,
+                  Math.random() * 100 - 50,
+                  Math.random() * 120 - 60,
+                  0
+                ],
+                opacity: [0, 0.6, 0.2, 0.8, 0],
+                scale: [0, 0.8, 1.2, 0.6, 0],
+              }}
+              transition={{
+                duration: 6 + Math.random() * 4,
                 repeat: Infinity,
                 ease: "easeInOut",
-                delay: i * 0.5,
+                delay: Math.random() * 4,
+                repeatDelay: Math.random() * 2,
               }}
-            >
-              <div className={`w-${Math.floor(Math.random() * 4) + 2} h-${Math.floor(Math.random() * 4) + 2} bg-gradient-to-br from-primary-200/30 to-accent-200/30 rounded-full blur-sm`} />
-            </motion.div>
+            />
           ))}
         </div>
 
@@ -103,12 +151,12 @@ const HomePage = () => {
               animate={{ scale: 1 }}
               transition={{ duration: 0.5, delay: 0.5 }}
             >
-              <Sparkles className="w-4 h-4 text-accent-500" />
+              <Sparkles className="w-4 h-4 text-primary-500" />
               <span className="text-sm font-medium text-neutral-700">Your Academic Success Starts Here</span>
             </motion.div>
 
             <h1 className="text-5xl md:text-7xl font-display font-black mb-6">
-              <span className="gradient-text">Smart</span>
+              <span className="text-primary-600">Smart</span>
               <span className="text-neutral-800">Gryph</span>
             </h1>
             
@@ -129,7 +177,7 @@ const HomePage = () => {
               transition={{ duration: 0.8, delay: 0.8 }}
             >
               <motion.button
-                className="bg-emerald-gold text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-xl emerald-glow hover:shadow-2xl transition-all duration-300"
+                className="bg-primary-500 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-xl hover:bg-primary-600 hover:shadow-2xl transition-all duration-300"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -168,7 +216,7 @@ const HomePage = () => {
             viewport={{ once: true }}
           >
             <h2 className="text-4xl md:text-5xl font-display font-bold mb-6 text-neutral-800">
-              Why Students <span className="gradient-text">Love Us</span>
+              Why Students <span className="text-primary-600">Love Us</span>
             </h2>
             <p className="text-xl text-neutral-600 max-w-3xl mx-auto">
               We've been in your shoes. Late nights, scheduling conflicts, GPA anxiety. 
@@ -186,7 +234,7 @@ const HomePage = () => {
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 viewport={{ once: true }}
               >
-                <div className={`inline-flex p-4 rounded-xl bg-gradient-to-r ${feature.color} text-white mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+                <div className="inline-flex p-4 rounded-xl bg-primary-500 text-white mb-6 transition-transform duration-300 shadow-lg">
                   {feature.icon}
                 </div>
                 
@@ -197,9 +245,6 @@ const HomePage = () => {
                 <p className="text-neutral-600 leading-relaxed">
                   {feature.description}
                 </p>
-
-                {/* Hover effect overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-r ${feature.color} opacity-0 group-hover:opacity-5 rounded-2xl transition-opacity duration-300`} />
               </motion.div>
             ))}
           </div>
@@ -207,7 +252,7 @@ const HomePage = () => {
       </section>
 
       {/* Fun Facts Section */}
-      <section className="py-20 px-4 bg-gradient-to-r from-primary-50 to-accent-50">
+      <section className="py-20 px-4 bg-primary-50">
         <div className="max-w-4xl mx-auto text-center">
           <motion.h2
             className="text-3xl md:text-4xl font-display font-bold mb-12 text-neutral-800"
@@ -242,7 +287,7 @@ const HomePage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-emerald-gold">
+      <section className="py-20 px-4 bg-primary-500">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -259,7 +304,7 @@ const HomePage = () => {
             </p>
             
             <motion.button
-              className="bg-white text-primary-700 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 gold-glow"
+              className="bg-white text-primary-700 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >

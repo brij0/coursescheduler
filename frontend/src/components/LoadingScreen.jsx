@@ -39,7 +39,7 @@ const LoadingScreen = () => {
 
   return (
     <motion.div
-      className="fixed inset-0 bg-gradient-to-br from-primary-900 via-primary-800 to-accent-900 flex items-center justify-center z-50 overflow-hidden"
+      className="fixed inset-0 bg-primary-800 flex items-center justify-center z-50 overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 1.1 }}
@@ -51,7 +51,7 @@ const LoadingScreen = () => {
         {[...Array(8)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute rounded-full bg-gradient-to-r from-primary-400/20 to-accent-400/20 blur-xl"
+            className="absolute rounded-full bg-primary-400/20 blur-xl"
             style={{
               width: Math.random() * 150 + 100,
               height: Math.random() * 150 + 100,
@@ -83,24 +83,24 @@ const LoadingScreen = () => {
             transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
           >
             {/* Outer ring */}
-            <div className="absolute inset-0 border-2 border-transparent border-t-accent-400/80 border-r-primary-400/60 rounded-full"></div>
+            <div className="absolute inset-0 border-2 border-transparent border-t-primary-400/80 border-r-primary-300/60 rounded-full"></div>
             
             {/* Inner ring */}
             <motion.div
-              className="absolute inset-3 border-2 border-transparent border-b-primary-400/80 border-l-accent-400/60 rounded-full"
+              className="absolute inset-3 border-2 border-transparent border-b-primary-400/80 border-l-primary-300/60 rounded-full"
               animate={{ rotate: -360 }}
               transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
             />
             
             {/* Center dot */}
             <motion.div
-              className="absolute inset-6 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full flex items-center justify-center shadow-lg"
+              className="absolute inset-6 bg-primary-500 rounded-full flex items-center justify-center shadow-lg"
               animate={{ 
                 scale: [1, 1.05, 1],
                 boxShadow: [
-                  "0 0 20px rgba(16, 185, 129, 0.3)",
-                  "0 0 30px rgba(245, 158, 11, 0.5)",
-                  "0 0 20px rgba(16, 185, 129, 0.3)"
+                  "0 0 20px rgba(69, 104, 130, 0.3)",
+                  "0 0 30px rgba(69, 104, 130, 0.5)",
+                  "0 0 20px rgba(69, 104, 130, 0.3)"
                 ]
               }}
               transition={{ duration: 3, repeat: Infinity }}
@@ -138,7 +138,7 @@ const LoadingScreen = () => {
         <div className="w-80 max-w-sm mx-auto">
           <div className="bg-white/20 rounded-full h-1 overflow-hidden backdrop-blur-sm">
             <motion.div
-              className="h-full bg-gradient-to-r from-primary-400 via-accent-500 to-primary-400 rounded-full"
+              className="h-full bg-primary-400 rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.1 }}

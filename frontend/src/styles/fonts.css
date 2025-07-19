@@ -1,0 +1,60 @@
+/* 
+  Font Configuration File
+  Local ID Grotesk fonts implementation
+*/
+
+/* Define font faces for ID Grotesk */
+@font-face {
+  font-family: 'ID Grotesk';
+  src: url('../fonts/IDGrotesk-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'ID Grotesk';
+  src: url('../fonts/IDGrotesk-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'ID Grotesk';
+  src: url('../fonts/IDGrotesk-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'ID Grotesk';
+  src: url('../fonts/IDGrotesk-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Primary font - using ID Grotesk */
+  --font-primary: 'ID Grotesk', system-ui, -apple-system, sans-serif;
+  
+  /* Secondary font - keep your existing secondary font */
+  --font-secondary: 'Crimson Text', Georgia, serif;
+}
+
+/* Apply fonts globally */
+body {
+  font-family: var(--font-primary);
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Font weight utilities */
+.font-light { font-weight: 300; }
+.font-normal { font-weight: 400; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.font-extrabold { font-weight: 800; }
+.font-black { font-weight: 900; }

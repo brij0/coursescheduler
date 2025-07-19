@@ -38,7 +38,7 @@ const Navbar = () => {
                   to={item.path}
                   className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 rounded-full ${
                     location.pathname === item.path
-                      ? 'text-white bg-primary-600 shadow-lg'
+                      ? 'text-white bg-primary-500 shadow-lg'
                       : 'text-neutral-700 hover:text-primary-600 hover:bg-white/30'
                   }`}
                 >
@@ -50,7 +50,7 @@ const Navbar = () => {
             {/* Login Button */}
             <div className="hidden md:flex">
               <motion.button
-                className="flex items-center space-x-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 py-2 rounded-full font-medium hover:from-primary-700 hover:to-primary-800 transition-all duration-300 shadow-lg"
+                className="flex items-center space-x-2 bg-primary-500 text-white px-4 py-2 rounded-full font-medium hover:bg-primary-600 transition-all duration-300 shadow-lg"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -87,7 +87,7 @@ const Navbar = () => {
                     to={item.path}
                     className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
                       location.pathname === item.path
-                        ? 'text-white bg-primary-600 shadow-lg'
+                        ? 'text-white bg-primary-500 shadow-lg'
                         : 'text-neutral-700 hover:text-primary-600 hover:bg-white/30'
                     }`}
                     onClick={() => setIsMenuOpen(false)}
@@ -96,7 +96,7 @@ const Navbar = () => {
                   </Link>
                 ))}
                 <motion.button
-                  className="flex items-center justify-center space-x-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 py-2 rounded-full font-medium mt-2 shadow-lg"
+                  className="flex items-center justify-center space-x-2 bg-primary-500 text-white px-4 py-2 rounded-full font-medium mt-2 shadow-lg"
                   whileTap={{ scale: 0.95 }}
                 >
                   <User size={16} />

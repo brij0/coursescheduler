@@ -24,7 +24,7 @@ This project uses Conda for managing Python dependencies.
 
 ```bash
 conda env create -f conda.yaml
-conda activate coursescheduler
+conda activate /opt/homebrew/Caskroom/miniconda/base/envs/coursescheduler
 ```
 
 ### 3. Install and Configure MySQL
@@ -90,7 +90,7 @@ Follow these steps each time you start working on the project.
 Always make sure your Conda environment is active.
 
 ```bash
-conda activate coursescheduler
+conda activate /opt/homebrew/Caskroom/miniconda/base/envs/coursescheduler
 ```
 
 ### 2. Start the Backend Server
