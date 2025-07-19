@@ -1,0 +1,36 @@
+/* 
+  Font Configuration File
+  
+  To change fonts locally:
+  1. Update the CSS variables below
+  2. Add Google Fonts import if needed
+  3. Save and refresh - changes apply instantly!
+  
+  Example Google Fonts import:
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap');
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+:root {
+  /* Primary font - used for most text, headings, and UI elements */
+  --font-primary: 'Inter', system-ui, -apple-system, sans-serif;
+  
+  /* Secondary font - used for accents and special text */
+  --font-secondary: 'Crimson Text', Georgia, serif;
+}
+
+/* Apply fonts globally */
+body {
+  font-family: var(--font-primary);
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Font weight utilities */
+.font-light { font-weight: 300; }
+.font-normal { font-weight: 400; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.font-extrabold { font-weight: 800; }
+.font-black { font-weight: 900; }

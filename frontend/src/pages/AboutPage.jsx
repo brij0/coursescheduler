@@ -42,7 +42,7 @@ const AboutPage = () => {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-primary-50 to-accent-50">
+    <div className="min-h-screen">
       <Navbar />
       
       {/* Hero Section */}
@@ -70,7 +70,7 @@ const AboutPage = () => {
                 delay: i * 0.5,
               }}
             >
-              <div className={`w-${Math.floor(Math.random() * 3) + 2} h-${Math.floor(Math.random() * 3) + 2} bg-gradient-to-br from-primary-200/40 to-accent-200/40 rounded-full blur-sm`} />
+              <div className={`w-${Math.floor(Math.random() * 3) + 2} h-${Math.floor(Math.random() * 3) + 2} bg-primary-200/40 rounded-full blur-sm`} />
             </motion.div>
           ))}
         </div>
@@ -88,12 +88,12 @@ const AboutPage = () => {
               animate={{ scale: 1 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              <Sparkles className="w-4 h-4 text-accent-500" />
+              <Sparkles className="w-4 h-4 text-primary-500" />
               <span className="text-sm font-medium text-neutral-700">Meet the Team</span>
             </motion.div>
 
             <h1 className="text-5xl md:text-6xl font-display font-black mb-6">
-              <span className="gradient-text">About</span>
+              <span className="text-primary-600">About</span>
               <span className="text-neutral-800"> SmartGryph</span>
             </h1>
             
@@ -118,7 +118,7 @@ const AboutPage = () => {
             <h2 className="text-4xl font-display font-bold mb-6 text-neutral-800">
               How It All Started
             </h2>
-            <div className="w-24 h-1 bg-emerald-gold mx-auto mb-8 rounded-full"></div>
+            <div className="w-24 h-1 bg-primary-500 mx-auto mb-8 rounded-full"></div>
           </motion.div>
 
           <motion.div
@@ -152,7 +152,7 @@ const AboutPage = () => {
       </section>
 
       {/* Meet the Team */}
-      <section className="py-20 px-4 bg-gradient-to-br from-primary-50 to-accent-50">
+      <section className="py-20 px-4 bg-primary-50">
         <div className="max-w-6xl mx-auto">
           <motion.div
             className="text-center mb-16"
@@ -162,7 +162,7 @@ const AboutPage = () => {
             viewport={{ once: true }}
           >
             <h2 className="text-4xl font-display font-bold mb-6 text-neutral-800">
-              Meet the <span className="gradient-text">Dream Team</span>
+              Meet the <span className="text-primary-600">Dream Team</span>
             </h2>
             <p className="text-xl text-neutral-600">
               Two developers, countless energy drinks, and one shared mission: 
@@ -242,7 +242,7 @@ const AboutPage = () => {
                       href={dev.portfolio}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center space-x-2 text-accent-600 hover:text-accent-800 transition-colors"
+                      className="flex items-center space-x-2 text-primary-600 hover:text-primary-800 transition-colors"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -268,7 +268,7 @@ const AboutPage = () => {
             viewport={{ once: true }}
           >
             <h2 className="text-4xl font-display font-bold mb-6 text-neutral-800">
-              Let's <span className="gradient-text">Connect</span>
+              Let's <span className="text-primary-600">Connect</span>
             </h2>
             <p className="text-xl text-neutral-600">
               Got feedback? Found a bug? Just want to say hi? We'd love to hear from you!
@@ -297,8 +297,8 @@ const AboutPage = () => {
                 </div>
                 
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-accent-100 rounded-lg flex items-center justify-center">
-                    <MessageCircle className="w-6 h-6 text-accent-600" />
+                  <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                    <MessageCircle className="w-6 h-6 text-primary-600" />
                   </div>
                   <div>
                     <p className="font-semibold text-neutral-800">Response Time</p>
@@ -361,7 +361,7 @@ const AboutPage = () => {
                 
                 <motion.button
                   type="submit"
-                  className="w-full bg-emerald-gold text-white py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 hover:shadow-lg transition-all duration-300 emerald-glow"
+                  className="w-full bg-primary-500 text-white py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 hover:bg-primary-600 hover:shadow-lg transition-all duration-300"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >

@@ -2,32 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import font configuration */
+@import './styles/fonts.css';
+
 @layer base {
   body {
     font-feature-settings: "rlig" 1, "calt" 1;
-    background: linear-gradient(135deg, #fafaf9 0%, #f5f5f4 100%);
+    background-color: #E5E0D8;
+    color: #292524;
   }
 }
 
 @layer components {
-  .gradient-text {
-    @apply bg-emerald-gold bg-clip-text text-transparent;
+  .elegant-card {
+    @apply bg-white/80 backdrop-blur-sm border border-neutral-200/50 shadow-lg transition-shadow duration-300;
   }
-  
+
+  .elegant-card:hover {
+    @apply shadow-xl;
+  }
+
   .glass-effect {
     @apply bg-white/20 backdrop-blur-md border border-white/30 shadow-xl;
-  }
-
-  .elegant-card {
-    @apply bg-white/80 backdrop-blur-sm border border-neutral-200/50 shadow-lg hover:shadow-xl transition-shadow duration-300;
-  }
-
-  .emerald-glow {
-    @apply shadow-lg shadow-primary-500/25;
-  }
-
-  .gold-glow {
-    @apply shadow-lg shadow-accent-500/25;
   }
 }
 
