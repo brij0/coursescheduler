@@ -9,6 +9,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'coursescheduler.settings')
 from django.db import transaction
 from scheduler.models import Course, CourseEvent
 from gpacalc.models import GradingScheme, AssessmentWeightage
+from applogger.utils import log_info, log_error, log_debug
 
 def get_db_connection():
     """
@@ -27,10 +28,10 @@ def get_db_connection():
             database=os.getenv("DB_NAME")
         )
         db_cursor = db_connection.cursor()
-        print("Connected to the database successfully!")
+        log_info("Connected to the database successfully!")
         return db_connection, db_cursor
     except mysql.connector.Error as err:
-        print(f"Error: {err}")
+        log_error(f"Error: {err}")
         return None, None
     
 # Function to insert cleaned course sections from web scraping and insert their events into the database
@@ -54,13 +55,13 @@ def insert_cleaned_sections(courses_data):
     }
 
     db_connection, db_cursor = get_db_connection()
-    # print(f"course_data = {courses_data}")
+    # log_debug(f"course_data = {courses_data}")
     try:
         # Process each course
         for course_codes, term_sections in courses_data.items():
             # Process each term for the current course
             for term, sections in term_sections.items():
-                print(f"  Processing term: {term}")
+                log_info(f"Processing term: {term}")
                 
                 # Process each section in the term
                 for section_info in sections:
@@ -89,7 +90,7 @@ def insert_cleaned_sections(courses_data):
                         section_number,
                         credits
                     )
-                    print(f"Inserting section: {params}")
+                    log_info(f"Inserting section: {params}")
                     db_cursor.execute(insert_section_query, params)
                     course_id = db_cursor.lastrowid
 
@@ -97,7 +98,6 @@ def insert_cleaned_sections(courses_data):
                     for meeting_detail in section_info.get('meeting_details', []):
                         # Extract and clean times
                         times = meeting_detail.get('times', [])
-                        # print(f"raw timings: {times}")
                         
                         time_str = "TBD"
                         
@@ -167,18 +167,16 @@ def insert_cleaned_sections(courses_data):
                             (course_id, event_type, times, location, days, dates)
                             VALUES (%s, %s, %s, %s, %s, %s)
                         """
-                        print(f"Inserting event: {course_id}, {event_type}, {time_range_str}, {location}, {days_str}, {date_range_str}")
+                        log_info(f"Inserting event: {course_id}, {event_type}, {time_range_str}, {location}, {days_str}, {date_range_str}")
                         db_cursor.execute(insert_event_query, 
                                         (course_id, event_type, time_range_str, location, 
                                         days_str, date_range_str))
 
         db_connection.commit()
-        print("Successfully inserted all sections and events")
-
+        log_info("Successfully inserted all sections and events")
     except Exception as e:
-        print(f"An error occurred while adding data to the database: {e}")
+        log_error(f"An error occurred while adding data to the database: {e}")
         db_connection.rollback()
-
     finally:
         db_cursor.close()
         db_connection.close()
@@ -206,6 +204,7 @@ def batch_insert_events_with_schemes(events_list, course_id):
     try:
         course = Course.objects.get(course_id=course_id)
     except Course.DoesNotExist:
+        log_error(f"Course with ID {course_id} does not exist")
         raise ValueError(f"Course with ID {course_id} does not exist")
     
     # Collect all unique scheme names from all events
@@ -230,7 +229,7 @@ def batch_insert_events_with_schemes(events_list, course_id):
             )
             schemes[scheme_name] = scheme
             if created:
-                print(f"Created new grading scheme: {scheme_name} for course {course}")
+                log_info(f"Created new grading scheme: {scheme_name} for course {course}")
         
         # Step 2: Insert events and their weightages
         for event_data in events_list:
@@ -259,10 +258,9 @@ def batch_insert_events_with_schemes(events_list, course_id):
                             course_event=course_event,
                             weightage=float(weight_value)
                         )
-            
-            print(f"Created event: {course_event.event_type} with {len(weightage_data)} scheme weightages")
+            log_info(f"Created event: {course_event.event_type} with {len(weightage_data)} scheme weightages")
     
-    print(f"Successfully inserted {len(events_list)} events with {len(all_scheme_names)} grading schemes")
+    log_info(f"Successfully inserted {len(events_list)} events with {len(all_scheme_names)} grading schemes")
     return {
         'events_created': len(events_list),
         'schemes_created': len(all_scheme_names),
@@ -332,7 +330,7 @@ def get_section_details(school_code, course_code, section_number, offered_term):
 
         return section_details
     except Exception as e:
-        print(f"Database error: {e}")
+        log_error(f"Database error: {e}")
         return {'course_id': None, 'section_details': []}
     finally:
         db_cursor.close()
