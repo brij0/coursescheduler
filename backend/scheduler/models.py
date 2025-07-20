@@ -19,17 +19,6 @@ class Course(models.Model):
     def __str__(self):
         return f"{self.course_type}*{self.course_code}*{self.section_number}"
     
-class CourseDropdown(models.Model):
-    course_type = models.CharField(max_length=20)
-    course_code = models.CharField(max_length=20)
-    section_number = models.CharField(max_length=20)
-
-    class Meta:
-        db_table = "course_dropdown"
-
-    def __str__(self):
-        return f"{self.course_type} {self.course_code} {self.section_number}"
-
 class CourseEvent(models.Model):
     course       = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="events")
     event_type   = models.CharField(max_length=50)

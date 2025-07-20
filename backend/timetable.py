@@ -9,18 +9,11 @@ import re
 from datetime import datetime
 import pdfplumber
 from numpy import add
-from sqlalchemy import LABEL_STYLE_DEFAULT
+# from sqlalchemy import LABEL_STYLE_DEFAULT
 from scrape_course import *
 import json
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import os
-os.environ["CURL_CA_BUNDLE"] = ""
-os.environ["REQUESTS_CA_BUNDLE"] = ""
-import ssl
-ssl._create_default_https_context = ssl._create_unverified_context
-# ...rest of your code...
-import httpx
-httpx._config.DEFAULT_CA_BUNDLE_PATH = None
 # ---------------------------------------------------------
 # Load API key and setup LLM for content processing
 # ---------------------------------------------------------
@@ -32,11 +25,12 @@ def invoke_language_model(content):
     llm = ChatGroq(
         temperature=0,
         groq_api_key=os.getenv('GROQ_API_KEY1'),  # API key loaded from environment variable
-        model_name="deepseek-r1-distill-llama-70b"
+        model_name="moonshotai/kimi-k2-instruct"
     )
     
     # Send content to the LLM for processing and return the response
     response = llm.invoke(content)
+    # print(f"LLM Response: {response.content}")  # Debugging output to see the response content
     return response.content
 
 # ---------------------------------------------------------
@@ -134,7 +128,7 @@ def create_llm_prompt(course_details, student_details):
             seminar_details["dates"] = event.get('dates', '')
 
     # Use f-strings for proper string interpolation
-        prompt_template = f"""You are tasked with extracting **academic events** from a course outline with 100% accuracy. Your output will be used for automated GPA calculations and must follow the structure and rules below:
+    prompt_template = f"""You are tasked with extracting **academic events** from a course outline with 100% accuracy. Your output will be used for automated GPA calculations and must follow the structure and rules below:
 
         CONTEXT:
         Student's Schedule:
@@ -163,7 +157,24 @@ def create_llm_prompt(course_details, student_details):
         Weightage: [JSON like 'Scheme 1': 30, 'Scheme 2': 25] ← always use JSON format, even if only one scheme applies
         Grading Note: [Optional notes like "Only best 4 of 5 quizzes will be counted"]
 
+        Example Output:
+        Return a JSON array where each item is a dictionary with the following keys:
+        "
+        "event_type": "Assignment-1",
+        "date": "2025-06-04",
+        "days": "Wednesday",
+        "time": "23:59",
+        "location": "Online (CourseLink)",
+        "description": "Written Assignment 1 submission",
+        "weightage": "
+            "Scheme 1": 10,
+            "Scheme 2": 10,
+            "Scheme 3": 10
+        ,
+        "grading_note": "Part of the 30% assignments in all schemes"
+        "
         RULES:
+        All events must have a descriptive name and if multiple events of same type then differentiate them (e.g., "Assignment-1", "Assignment-2")
         1. Extract ONLY events with explicit due dates
         2. Weightages MUST be present and formatted as JSON — e.g., 'Scheme 1': 20 or 'Scheme 1': 20, 'Scheme 2': 25
         3. DO NOT include holidays or makeup sessions
@@ -171,6 +182,7 @@ def create_llm_prompt(course_details, student_details):
         5. If quizzes/assignments/labs state "only best X of Y" will be counted, include only the best X events and add a "Grading Note"
         6. If multiple grading schemes exist, include all applicable schemes in JSON format under “Weightage”
         7. All extracted events MUST total to 100% per scheme — apply math carefully
+        
 
         WEIGHTAGE RULES:
         1. NEVER duplicate category weightage across all events (e.g., don't assign “Labs: 25%” to each lab)
@@ -190,12 +202,13 @@ def create_llm_prompt(course_details, student_details):
         - DO NOT assign total category weightage to each sub-event
         - DO NOT create duplicate entries for schemes
         - DO NOT let total exceed 100% for any scheme
-
+        - EACH event must have a date and time, if not mentioned then give a logical date and time
+        - The total weightage across all events must equal 100% for each grading scheme
         Course Outline:
         {course_details}
         """
 
-    print(prompt_template.format(course_details=course_details, details = details, lec_details=lec_details, lab_details=lab_details, final_exam_details=final_exam_details))
+    # print(prompt_template.format(course_details=course_details, details = details, lec_details=lec_details, lab_details=lab_details, final_exam_details=final_exam_details))
     # return None
     return invoke_language_model(prompt_template)
 
@@ -244,25 +257,52 @@ def parse_event_details(event_str):
     weightage_match = re.search(r"Weightage: (.+)", event_str)
     if weightage_match:
         event['weightage'] = weightage_match.group(1)
-    
     return event
 
 # ---------------------------------------------------------
 # Parse the LLM response to extract multiple events
 # ---------------------------------------------------------
 def parse_all_event_details(events_str):
-    # Split the input string by two newlines to separate events
-    event_blocks = events_str.strip().split('\n\n')
-
-    # Initialize a list to store all parsed events
-    events = []
-
-    # Loop through each event block and parse it
-    for event_block in event_blocks:
-        event = parse_event_details(event_block)
-        events.append(event)
-
-    return events
+    """
+    Parse the LLM response, which may contain a JSON array of events or plain text.
+    Returns a list of event dictionaries.
+    """
+    # Try to extract JSON array from the response
+    json_match = re.search(r"```(?:json)?\s*(\[[\s\S]+?\])\s*```", events_str)
+    if not json_match:
+        # Try to find a JSON array without code block markers
+        json_match = re.search(r"(\[[\s\S]+?\])", events_str)
+    if json_match:
+        try:
+            events = json.loads(json_match.group(1))
+            # Normalize weightage field for each event
+            for event in events:
+                if "weightage" in event:
+                    if isinstance(event["weightage"], dict):
+                        # Already a dict, nothing to do
+                        pass
+                    elif isinstance(event["weightage"], str):
+                        # Try to parse as JSON/dict-like string
+                        try:
+                            event["weightage"] = json.loads(event["weightage"].replace("'", '"'))
+                        except Exception:
+                            # Fallback: wrap as single scheme
+                            event["weightage"] = {"Scheme 1": event["weightage"]}
+                else:
+                    event["weightage"] = {}
+            return events
+        except Exception as e:
+            print(f"Error parsing JSON events: {e}")
+            return []
+    else:
+        # Fallback: use old line-by-line parser
+        event_blocks = events_str.strip().split('\n\n')
+        events = []
+        for event_block in event_blocks:
+            event = parse_event_details(event_block)
+            if event:
+                events.append(event)
+        return events
 
 # ---------------------------------------------------------
 # Helper function to parse date and time strings
@@ -300,7 +340,7 @@ def process_pdfs_to_event_list(pdf_input, student_details):
 
 if __name__ == "__main__":  
     course_listt = [
-            {"course_type": "MATH", "course_code": "1210", "course_section": "0101","offered_term":"Summer 2025"}
+            {"course_type": "MGMT", "course_code": "3140", "course_section": "01","offered_term":"Summer 2025"}
             ]
     for course in course_listt:
         course_type = course.get("course_type")
@@ -308,16 +348,11 @@ if __name__ == "__main__":
         course_section = course.get("course_section")
         offered_term = course.get("offered_term")
         student_details = get_section_details(course_type, course_code, course_section,offered_term)
-        # print(f"Student details: {student_details}")
-        events = process_pdfs_to_event_list(f"C:/Users/brijesh.thakrar/Downloads/coursescheduler-backendtesting/coursescheduler/backend/course_outlines/math_1210_S25.pdf", student_details)
-        # print(f"Events for {course_type} {course_code} {course_section}:")
-        
-        # for event in events:
-            # print(event)
-        # event_list = [
-        # ]
-        # for event in events:
-        #     if event != {} and len(event['date']) <15 and len(event['weightage']) < 8:
-        #         event_list.append(event)
-        #         print(event)
-        # batch_insert_events(event_list, student_details['course_id'])
+        events = process_pdfs_to_event_list(f"./course_outlines/mgmt_3140_S25.pdf", student_details)
+        event_list =[]
+
+        for event in events:
+            event_list.append(event)
+
+        print(f"Event list: {event_list}")
+        # batch_insert_events_with_schemes(event_list, student_details['course_id'])

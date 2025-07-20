@@ -19,6 +19,13 @@ from django.db.models import Q
 import json
 import random
 import uuid
+import os
+import time
+import requests
+from django.core.mail import send_mail
+from django.conf import settings
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 def index(request):
     """
     Renders the CoopForum main page.
@@ -108,144 +115,131 @@ def register_view(request):
     try:
         data = json.loads(request.body)
         email = data.get('email', '').lower().strip()
-        
-        # Validate email domain
-        if not email.endswith('@uoguelph.ca'):
-            return JsonResponse({'error': 'Only @uoguelph.ca emails are allowed'}, status=400)
+        username = data.get('username', '').strip()
         
         # Check if email already exists
-        if User.objects.filter(email=email).exists():
+        if User.objects.filter(email=email ).exists():
             return JsonResponse({'error': 'Email already registered'}, status=400)
-        
+
+        # Check if username already exists
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({'error': 'Username already taken'}, status=400)
+
         password = data.get('password')
         if not password:
             return JsonResponse({'error': 'Password is required'}, status=400)
-        
-        # Generate unique username
-        username = generate_unique_username()
-        
+        # Generate a unique username if not provided
+        if not username:
+            username = generate_unique_username()
         # Create user (inactive until email verification)
         user = User.objects.create_user(
             username=username,
             email=email,
             password=password,
-            is_active=False  # User inactive until email verified
+            is_active=False
         )
-        print(f"User created: {user.username} ({user.email})")
+        
         # Create verification token
         verification_token = EmailVerificationToken.objects.create(user=user)
-        print(f"Verification token created: {verification_token.token} for user {user.username}")
+        
         # Send verification email
-        send_verification_email_env_var(user, verification_token.token)
-        print(f"sent verification email to {user.email}")
-        return JsonResponse({
-            'message': 'Registration successful. Please check your email to verify your account.',
-            'user': {
-                'username': user.username,
-                'email': user.email
-            }
-        })
+        success = send_verification_email_gmail(user, verification_token.token)
+        
+        if success:
+            return JsonResponse({
+                'message': 'Registration successful. Please check your email to verify your account.',
+                'user': {
+                    'username': user.username,
+                    'email': user.email
+                }
+            })
+        else:
+            # Clean up user if email fails
+            EmailVerificationToken.objects.filter(user=user).delete()
+            user.delete()
+            return JsonResponse({
+                'error': 'Failed to send verification email. Please try again or contact support.'
+            }, status=500)
         
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
-        print(f"Unexpected error in register_view: {e}") 
+        print(f"Unexpected error in register_view: {e}")
         return JsonResponse({'error': 'Registration failed'}, status=500)
 
 
 def generate_unique_username():
-    base_username = "gryph"
+    base_username = "gryphon"
     max_attempts = 10
     
     for _ in range(max_attempts):
-        username = f"{base_username}{random.randint(0, 8000000000)}"
+        username = f"{base_username}{random.randint(0, 800)}"
         if not User.objects.filter(username=username).exists():
             return username
     
     # Fallback: use timestamp if random fails
-    import time
+
     return f"{base_username}{int(time.time())}"
 
-# def send_verification_email(user, token):
-
-#     # Initialize Supabase client
-#     supabase = create_client(
-#         settings.SUPABASE_URL,
-#         settings.SUPABASE_SERVICE_KEY
-#     )
-#     print(f"Supabase client initialized for {supabase}")
-#     verification_url = f"{settings.SITE_URL}/api/auth/verify-email/{token}/"
-#     print(f"Verification URL: {verification_url}")
-    
-#     try:
-#         print(f"Sending verification email to {user.email} via Supabase...")
-        
-#         # Create a temporary user in Supabase for email sending
-#         # This won't interfere with your Django users
-#         response = supabase.auth.admin.create_user({
-#             'email': user.email,
-#             'email_confirm': False,
-#             'user_metadata': {
-#                 'django_user_id': user.id,
-#                 'username': user.username,
-#                 'verification_url': verification_url
-#             }
-#         })
-#         # Generate and send confirmation email
-#         supabase.auth.admin.generate_link({
-#             'type': 'signup',
-#             'email': user.email,
-#             'redirect_to': verification_url
-#         })
-        
-#         print(f"✅ Verification email sent to {user.email} via Supabase")
-#         return True
-        
-#     except Exception as e:
-#         print(f"❌ Failed to send verification email via Supabase: {e}")
-#         return False
-
-# Alternative Method 2: Global SSL context modification (use with caution)
-def send_verification_email_env_var(user, token):
-    import os
-    
-    # Set environment variable to disable SSL verification
-    os.environ['PYTHONHTTPSVERIFY'] = '0'
-    
-    # Initialize Supabase client
-    supabase = create_client(
-        settings.SUPABASE_URL,
-        settings.SUPABASE_SERVICE_KEY
-    )
-    
-    print(f"Supabase client initialized for {supabase}")
-    verification_url = f"{settings.SITE_URL}/api/auth/verify-email/{token}/"
-    print(f"Verification URL: {verification_url}")
-    
+def send_verification_email_gmail(user, token):
+    """Send verification email using Gmail SMTP"""
     try:
-        print(f"Sending verification email to {user.email} via Supabase...")
+        verification_url = f"{settings.SITE_URL}/api/auth/verify-email/{token}/"
         
-        response = supabase.auth.admin.create_user({
-            'email': user.email,
-            'email_confirm': False,
-            'user_metadata': {
-                'django_user_id': user.id,
-                'username': user.username,
-                'verification_url': verification_url
-            }
-        })
+        subject = 'Verify Your Email Address'
         
-        supabase.auth.admin.generate_link({
-            'type': 'signup',
-            'email': user.email,
-            'redirect_to': verification_url
-        })
+        html_message = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <h2 style="color: #333; text-align: center;">Welcome {user.username}!</h2>
+                <p style="color: #666; font-size: 16px;">Thank you for registering. Please click the button below to verify your email address:</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{verification_url}" 
+                       style="background-color: #007bff; color: white; padding: 12px 30px; 
+                              text-decoration: none; border-radius: 5px; font-weight: bold;
+                              display: inline-block;">
+                        Verify Email Address
+                    </a>
+                </div>
+                
+                <p style="color: #666; font-size: 14px;">Or copy and paste this URL into your browser:</p>
+                <p style="background-color: #e9ecef; padding: 10px; border-radius: 5px; word-break: break-all; font-size: 12px;">
+                    {verification_url}
+                </p>
+                
+                <p style="color: #999; font-size: 12px; text-align: center; margin-top: 30px;">
+                    This link will expire in 24 hours for security reasons.
+                </p>
+            </div>
+        </body>
+        </html>
+        """
         
-        print(f"✅ Verification email sent to {user.email} via Supabase")
+        plain_message = f"""
+        Welcome {user.username}!
+        
+        Thank you for registering. Please click the link below to verify your email address:
+        {verification_url}
+        
+        This link will expire in 24 hours.
+        """
+        
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False
+        )
+
+        print(f"Verification email sent successfully to {user.email}")
         return True
         
     except Exception as e:
-        print(f"❌ Failed to send verification email via Supabase: {e}")
+        print(f"Failed to send verification email to {user.email}: {str(e)}")
         return False
 
 def verify_email(request, token):

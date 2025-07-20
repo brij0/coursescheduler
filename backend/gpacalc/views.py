@@ -141,7 +141,7 @@ def get_course_events(request):
         )
         
         # Get all events
-        events = CourseEvent.objects.filter(course=course).values("id", "event_type")
+        events = CourseEvent.objects.filter(course=course).values("id", "event_type").order_by("event_date")
         
         # Get all grading schemes
         schemes = []
@@ -171,12 +171,11 @@ def get_course_events(request):
                 "weightages": {}
             }
             
-            for event in CourseEvent.objects.filter(course=course):
+            for event in CourseEvent.objects.filter(course=course).order_by("event_date"):
                 if event.weightage:
                     default_scheme["weightages"][str(event.id)] = event.weightage
             
             schemes.append(default_scheme)
-        
         return JsonResponse({
             "events": list(events),
             "grading_schemes": schemes

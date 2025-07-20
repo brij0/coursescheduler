@@ -24,8 +24,9 @@ frontend/node_modules/
 *.github
 *.sql
 *.md
-backend/data.json
+*.json
 # Ignore common private key filenames
+backend/dict.txt
 id_rsa
 id_rsa.pub
 id_dsa

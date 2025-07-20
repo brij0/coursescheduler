@@ -143,7 +143,7 @@ $(document).on('change', '#offered-term', function() {
   $("#courses-container").empty();
   courseIdx = 0;
   if (term) {
-    fetch("{% url 'gpacalc-api:course_types' %}", {
+    fetch("{% url 'gpacalc-api:get_course_types' %}", {
       method: 'POST',
       headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
       body: JSON.stringify({offered_term: term})
@@ -193,7 +193,7 @@ $(document).on('change', '.ctype', function(){
   parent.find('.ccode').empty().append('<option>Loading…</option>');
   parent.find('.csec').empty().append('<option></option>');
   parent.find('.events').empty();
-  fetch("{% url 'gpacalc-api:course_codes' %}", {
+  fetch("{% url 'gpacalc-api:get_course_codes' %}", {
     method: 'POST',
     headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
     body: JSON.stringify({course_type: type, offered_term: term})
@@ -213,7 +213,7 @@ $(document).on('change', '.ccode', function(){
   const term = $('#offered-term').val();
   parent.find('.csec').empty().append('<option>Loading…</option>');
   parent.find('.events').empty();
-  fetch("{% url 'gpacalc-api:section_numbers' %}", {
+  fetch("{% url 'gpacalc-api:get_section_numbers' %}", {
     method: 'POST',
     headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
     body: JSON.stringify({course_type: type, course_code: code, offered_term: term})
@@ -234,7 +234,7 @@ $(document).on('change', '.csec', function(){
   const term = $('#offered-term').val();
   parent.find('.events').html('Loading events…');
   
-  fetch("{% url 'gpacalc-api:course_events' %}", {
+  fetch("{% url 'gpacalc-api:get_course_events' %}", {
     method: 'POST',
     headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
     body: JSON.stringify({
