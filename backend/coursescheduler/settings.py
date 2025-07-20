@@ -135,3 +135,4 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get('GMAIL_EMAIL')
 EMAIL_HOST_PASSWORD = os.environ.get('GMAIL_APP_PASSWORD')
 DEFAULT_FROM_EMAIL = os.environ.get('GMAIL_EMAIL')
+SITE_URL = 'http://localhost:8000'
