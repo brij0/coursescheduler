@@ -1,25 +1,23 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.contrib.contenttypes.models import ContentType
-from .models import Post, Comment, Vote
+from .models import Post, Comment, Vote, EmailVerificationToken
 from .serializers import PostSerializer, CommentSerializer
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from django.contrib.auth.decorators import login_required
-import json
+from django.contrib.auth.models import User
+from django.core.mail import send_mail
+from django.conf import settings
 from django.db.models import Q
-
-# def index(request):
-#     """
-#     Renders the CoopForum main page.
-#     """
-#     return render(request, 'coopforum/index.html')
-
-# Authentication Views
+import json
+import random
+import uuid
+import time
+from applogger.utils import log_info, log_error, log_debug
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -89,6 +87,163 @@ def user_view(request):
     else:
         return JsonResponse({'error': 'Not authenticated'}, status=401)
 
+@require_http_methods(["GET","POST"])
+@csrf_exempt
+def register_view(request):
+    """
+    POST /api/auth/register/
+    Registers a new user (inactive until email verification).
+    Request: JSON { "email": "...", "username": "...", "password": "..." }
+    Response: JSON { "message": "...", "user": { ... } } or { "error": "..." }
+    Usage (frontend):
+        - Call to register a new user. User must verify email before logging in.
+    """
+    try:
+        data = json.loads(request.body)
+        email = data.get('email', '').lower().strip()
+        username = data.get('username', '').strip()
+                
+        # Validate email domain
+        if not email.endswith('@uoguelph.ca'):
+            return JsonResponse({'error': 'Only @uoguelph.ca emails are allowed'}, status=400)
+
+        # Check if email already exists
+        if User.objects.filter(email=email).exists():
+            return JsonResponse({'error': 'Email already registered'}, status=400)
+
+        # Check if username already exists
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({'error': 'Username already taken'}, status=400)
+
+        password = data.get('password')
+        if not password:
+            return JsonResponse({'error': 'Password is required'}, status=400)
+        # Generate a unique username if not provided
+        if not username:
+            username = generate_unique_username()
+        # Create user (inactive until email verification)
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            is_active=False
+        )
+        
+        # Create verification token
+        verification_token = EmailVerificationToken.objects.create(user=user)
+        
+        # Send verification email
+        success = send_verification_email_gmail(user, verification_token.token)
+        
+        if success:
+            return JsonResponse({
+                'message': 'Registration successful. Please check your email to verify your account.',
+                'user': {
+                    'username': user.username,
+                    'email': user.email
+                }
+            })
+        else:
+            # Clean up user if email fails
+            EmailVerificationToken.objects.filter(user=user).delete()
+            user.delete()
+            return JsonResponse({
+                'error': 'Failed to send verification email. Please try again or contact support.'
+            }, status=500)
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        print(f"Unexpected error in register_view: {e}")
+        return JsonResponse({'error': 'Registration failed'}, status=500)
+
+def generate_unique_username():
+    """
+    Generates a unique username for users who do not provide one.
+    """
+    while True:
+        username = f"Gryphon{random.randint(1, 8000)}"
+        if not User.objects.filter(username=username).exists():
+            return username
+
+def send_verification_email_gmail(user, token):
+    """
+    Send verification email using Gmail SMTP.
+    The frontend should provide a page to handle the verification link.
+    """
+    try:
+        subject = 'Verify your email for Course Scheduler'
+        verification_url = f"{settings.FRONTEND_URL}/verify-email/{token}/"
+        message = f"Hi {user.username},\n\nPlease verify your email by clicking the link below:\n{verification_url}\n\nThank you!"
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
+        return True
+    except Exception as e:
+        print(f"Failed to send verification email: {e}")
+        return False
+
+def verify_email(request, token):
+    """
+    GET /api/auth/verify-email/<token>/
+    Verifies the user's email using the provided token.
+    Response: JSON { "message": "...", "verified": true/false }
+    Usage (frontend):
+        - Call this endpoint when user clicks the verification link.
+        - Show success or error message based on response.
+    """
+    try:
+        verification_token = get_object_or_404(EmailVerificationToken, token=token)
+        
+        if verification_token.is_expired():
+            return JsonResponse({'error': 'Verification link has expired. Please request a new one.', 'verified': False}, status=400)
+        
+        if verification_token.is_verified:
+            return JsonResponse({'message': 'Email already verified. You can now log in.', 'verified': True})
+        
+        # Verify the email
+        user = verification_token.user
+        user.is_active = True
+        user.save()
+        
+        verification_token.is_verified = True
+        verification_token.save()
+        
+        return JsonResponse({'message': 'Email verified successfully! You can now log in.', 'verified': True})
+        
+    except Exception as e:
+        return JsonResponse({'error': 'Invalid verification link.', 'verified': False}, status=400)
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def resend_verification(request):
+    """
+    POST /api/auth/resend-verification/
+    Resends the verification email to the user.
+    Request: JSON { "email": "..." }
+    Response: JSON { "message": "...", "resent": true/false }
+    Usage (frontend):
+        - Call if user did not receive the verification email.
+    """
+    try:
+        data = json.loads(request.body)
+        email = data.get('email', '').lower().strip()
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return JsonResponse({'error': 'User not found.'}, status=404)
+        if user.is_active:
+            return JsonResponse({'message': 'Email already verified.'})
+        # Delete old tokens and create a new one
+        EmailVerificationToken.objects.filter(user=user).delete()
+        verification_token = EmailVerificationToken.objects.create(user=user)
+        success = send_verification_email_gmail(user, verification_token.token)
+        if success:
+            return JsonResponse({'message': 'Verification email resent.', 'resent': True})
+        else:
+            return JsonResponse({'error': 'Failed to send verification email.', 'resent': False}, status=500)
+    except Exception as e:
+        return JsonResponse({'error': 'Failed to resend verification email.'}, status=500)
+
+# --- API ViewSets for Posts and Comments ---
+
 class PostViewSet(viewsets.ModelViewSet):
     """
     API endpoints for CRUD operations on Posts.
@@ -139,6 +294,7 @@ class PostViewSet(viewsets.ModelViewSet):
         Response: JSON { "message": ... }
         Usage (frontend):
             - Call to upvote or downvote a post.
+            - If the same vote is sent again, the vote is removed (toggle).
         """
         post = self.get_object()
         value = request.data.get('value')
@@ -173,18 +329,14 @@ class PostViewSet(viewsets.ModelViewSet):
     def search(self, request):
         """
         GET /api/coopforum/posts/search/?q=...
-        Returns posts matching the search query in title, content, job_title, or organization.
-        Response: JSON { "query": "...", "count": N, "results": [...] }
+        Searches posts by text.
+        Response: JSON { "query": "...", "count": ..., "results": [...] }
         Usage (frontend):
-            - Call to implement search functionality.
+            - Use for searching posts by keywords.
         """
-        query = request.query_params.get('q', '').strip().lower()
-        
-        if not query:
-            return Response({'error': 'Search query is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Search across title, content, job_title, and organization fields
+        query = request.query_params.get('q', '').strip()
         posts = Post.objects.filter(
+            Q(title__icontains=query) | Q(content__icontains=query),
             is_deleted=False
         ).filter(
             Q(title__icontains=query) |
@@ -192,14 +344,12 @@ class PostViewSet(viewsets.ModelViewSet):
             Q(job_title__icontains=query) |
             Q(organization__icontains=query)
         ).order_by('-created_at')
-        
-        serializer = self.get_serializer(posts, many=True)
+        serializer = PostSerializer(posts, many=True)
         return Response({
             'query': query,
             'count': posts.count(),
             'results': serializer.data
         })
-
 
 class CommentViewSet(viewsets.ModelViewSet):
     """
@@ -231,6 +381,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         Response: JSON { "message": ... }
         Usage (frontend):
             - Call to upvote or downvote a comment.
+            - If the same vote is sent again, the vote is removed (toggle).
         """
         comment = self.get_object()
         value = request.data.get('value')

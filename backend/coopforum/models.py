@@ -5,6 +5,9 @@ from django.db.models import Sum
 from mptt.models import MPTTModel, TreeForeignKey
 from django.contrib.contenttypes.fields import GenericRelation, GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.models import User
+import uuid
+from datetime import timedelta
 
 
 class TimeStampedModel(models.Model):
@@ -223,3 +226,14 @@ class Vote(TimeStampedModel):
     def __str__(self):
         action = 'Upvote' if self.value == self.UPVOTE else 'Downvote'
         return f"{action} by {self.user} on {self.content_type.model}(id={self.object_id})"
+
+class EmailVerificationToken(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    token = models.UUIDField(default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_verified = models.BooleanField(default=False)
+    
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(hours=24)
+    def __str__(self):
+        return f"Token for {self.user.username}"

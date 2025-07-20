@@ -2,9 +2,14 @@ from httpx import get
 import mysql.connector
 import os
 from dotenv import load_dotenv
-# from timetable import *
-# from scrape_course import *
 import re
+import django
+django.setup()
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'coursescheduler.settings')
+from django.db import transaction
+from scheduler.models import Course, CourseEvent
+from gpacalc.models import GradingScheme, AssessmentWeightage
+from applogger.utils import log_info, log_error, log_debug
 
 def get_db_connection():
     """
@@ -23,14 +28,13 @@ def get_db_connection():
             database=os.getenv("DB_NAME")
         )
         db_cursor = db_connection.cursor()
-        print("Connected to the database successfully!")
+        log_info("Connected to the database successfully!")
         return db_connection, db_cursor
     except mysql.connector.Error as err:
-        print(f"Error: {err}")
+        log_error(f"Error: {err}")
         return None, None
     
-import re  # Add this at the top of your file with other imports
-
+# Function to insert cleaned course sections from web scraping and insert their events into the database
 def insert_cleaned_sections(courses_data):
     """
     Clean and add scraped course sections and their associated events to the database.
@@ -51,13 +55,13 @@ def insert_cleaned_sections(courses_data):
     }
 
     db_connection, db_cursor = get_db_connection()
-
+    # log_debug(f"course_data = {courses_data}")
     try:
         # Process each course
         for course_codes, term_sections in courses_data.items():
             # Process each term for the current course
             for term, sections in term_sections.items():
-                print(f"  Processing term: {term}")
+                log_info(f"Processing term: {term}")
                 
                 # Process each section in the term
                 for section_info in sections:
@@ -86,6 +90,7 @@ def insert_cleaned_sections(courses_data):
                         section_number,
                         credits
                     )
+                    log_info(f"Inserting section: {params}")
                     db_cursor.execute(insert_section_query, params)
                     course_id = db_cursor.lastrowid
 
@@ -93,7 +98,6 @@ def insert_cleaned_sections(courses_data):
                     for meeting_detail in section_info.get('meeting_details', []):
                         # Extract and clean times
                         times = meeting_detail.get('times', [])
-                        # print(f"raw timings: {times}")
                         
                         time_str = "TBD"
                         
@@ -163,63 +167,126 @@ def insert_cleaned_sections(courses_data):
                             (course_id, event_type, times, location, days, dates)
                             VALUES (%s, %s, %s, %s, %s, %s)
                         """
+                        log_info(f"Inserting event: {course_id}, {event_type}, {time_range_str}, {location}, {days_str}, {date_range_str}")
                         db_cursor.execute(insert_event_query, 
                                         (course_id, event_type, time_range_str, location, 
                                         days_str, date_range_str))
 
         db_connection.commit()
-        print("Successfully inserted all sections and events")
-
+        log_info("Successfully inserted all sections and events")
     except Exception as e:
-        print(f"An error occurred while adding data to the database: {e}")
+        log_error(f"An error occurred while adding data to the database: {e}")
         db_connection.rollback()
-
     finally:
         db_cursor.close()
         db_connection.close()
 
-def batch_insert_events(events_list, course_id):
+def batch_insert_events_with_schemes(events_list, course_id):
     """
-    Insert multiple events into the course_events table in one batch operation.
+    Insert multiple events and their grading schemes into the database.
+    
+    Args:
+        events_list: List of event dictionaries with weightage schemes
+        course_id: ID of the course to associate events with
+        
+    Expected event format:
+    {
+        'event_type': 'Assignment',
+        'date': '2025-06-04',
+        'days': 'Wednesday',
+        'time': '23:59',
+        'location': 'Online (CourseLink)',
+        'description': 'Written Assignment 1 submission',
+        'weightage': {'Scheme 1': 10, 'Scheme 2': 10, 'Scheme 3': 10},
+        'grading_note': 'Optional note'
+    }
     """
-    db_connection, db_cursor = get_db_connection()
-    query = """
-        INSERT INTO course_events (
-            course_id, event_type, event_date, start_date, end_date, days, time, location, description, weightage
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """
-
-    # Prepare the data for batch insertion
-    batch_data = [
-        (
-            course_id,
-            event.get('event_type'),
-            event.get('date'),
-            event.get('start_date'),
-            event.get('end_date'),
-            # event.get('days'),
-            ','.join(event.get('days', [])),
-            event.get('time'),
-            event.get('location'),
-            event.get('description'),
-            event.get('weightage')
-        )
-        for event in events_list
-    ]
-
     try:
-        # Use executemany for batch insertion
-        db_cursor.executemany(query, batch_data)
-        db_connection.commit()
-        print(f"Inserted {db_cursor.rowcount} events for course ID {course_id}.")
-    except Exception as e:
-        print(f"An error occurred while inserting events: {e}")
-        db_connection.rollback()
-    finally:
-        db_cursor.close()
-        db_connection.close()
+        course = Course.objects.get(course_id=course_id)
+    except Course.DoesNotExist:
+        log_error(f"Course with ID {course_id} does not exist")
+        raise ValueError(f"Course with ID {course_id} does not exist")
+    
+    # Collect all unique scheme names from all events
+    all_scheme_names = set()
+    for event in events_list:
+        if 'weightage' in event and isinstance(event['weightage'], dict):
+            all_scheme_names.update(event['weightage'].keys())
+    
+    # Use database transaction to ensure data consistency
+    with transaction.atomic():
+        
+        # Step 1: Create or get grading schemes
+        schemes = {}
+        for scheme_name in all_scheme_names:
+            scheme, created = GradingScheme.objects.get_or_create(
+                course=course,
+                name=scheme_name,
+                defaults={
+                    'description': f'{scheme_name}',
+                    'is_default': scheme_name.lower() == 'default'
+                }
+            )
+            schemes[scheme_name] = scheme
+            if created:
+                log_info(f"Created new grading scheme: {scheme_name} for course {course}")
+        
+        # Step 2: Insert events and their weightages
+        for event_data in events_list:
+            # Create the CourseEvent
+            course_event = CourseEvent.objects.create(
+                course=course,
+                event_type=event_data.get('event_type'),
+                event_date=event_data.get('date'),
+                start_date=event_data.get('start_date'),
+                end_date=event_data.get('end_date'),
+                days=','.join(event_data.get('days', [])) if isinstance(event_data.get('days'), list) else event_data.get('days', ''),
+                time=event_data.get('time', ''),
+                location=event_data.get('location', ''),
+                description=event_data.get('description', ''),
+                # Store the first scheme's weightage as default, or None if no weightages
+                weightage=_get_default_weightage(event_data.get('weightage', {}))
+            )
+            
+            # Create AssessmentWeightage entries for each scheme
+            weightage_data = event_data.get('weightage', {})
+            if isinstance(weightage_data, dict):
+                for scheme_name, weight_value in weightage_data.items():
+                    if scheme_name in schemes:
+                        AssessmentWeightage.objects.create(
+                            grading_scheme=schemes[scheme_name],
+                            course_event=course_event,
+                            weightage=float(weight_value)
+                        )
+            log_info(f"Created event: {course_event.event_type} with {len(weightage_data)} scheme weightages")
+    
+    log_info(f"Successfully inserted {len(events_list)} events with {len(all_scheme_names)} grading schemes")
+    return {
+        'events_created': len(events_list),
+        'schemes_created': len(all_scheme_names),
+        'schemes': list(all_scheme_names)
+    }
 
-def get_section_details(school_code, course_code, section_number):
+def _get_default_weightage(weightage_dict):
+    """
+    Extract a default weightage value from the weightage dictionary.
+    Priority: 'Default' > 'Scheme 1' > first available value > None
+    """
+    if not isinstance(weightage_dict, dict) or not weightage_dict:
+        return None
+    
+    # Priority order for default weightage
+    priority_keys = ['Default', 'default', 'Scheme 1', 'scheme 1']
+    
+    for key in priority_keys:
+        if key in weightage_dict:
+            return f"{weightage_dict[key]}%"
+    
+    # If no priority key found, use the first available
+    first_value = list(weightage_dict.values())[0]
+    return f"{first_value}%"
+
+def get_section_details(school_code, course_code, section_number, offered_term):
     """
     Extract section information (event type, times, location) and course_id for a specific course and section.
 
@@ -236,12 +303,12 @@ def get_section_details(school_code, course_code, section_number):
 
     try:
         query = """
-            SELECT c.course_id, e.event_type, e.times, e.location
+            SELECT c.course_id, e.event_type, e.times, e.location, e.days, e.dates
             FROM events e
             JOIN courses c ON e.course_id = c.course_id
-            WHERE c.section_name = %s
+            WHERE c.section_name = %s AND c.offered_term = %s
         """
-        db_cursor.execute(query, (full_section_code,))
+        db_cursor.execute(query, (full_section_code, offered_term,))
         query_results = db_cursor.fetchall()
 
         # Extract course_id and section information
@@ -256,12 +323,14 @@ def get_section_details(school_code, course_code, section_number):
             section_details['section_details'].append({
                 'event_type': result_row[1],
                 'times': result_row[2],
-                'location': result_row[3]
+                'location': result_row[3],
+                'days': result_row[4],
+                'dates': result_row[5]
             })
 
         return section_details
     except Exception as e:
-        print(f"Database error: {e}")
+        log_error(f"Database error: {e}")
         return {'course_id': None, 'section_details': []}
     finally:
         db_cursor.close()

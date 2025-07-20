@@ -1,7 +1,6 @@
 # scheduler/views.py
 import json
 from datetime import datetime
-from django.shortcuts import redirect, render
 from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt

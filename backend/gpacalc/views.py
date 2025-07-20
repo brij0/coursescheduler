@@ -1,5 +1,4 @@
 import json
-from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -753,9 +752,9 @@ def progress_export_excel(request):
             except Exception:
                 achieved_val = None
             
-            # Achieved % as float (not string)
+            # Achieved % as float (percentage points contribution)
             try:
-                achieved_pct = (achieved_val / 100 * weightage_val) if achieved_val is not None and weightage_val is not None else None
+                achieved_pct = (achieved_val * weightage_val) / 100 if achieved_val is not None and weightage_val is not None else None
             except Exception:
                 achieved_pct = None
             
@@ -771,9 +770,8 @@ def progress_export_excel(request):
         # Set percentage format for Achieved % column
         for row in ws.iter_rows(min_row=2, min_col=6, max_col=6):
             for cell in row:
-                cell.number_format = '0.00%'
                 if cell.value is not None:
-                    cell.value = cell.value / 100 if cell.value > 1 else cell.value  # Ensure value is in 0-1 range
+                    cell.number_format = '0.00'  # Just show as decimal
         
         # Format the sheet
         for col in range(1, 7):

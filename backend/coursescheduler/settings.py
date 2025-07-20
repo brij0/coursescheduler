@@ -85,24 +85,14 @@ AUTHENTICATION_BACKENDS = [
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.mysql",
-#         "NAME": os.getenv("DB_NAME"),
-#         "USER": os.getenv("DB_USER"),
-#         "PASSWORD": os.getenv("DB_PASSWORD"),
-#         "HOST": os.getenv("DB_HOST"),
-#         "PORT": os.getenv("DB_PORT", "3306"),
-#     }
-# }
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'coursescheduler',
-        'USER': 'localdev',
-        'PASSWORD': 'Brijesh@0911',
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": os.getenv("DB_NAME"),
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": os.getenv("DB_HOST"),
+        "PORT": os.getenv("DB_PORT", "3306"),
     }
 }
 
@@ -138,3 +128,12 @@ STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('GMAIL_EMAIL')
+EMAIL_HOST_PASSWORD = os.environ.get('GMAIL_APP_PASSWORD')
+DEFAULT_FROM_EMAIL = os.environ.get('GMAIL_EMAIL')
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
