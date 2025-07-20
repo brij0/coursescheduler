@@ -22,6 +22,7 @@ frontend/node_modules/
 *.log
 # Ignore SSL certificates
 *.github
+*.json
 
 # Ignore common private key filenames
 id_rsa
