@@ -1,0 +1,596 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>GPA Calculator</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .course-block { margin-bottom: 1.5rem; padding: 1rem; border: 1px solid #ccc; border-radius: 5px; background: #f9f9f9; }
+    .assess-table { width: 100%; border-collapse: collapse; margin-top: .5rem; }
+    .assess-table th, .assess-table td { border: 1px solid #ddd; padding: .5rem; }
+    .term-selector { margin-bottom: 1.5rem; padding: 1rem; background: #f5f5f5; border-radius: 5px; }
+    .scheme-selector { margin-bottom: 1rem; padding: 0.5rem; background: #e9f7ef; border-radius: 4px; }
+    .btn { padding: 8px 15px; background: #4a90e2; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .btn:hover { background: #3672b5; }
+    .btn:disabled { background: #cccccc; cursor: not-allowed; }
+    #results { margin-top: 20px; }
+    .schemes-comparison { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px; }
+    .scheme-card { border: 1px solid #ddd; border-radius: 5px; padding: 15px; flex: 1; min-width: 250px; background: #f9f9f9; }
+    .best-scheme { border: 2px solid #4CAF50; background: #e8f5e9; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+    details summary { cursor: pointer; padding: 8px 0; font-weight: bold; }
+    .scheme-card h4 { margin-top: 0; color: #333; }
+    .best-combo {
+      border: 2px solid #4CAF50;
+      background: #e8f5e9;
+    }
+    .scheme-details-btn {
+      margin-top: 10px;
+      background: #667788;
+      font-size: 0.9em;
+      padding: 5px 10px;
+    }
+    .loading {
+      text-align: center;
+      padding: 20px;
+      font-style: italic;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>GPA Calculator</h1>
+  
+  <!-- Add term selector -->
+  <div class="term-selector">
+    <label>Select Term:
+      <select id="offered-term" name="offered_term">
+        <option value="">-- Select Term --</option>
+      </select>
+    </label>
+  </div>
+  
+  <div id="courses-container"></div>
+  <button id="add-course" class="btn">Add Course</button>
+  <hr>
+  <button id="calc-gpa" class="btn">Calculate GPA</button>
+  <button id="export-excel" class="btn" style="margin-bottom: 10px;">Export to Excel</button>
+
+  <h2 id="result-header" style="display:none;">Results</h2>
+  <div id="results"></div>
+
+  <div class="auth-section" style="position: fixed; top: 10px; right: 10px; background: white; border: 1px solid #ccc; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    <div id="auth-logged-out">
+      <button id="login-btn" class="btn">Login</button>
+    </div>
+    <div id="auth-logged-in" style="display:none;">
+      <span>Welcome, <span id="username"></span>!</span>
+      <button id="logout-btn" class="btn">Logout</button>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="login-form" style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%,0); background:#f9f9f9; border-radius:5px; max-width:300px; z-index:1000; box-shadow:0 2px 8px rgba(0,0,0,0.2); padding: 20px;">
+    <h3>Login</h3>
+    <div id="login-error" class="error" style="color:red; display:none; margin-bottom: 10px;"></div>
+    <div style="margin-bottom: 10px;">
+      <input type="text" id="login-username" placeholder="Username" required style="width: 100%; padding: 8px; box-sizing: border-box;" />
+    </div>
+    <div style="margin-bottom: 15px;">
+      <input type="password" id="login-password" placeholder="Password" required style="width: 100%; padding: 8px; box-sizing: border-box;" />
+    </div>
+    <div style="text-align: right;">
+      <button id="login-cancel" class="btn" style="background: #999;">Cancel</button>
+      <button id="login-submit" class="btn">Login</button>
+    </div>
+  </div>
+
+<script>
+let courseIdx = 0;
+
+// Populate offered term dropdown from context
+$(document).ready(function() {
+  const sel = $('#offered-term');
+  {% for term in offered_terms %}
+    sel.append(`<option value="{{ term }}">{{ term }}</option>`);
+  {% endfor %}
+});
+
+// Prefill from progress_data if available
+$(document).ready(function() {
+  {% if progress_data %}
+    const progress = {{ progress_data|safe }};
+    if (progress.offered_term) {
+      $('#offered-term').val(progress.offered_term).trigger('change');
+      // Wait for course types to load, then add courses
+      setTimeout(function() {
+        if (progress.courses && progress.courses.length) {
+          $("#courses-container").empty();
+          courseIdx = 0;
+          progress.courses.forEach(function(course) {
+            addCourseBlock();
+            const block = $('.course-block').last();
+            block.find('.ctype').val(course.course_type).trigger('change');
+            setTimeout(function() {
+              block.find('.ccode').val(course.course_code).trigger('change');
+              setTimeout(function() {
+                block.find('.csec').val(course.section_number).trigger('change');
+                setTimeout(function() {
+                  // Fill in assessments
+                  if (course.assessments) {
+                    course.assessments.forEach(function(a, i) {
+                      block.find(`.achieved[data-ev-id="${a.event_id}"]`).val(a.achieved);
+                    });
+                  }
+                }, 500);
+              }, 500);
+            }, 500);
+          });
+        }
+      }, 500);
+    }
+  {% endif %}
+});
+
+// Disable course selection until a term is selected
+$('#add-course').prop('disabled', true);
+
+// When offered term changes, fetch course types
+$(document).on('change', '#offered-term', function() {
+  const term = $(this).val();
+  $('#add-course').prop('disabled', !term);
+  $("#courses-container").empty();
+  courseIdx = 0;
+  if (term) {
+    fetch("{% url 'gpacalc-api:get_course_types' %}", {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+      body: JSON.stringify({offered_term: term})
+    })
+    .then(r=>r.json())
+    .then(types=>{
+      // Store types globally or pass to addCourseBlock
+      window.currentCourseTypes = types;
+      addCourseBlock();
+    });
+  }
+});
+
+// Add a new course selector block
+function addCourseBlock() {
+  const idx = courseIdx++;
+  let typeOptions = '<option value="">-- select --</option>';
+  if (window.currentCourseTypes) {
+    window.currentCourseTypes.forEach(t => {
+      typeOptions += `<option value="${t}">${t}</option>`;
+    });
+  }
+  const block = $(`
+    <div class="course-block" data-idx="${idx}">
+      <label>Course Type:
+        <select class="ctype" name="course_type">
+          ${typeOptions}
+        </select>
+      </label>
+      <label>Course Code:
+        <select class="ccode" name="course_code"><option></option></select>
+      </label>
+      <label>Section:
+        <select class="csec" name="section_number"><option></option></select>
+      </label>
+      <div class="events"></div>
+    </div>
+  `);
+  $("#courses-container").append(block);
+}
+
+// load codes when type changes
+$(document).on('change', '.ctype', function(){
+  const parent = $(this).closest('.course-block');
+  const type = $(this).val();
+  const term = $('#offered-term').val();
+  parent.find('.ccode').empty().append('<option>Loading…</option>');
+  parent.find('.csec').empty().append('<option></option>');
+  parent.find('.events').empty();
+  fetch("{% url 'gpacalc-api:get_course_codes' %}", {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+    body: JSON.stringify({course_type: type, offered_term: term})
+  })
+  .then(r=>r.json())
+  .then(list=>{
+    const sel = parent.find('.ccode').empty().append('<option></option>');
+    list.forEach(c=> sel.append(`<option value="${c}">${c}</option>`));
+  });
+});
+
+// load sections when code changes
+$(document).on('change', '.ccode', function(){
+  const parent = $(this).closest('.course-block');
+  const type = parent.find('.ctype').val();
+  const code = $(this).val();
+  const term = $('#offered-term').val();
+  parent.find('.csec').empty().append('<option>Loading…</option>');
+  parent.find('.events').empty();
+  fetch("{% url 'gpacalc-api:get_section_numbers' %}", {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+    body: JSON.stringify({course_type: type, course_code: code, offered_term: term})
+  })
+  .then(r=>r.json())
+  .then(list=>{
+    const sel = parent.find('.csec').empty().append('<option></option>');
+    list.forEach(s=> sel.append(`<option value="${s}">${s}</option>`));
+  });
+});
+
+// load events when section changes
+$(document).on('change', '.csec', function(){
+  const parent = $(this).closest('.course-block');
+  const type = parent.find('.ctype').val();
+  const code = parent.find('.ccode').val();
+  const sec  = $(this).val();
+  const term = $('#offered-term').val();
+  parent.find('.events').html('Loading events…');
+  
+  fetch("{% url 'gpacalc-api:get_course_events' %}", {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+    body: JSON.stringify({
+      course_type: type,
+      course_code: code,
+      section_number: sec,
+      offered_term: term
+    })
+  })
+  .then(r=>r.json())
+  .then(data=>{
+    const events = data.events;
+    const schemes = data.grading_schemes;
+    
+    // Display grading schemes if available
+    let schemesHtml = '';
+    if (schemes && schemes.length > 0) {
+      if (schemes.length > 1) {
+        schemesHtml = `<div class="scheme-selector">
+          <p><strong>Course has ${schemes.length} grading schemes</strong> - Your grades will be calculated against all schemes.</p>
+        </div>`;
+      } else {
+        schemesHtml = `<div class="scheme-selector">
+          <p><strong>Grading Scheme:</strong> ${schemes[0].name}</p>
+          <p>${schemes[0].description || ''}</p>
+        </div>`;
+      }
+    }
+    
+    // Create events table
+    let tbl = `${schemesHtml}<table class="assess-table">
+      <tr><th>Event</th><th>Weight (%)</th><th>Your Grade (%)</th></tr>`;
+    
+    // Get the default scheme for initial weightage display
+    const defaultScheme = schemes.find(s => s.is_default) || schemes[0] || { weightages: {} };
+    
+    events.forEach(e => {
+      const weightage = defaultScheme.weightages[e.id] || '0%';
+      
+      tbl += `<tr>
+        <td>${e.event_type}</td>
+        <td>${weightage}</td>
+        <td>
+          <input type="number" step="0.01" min="0" max="100"
+                 class="achieved"
+                 data-ev-id="${e.id}"
+                 placeholder="e.g. 85">
+        </td>
+      </tr>`;
+    });
+    tbl += `</table>`;
+    
+    // Store scheme data for this course block
+    parent.data('schemes', schemes);
+    
+    parent.find('.events').html(tbl);
+  });
+});
+
+// add-course button
+$('#add-course').click(e=>{
+  e.preventDefault();
+  addCourseBlock();
+});
+
+// calculate GPA
+$('#calc-gpa').click(async e => {
+  const term = $('#offered-term').val();
+  const payload = {courses: [], offered_term: term};
+  
+  $('.course-block').each(function(){
+    const block = $(this);
+    const type = block.find('.ctype').val();
+    const code = block.find('.ccode').val();
+    const sec  = block.find('.csec').val();
+    
+    if (!type || !code || !sec) return;
+    
+    const assessments = [];
+    block.find('.achieved').each(function(){
+      const val = parseFloat($(this).val());
+      if (!isNaN(val)) {
+        assessments.push({
+          event_id: $(this).data('ev-id'),
+          achieved: val
+        });
+      }
+    });
+    
+    payload.courses.push({
+      course_type: type, 
+      course_code: code, 
+      section_number: sec, 
+      assessments
+    });
+  });
+
+  $('#results').html('<div class="loading">Calculating all possible combinations...</div>');
+  $('#result-header').show();
+
+  const res = await fetch("{% url 'gpacalc-api:calculate_gpa' %}", {
+    method: 'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+    body: JSON.stringify(payload)
+  });
+  
+  const data = await res.json();
+  
+  // render results
+  let html = '';
+  
+  // Show the best combination first
+  if (data.best_combination && Object.keys(data.best_combination).length > 0) {
+    html = `<div class="best-scheme">
+      <h3>Best Result: Optimal Combination</h3>
+      <p><strong>Overall GPA:</strong> ${data.best_combination.overall_gpa}</p>
+      <p><strong>Overall Percentage:</strong> ${data.best_combination.overall_final_percentage}%</p>
+      <p><strong>Schemes Used:</strong></p>
+      <ul>`;
+      
+    data.best_combination.schemes_used.forEach(scheme => {
+      html += `<li>${scheme}</li>`;
+    });
+    
+    html += `</ul><h4>Course Results</h4><ul>`;
+    
+    data.best_combination.per_course.forEach(c => {
+      html += `<li>${c.course}: ${c.final_percentage}% → ${c.letter_grade} → ${c.gpa_value} (${c.scheme_name})</li>`;
+    });
+    
+    html += `</ul></div>`;
+  }
+  
+  // All combinations section
+  if (data.combinations && data.combinations.length > 1) {
+    html += `<h3 class="mt-4">All Possible Combinations</h3>
+    <div class="schemes-comparison">`;
+    
+    data.combinations.forEach((combo, index) => {
+      const isOptimal = combo.scheme_id === data.best_combination.scheme_id;
+      html += `<div class="scheme-card ${isOptimal ? 'best-combo' : ''}">
+        <h4>${isOptimal ? '★ ' : ''}Combination ${index + 1}</h4>
+        <p><strong>GPA:</strong> ${combo.overall_gpa}</p>
+        <p><strong>Percentage:</strong> ${combo.overall_final_percentage}%</p>
+        <details>
+          <summary>View Course Details</summary>
+          <ul>`;
+          
+      combo.per_course.forEach(c => {
+        html += `<li>${c.course}: ${c.final_percentage}% → ${c.letter_grade} → ${c.gpa_value} (${c.scheme_name})</li>`;
+      });
+      
+      html += `</ul>
+        </details>
+      </div>`;
+    });
+    
+    html += `</div>`;
+  }
+  
+  // Individual schemes section
+  html += `<h3 class="mt-4">Individual Course Schemes</h3>
+  <p>See how each grading scheme affects individual courses</p>`;
+  
+  // Group by course
+  const courseGroups = {};
+  data.individual_schemes.forEach(scheme => {
+    const courseKey = `${scheme.course_type}*${scheme.course_code}*${scheme.section_number}`;
+    if (!courseGroups[courseKey]) {
+      courseGroups[courseKey] = [];
+    }
+    courseGroups[courseKey].push(scheme);
+  });
+  
+  // Display each course and its schemes
+  Object.entries(courseGroups).forEach(([courseKey, schemes]) => {
+    html += `<div class="course-schemes">
+      <h4>${schemes[0].course}</h4>
+      <div class="schemes-comparison">`;
+      
+    schemes.forEach(scheme => {
+      html += `<div class="scheme-card">
+        <h5>${scheme.scheme_name}</h5>
+        <p><strong>GPA Value:</strong> ${scheme.gpa_value}</p>
+        <p><strong>Percentage:</strong> ${scheme.final_percentage}%</p>
+        <p><strong>Letter Grade:</strong> ${scheme.letter_grade}</p>
+        <button class="btn scheme-details-btn" 
+                onclick="showSchemeDetails('${scheme.scheme_name}', '${scheme.scheme_description}', ${JSON.stringify(scheme.weightages).replace(/"/g, '&quot;')})">
+          View Scheme Details
+        </button>
+      </div>`;
+    });
+    
+    html += `</div></div>`;
+  });
+  
+  $('#results').html(html);
+});
+
+// Add this function to display scheme details in a modal
+function showSchemeDetails(name, description, weightages) {
+  // Create modal if it doesn't exist
+  if (!$('#scheme-details-modal').length) {
+    $('body').append(`
+      <div id="scheme-details-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); 
+           background:white; border-radius:5px; box-shadow:0 0 15px rgba(0,0,0,0.3); padding:20px; z-index:1001; 
+           max-width:500px; width:90%;">
+        <h3 id="scheme-modal-title"></h3>
+        <p id="scheme-modal-description"></p>
+        <h4>Weightages:</h4>
+        <table class="assess-table" id="scheme-modal-weightages">
+          <tr><th>Assessment</th><th>Weight</th></tr>
+        </table>
+        <div style="text-align:right; margin-top:15px;">
+          <button class="btn" onclick="$('#scheme-details-modal').hide();">Close</button>
+        </div>
+      </div>
+      <div id="scheme-modal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; 
+           background:rgba(0,0,0,0.5); z-index:1000;" onclick="$('#scheme-details-modal, #scheme-modal-overlay').hide();"></div>
+    `);
+  }
+  
+  // Populate modal
+  $('#scheme-modal-title').text(name);
+  $('#scheme-modal-description').text(description || 'No description available');
+  
+  const weightagesTable = $('#scheme-modal-weightages');
+  weightagesTable.find('tr:gt(0)').remove(); // Clear existing rows except header
+  
+  for (const [assessment, weight] of Object.entries(weightages)) {
+    weightagesTable.append(`<tr><td>${assessment}</td><td>${weight}</td></tr>`);
+  }
+  
+  // Show modal
+  $('#scheme-details-modal, #scheme-modal-overlay').show();
+}
+
+function updateAuthUI(user) {
+  if (user) {
+    document.getElementById("auth-logged-in").style.display = "";
+    document.getElementById("auth-logged-out").style.display = "none";
+    document.getElementById("username").textContent = user.username;
+  } else {
+    document.getElementById("auth-logged-in").style.display = "none";
+    document.getElementById("auth-logged-out").style.display = "";
+    document.getElementById("username").textContent = "";
+  }
+}
+
+async function checkAuthStatus() {
+  try {
+    const resp = await fetch("/api/auth/user/");
+    if (resp.ok) {
+      const data = await resp.json();
+      updateAuthUI(data.user);
+    } else {
+      updateAuthUI(null);
+    }
+  } catch {
+    updateAuthUI(null);
+  }
+}
+
+async function login(username, password) {
+  try {
+    const resp = await fetch("/api/auth/login/", {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+      body: JSON.stringify({username, password})
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      updateAuthUI(data.user);
+      document.getElementById("login-modal").style.display = "none";
+      document.getElementById("login-error").style.display = "none";
+      location.reload(); // reload to show progress if any
+    } else {
+      const err = await resp.json();
+      document.getElementById("login-error").textContent = err.error || "Login failed";
+      document.getElementById("login-error").style.display = "";
+    }
+  } catch {
+    document.getElementById("login-error").textContent = "Network error";
+    document.getElementById("login-error").style.display = "";
+  }
+}
+
+async function logout() {
+  await fetch("/api/auth/logout/", {method: "POST", headers: {"X-CSRFToken": "{{ csrf_token }}"}});
+  updateAuthUI(null);
+  location.reload();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  checkAuthStatus();
+
+  document.getElementById("login-btn").onclick = function() {
+    document.getElementById("login-modal").style.display = "";
+  };
+  document.getElementById("login-cancel").onclick = function() {
+    document.getElementById("login-modal").style.display = "none";
+    document.getElementById("login-error").style.display = "none";
+  };
+  document.getElementById("login-submit").onclick = function() {
+    const username = document.getElementById("login-username").value;
+    const password = document.getElementById("login-password").value;
+    if (username && password) login(username, password);
+  };
+  document.getElementById("logout-btn").onclick = logout;
+  document.getElementById("login-password").onkeypress = function(e) {
+    if (e.key === "Enter") document.getElementById("login-submit").click();
+  };
+});
+
+$('#export-excel').click(async function() {
+  try {
+    // Show loading state
+    const originalText = $(this).text();
+    $(this).text('Generating Excel...').prop('disabled', true);
+    
+    // Make the request
+    const response = await fetch("{% url 'gpacalc-api:progress_export_excel' %}", {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+    }
+    
+    // Get the blob data
+    const blob = await response.blob();
+    
+    // Create download link
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = 'gpacalc_progress.xlsx';
+    
+    // Trigger download
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+    
+    // Reset button
+    $(this).text(originalText).prop('disabled', false);
+  } catch (error) {
+    console.error('Download failed:', error);
+    alert('Failed to download Excel file. Please try again.');
+    $(this).text('Export to Excel').prop('disabled', false);
+  }
+});
+</script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 # scheduler/views.py
 import json
 from datetime import datetime
-from django.shortcuts import redirect, render
+from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -13,116 +13,60 @@ from applogger.views import log_api_timing
 from icalendar import Calendar
 from icalendar import Event as calendarEvent
 import pytz
+#-----------------------------------------
+# Index page
+#-----------------------------------------
+def index(request):
+    # SHOW COURSE TYPES
+    course_types = (
+        Course.objects
+        .filter(events__isnull=False)
+        .values_list("course_type", flat=True)
+        .distinct()
+        .order_by("course_type")
+    )
+    return render(request, "index.html", {"course_types": course_types})
 
-# -----------------------------------------
-# API: Get Course Events for selected sections
-# -----------------------------------------
+#-----------------------------------------
+# Home page of events and course_events function which populates the events page
+#-----------------------------------------
+def events_page(request):
+    return render(request, "events.html")
+
 @require_POST
 @csrf_exempt
 @log_api_timing("course_events_schedule")
 def course_events_schedule(request):
-    """
-    API: Get all events for multiple course sections
-    
-    This endpoint returns detailed event information for specified course sections.
-    Frontend can use this to display event details in a calendar or list view.
-
-    Request:
-        JSON: {
-            "sections/courses": [
-                {
-                    "course_type": "CIS",
-                    "course_code": "3750",
-                    "section_number": "01",
-                    "offered_term": "Fall 2025"
-                },
-                ...
-            ]
-        }
-
-    Response:
-        {
-            "CIS*3750*01": [
-                {
-                    "id": 123,
-                    "event_type": "Lecture",
-                    "weightage": "20%",
-                    "event_date": "2025-09-10",
-                    "location": "Room 101",
-                    "description": "Introduction to concepts",
-                    "time": "10:00 AM - 11:20 AM"
-                },
-                ...
-            ],
-            ...
-        }
-    """
-    data = json.loads(request.body)
-    courses = data.get("sections") or data.get("courses", [])
-    result = {}
-    for c in courses:
-        key = f"{c['course_type']}*{c['course_code']}*{c['section_number']}"
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON format"}, status=400)
+    # print(f"Received data: {data}")
+    sections = data.get("sections") or data.get("courses", [])
+    events_by_course = {}
+    for s in sections:
+        key = f"{s['course_type']}*{s['course_code']}*{s['section_number']}"
         evs = CourseEvent.objects.filter(
-            course__course_type=c["course_type"],
-            course__course_code=c["course_code"],
-            course__section_number=c["section_number"],
-            course__offered_term=c["offered_term"]
+            course__course_type=s["course_type"],
+            course__course_code=s["course_code"],
+            course__section_number=s["section_number"],
+            course__offered_term=s["offered_term"]
         ).values("id", "event_type", "weightage", "event_date", "location", "description", "time")
-        result[key] = list(evs)
-    return JsonResponse(result, safe=False)
+        events_by_course[key] = list(evs)
+        # print(events_by_course)
+    return JsonResponse(events_by_course)
 
-# -----------------------------------------
-# API: Generate Conflict-Free Schedules
-# -----------------------------------------
+
+#---------------------------------------------------------------------------
+# Home page of conflict_free schedule
+#---------------------------------------------------------------------------
+
+def conflict_test(request):
+    return render(request, "conflict_free_schedule.html")
+
 @csrf_exempt
 @log_api_timing("conflict_free_schedule")
 def conflict_free_schedule(request):
-    """
-    API: Generate paginated conflict-free schedules for selected courses.
-
-    This endpoint uses a backtracking algorithm to find schedules without time conflicts.
-    Pagination is implemented to avoid overloading the browser with too many schedules.
-
-    Request:
-        JSON: {
-            "courses": [
-                {"course_type": "ENGG", "course_code": "3380"},
-                {"course_type": "CIS", "course_code": "3750"}
-            ],
-            "offered_term": "Fall 2025",
-            "offset": 0,
-            "limit": 100
-        }
-
-    Response:
-        {
-            "schedules": [
-                {
-                    "CIS*3750*01": [
-                        {event details...},
-                        ...
-                    ],
-                    "ENGG*3380*02": [
-                        {event details...},
-                        ...
-                    ]
-                },
-                ... more schedules ...
-            ],
-            "total": "unknown",  
-            "offset": 0,
-            "limit": 100,
-            "has_more": true/false,
-            "message": "Showing N conflict-free schedules"
-        }
-
-    Frontend Implementation Notes:
-    - Use offset/limit for pagination - load more schedules as user scrolls
-    - Display schedules in calendar format with color-coding by course
-    - For each schedule, display all sections with their events
-    - Provide a "Next Schedule" / "Previous Schedule" navigation
-    - Consider adding filters (e.g., "no early mornings", "compact schedule")
-    """
     logger = logging.getLogger(__name__)
     total_start = time.time()
 
@@ -146,10 +90,8 @@ def conflict_free_schedule(request):
                 events = list(Event.objects.filter(course_id=section.course_id).values(
                     "event_type", "times", "location", "days"
                 ))
-                
                 if not events:
                     continue
-                    
                 # Parse time slots for conflict checking
                 time_slots = []
                 for e in events:
@@ -159,34 +101,31 @@ def conflict_free_schedule(request):
                         for words in e["days"].split(','):
                             if words.strip():
                                 days.append(words.strip())
-                    
                     time_part = e["times"]
                     if times:
-                        try:
+                        try :
                             start, end = [t.strip() for t in time_part.split('-')]
                             start_24 = datetime.strptime(start, "%I:%M %p").time()
                             end_24 = datetime.strptime(end, "%I:%M %p").time()
                         except:
                             start_24 = end_24 = None
+                        # print(f"Start: {start_24}, End: {end_24}, Days: {days}")
                     else:
                         start_24 = end_24 = None
-                        
                     for d in days:
                         time_slots.append((d, start_24, end_24, e["event_type"]))
-                        
+                    # print(time_slots)
                 section_events.append({
                     'section': section,
                     'events': events,
                     'time_slots': time_slots,
                     'key': f"{section.course_type}*{section.course_code}*{section.section_number}"
                 })
-                
             course_data.append(section_events)
             logger.info(f"Course {course['course_type']}{course['course_code']}: {len(section_events)} sections with events")
-
-        # Conflict checking helper function
+        # print(course_data)
+        # Conflict checking helper
         def events_conflict(slots1, slots2):
-            """Check if two sets of time slots have any conflicts"""
             for day1, start1, end1, _ in slots1:
                 for day2, start2, end2, _ in slots2:
                     if day1 == day2:
@@ -197,26 +136,16 @@ def conflict_free_schedule(request):
                             return True
             return False
 
-        # Modified backtracking to find schedules lazily
         found_schedules = []
         schedules_skipped = 0
 
         def build_schedules(course_index, current_schedule, current_slots):
-            """
-            Recursive backtracking to build conflict-free schedules
-            
-            Args:
-                course_index: Index of current course in course_data
-                current_schedule: Current partial schedule being built
-                current_slots: List of time slots already in the schedule
-            """
             nonlocal schedules_skipped
             
             # Stop if we have enough schedules for this page
             if len(found_schedules) >= limit:
                 return
                 
-            # Base case: all courses have been processed
             if course_index >= len(course_data):
                 if schedules_skipped < offset:
                     schedules_skipped += 1
@@ -224,7 +153,6 @@ def conflict_free_schedule(request):
                     found_schedules.append(current_schedule.copy())
                 return
                 
-            # Try each section of the current course
             for section_data in course_data[course_index]:
                 # Stop if we have enough schedules for this page
                 if len(found_schedules) >= limit:
@@ -232,20 +160,16 @@ def conflict_free_schedule(request):
                     
                 new_slots = section_data['time_slots']
                 conflict_found = False
-                
-                # Check for conflicts with existing slots
                 for existing_slots in current_slots:
                     if events_conflict(existing_slots, new_slots):
                         conflict_found = True
                         break
-                        
                 if not conflict_found:
                     new_schedule = current_schedule.copy()
                     new_schedule[section_data['key']] = section_data['events']
                     new_slot_list = current_slots + [new_slots]
                     build_schedules(course_index + 1, new_schedule, new_slot_list)
-        
-        # Start the recursive schedule building
+
         build_schedules(0, {}, [])
 
         # Check if we potentially have more schedules by trying to find one more
@@ -256,7 +180,6 @@ def conflict_free_schedule(request):
             temp_skipped = schedules_skipped
             
             def check_more_schedules(course_index, current_schedule, current_slots):
-                """Helper function to check if more schedules exist beyond current limit"""
                 nonlocal temp_skipped
                 
                 if len(temp_found) >= 1:  # We only need to find one more
@@ -296,12 +219,31 @@ def conflict_free_schedule(request):
             "has_more": has_more,
             "message": f"Showing {len(found_schedules)} conflict-free schedules"
         }
-        
         logger.info(f"Found {len(found_schedules)} conflict-free schedules in {time.time() - total_start:.2f}s")
+        logger.info(f"Returned {len(found_schedules)} schedules in {time.time() - total_start:.2f}s")
         return JsonResponse(response_data)
-        
     except Exception as e:
         logger.error(f"Error in conflict_free_schedule: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
+    
+
+#----------------------------------
+# Suggestion API
+#----------------------------------
+@require_POST
+@csrf_exempt
+@log_api_timing("submit_suggestion")
+def submit_suggestion(request):
+    try:
+        data = json.loads(request.body)
+        text = data.get("suggestion")
+        if not text:
+            return JsonResponse({"error": "Suggestion text is required"}, status=400)
+        Suggestion.objects.create(text=text)
+        return JsonResponse({"message": "Thank you for your feedback!"})
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -401,46 +343,3 @@ def export_events_ics_format(request):
         return HttpResponseBadRequest("Invalid JSON data")
     except Exception as e:
         return HttpResponseBadRequest(f"Error processing request: {str(e)}")
-
-# -----------------------------------------
-# API: Submit a suggestion/feedback
-# -----------------------------------------
-@require_POST
-@csrf_exempt
-def submit_suggestion(request):
-    """
-    API: Submit a suggestion or feedback for the course scheduler
-    
-    This endpoint allows users to submit feedback which gets stored in the database.
-    
-    Request:
-        JSON: {
-            "suggestion": "Please add more course sections for popular classes"
-        }
-        
-    Response:
-        JSON: {
-            "message": "Thank you for your feedback!"
-        }
-        
-    Frontend Implementation Notes:
-    - Add a feedback form on the scheduler page
-    - Show success message after submission
-    - Consider adding categories for feedback types
-    """
-    try:
-        data = json.loads(request.body)
-        suggestion_text = data.get("suggestion", "").strip()
-        
-        if not suggestion_text:
-            return JsonResponse({"error": "Suggestion text is required"}, status=400)
-            
-        # Create and save the suggestion
-        suggestion = Suggestion(text=suggestion_text)
-        suggestion.save()
-        
-        return JsonResponse({"message": "Thank you for your feedback!"})     
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON data"}, status=400)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)

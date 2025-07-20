@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Events - CourseScheduler{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>API Test Interface - Course Events</h3>
+    <div class="card p-3 mb-3">
+        <form id="event-query-form">
+            <div class="form-group">
+                <label>Term</label>
+                <select id="term" class="form-control" required>
+                    <option value="">Select Term</option>
+                </select>
+            </div>
+            <div id="course-rows" class="mb-3"></div>
+            <button type="button" id="add-course" class="btn btn-secondary">Add Course</button>
+            <button type="submit" class="btn btn-primary">Show Events</button>
+        </form>
+    </div>
+
+    <div id="api-response" class="card p-3 mb-3">
+        <h5>API Response</h5>
+        <pre id="response-data">Submit a request to see response</pre>
+    </div>
+
+    <div id="export-section" class="card p-3" style="display: none;">
+        <h5>Export Test</h5>
+        <button id="export-ics" class="btn btn-success">Test Export to Calendar (ICS)</button>
+        <div id="export-result" class="mt-2"></div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentEventsData = null;
+
+    // Fetch terms and populate dropdown
+    fetch('/api/scheduler/offered_terms/')
+        .then(res => res.json())
+        .then(terms => {
+            const termSelect = document.getElementById('term');
+            terms.forEach(term => {
+                const option = document.createElement('option');
+                option.value = term;
+                option.textContent = term;
+                termSelect.appendChild(option);
+            });
+        });
+
+    // Add course row
+    document.getElementById('add-course').addEventListener('click', function() {
+        const term = document.getElementById('term').value;
+        if (!term) {
+            alert('Please select a term first');
+            return;
+        }
+
+        const row = document.createElement('div');
+        row.className = 'course-row mb-2 p-2 border';
+        row.innerHTML = `
+            <div class="form-row">
+                <div class="col">
+                    <select class="form-control type" required>
+                        <option value="">Type</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <select class="form-control code" required disabled>
+                        <option value="">Code</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <select class="form-control section" required disabled>
+                        <option value="">Section</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <button type="button" class="btn btn-sm btn-danger remove-row">Remove</button>
+                </div>
+            </div>
+        `;
+
+        // Populate types
+        fetch('/api/scheduler/course_types/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({offered_term: term})
+        })
+        .then(res => res.json())
+        .then(types => {
+            const typeSelect = row.querySelector('.type');
+            types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                typeSelect.appendChild(option);
+            });
+        });
+
+        // Type change handler
+        row.querySelector('.type').addEventListener('change', function() {
+            const type = this.value;
+            const codeSelect = row.querySelector('.code');
+            codeSelect.innerHTML = '<option value="">Code</option>';
+            codeSelect.disabled = true;
+            row.querySelector('.section').innerHTML = '<option value="">Section</option>';
+            row.querySelector('.section').disabled = true;
+
+            if (!type) return;
+
+            fetch('/api/scheduler/course_codes/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({offered_term: term, course_type: type})
+            })
+            .then(res => res.json())
+            .then(codes => {
+                codes.forEach(code => {
+                    const option = document.createElement('option');
+                    option.value = code;
+                    option.textContent = code;
+                    codeSelect.appendChild(option);
+                });
+                codeSelect.disabled = false;
+            });
+        });
+
+        // Code change handler
+        row.querySelector('.code').addEventListener('change', function() {
+            const type = row.querySelector('.type').value;
+            const code = this.value;
+            const sectionSelect = row.querySelector('.section');
+            sectionSelect.innerHTML = '<option value="">Section</option>';
+            sectionSelect.disabled = true;
+
+            if (!code) return;
+
+            fetch('/api/scheduler/section_numbers/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    offered_term: term,
+                    course_type: type,
+                    course_code: code
+                })
+            })
+            .then(res => res.json())
+            .then(sections => {
+                sections.forEach(section => {
+                    const option = document.createElement('option');
+                    option.value = section;
+                    option.textContent = section;
+                    sectionSelect.appendChild(option);
+                });
+                sectionSelect.disabled = false;
+            });
+        });
+
+        // Remove row handler
+        row.querySelector('.remove-row').addEventListener('click', function() {
+            row.remove();
+        });
+
+        document.getElementById('course-rows').appendChild(row);
+    });
+
+    // Form submission
+    document.getElementById('event-query-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const term = document.getElementById('term').value;
+        const rows = document.querySelectorAll('.course-row');
+        const courses = [];
+
+        rows.forEach(row => {
+            const type = row.querySelector('.type').value;
+            const code = row.querySelector('.code').value;
+            const section = row.querySelector('.section').value;
+
+            if (type && code && section) {
+                courses.push({
+                    offered_term: term,
+                    course_type: type,
+                    course_code: code,
+                    section_number: section
+                });
+            }
+        });
+
+        if (courses.length === 0) {
+            document.getElementById('response-data').textContent = 'Error: Please select at least one valid course';
+            document.getElementById('export-section').style.display = 'none';
+            return;
+        }
+
+        // Display the request payload
+        document.getElementById('response-data').textContent = 
+            'Request payload:\n' + JSON.stringify({sections: courses}, null, 2) + '\n\nWaiting for response...';
+
+        // Make API call
+        fetch('/api/scheduler/course_events_schedule/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({sections: courses})
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('response-data').textContent = 
+                'Request payload:\n' + JSON.stringify({sections: courses}, null, 2) + 
+                '\n\nResponse:\n' + JSON.stringify(data, null, 2);
+            
+            // Store data for export test
+            currentEventsData = [];
+            for (const [courseKey, events] of Object.entries(data)) {
+                events.forEach(event => {
+                    currentEventsData.push({
+                        course: courseKey,
+                        event_type: event.event_type,
+                        event_date: event.event_date,
+                        time: event.time,
+                        location: event.location,
+                        description: event.description,
+                        weightage: event.weightage
+                    });
+                });
+            }
+            
+            if (currentEventsData.length > 0) {
+                document.getElementById('export-section').style.display = 'block';
+                document.getElementById('export-result').textContent = 
+                    'Export test ready - ' + currentEventsData.length + ' events loaded';
+            } else {
+                document.getElementById('export-section').style.display = 'none';
+            }
+        })
+        .catch(error => {
+            document.getElementById('response-data').textContent = 
+                'Error:\n' + error.toString();
+            document.getElementById('export-section').style.display = 'none';
+        });
+    });
+
+    // Export test handler
+    document.getElementById('export-ics').addEventListener('click', function() {
+        if (!currentEventsData || currentEventsData.length === 0) {
+            document.getElementById('export-result').textContent = 'No events data to export';
+            return;
+        }
+
+        document.getElementById('export-result').textContent = 'Sending export request...';
+        
+        fetch("{% url 'scheduler-api:export_event' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ events: currentEventsData })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'course_events.ics';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+            document.getElementById('export-result').textContent = 
+                'Export successful - file downloaded as course_events.ics';
+        })
+        .catch(error => {
+            console.error('Export error:', error);
+            document.getElementById('export-result').textContent = 
+                'Export error: ' + error.message;
+        });
+    });
+});
+</script>
+{% endblock %}

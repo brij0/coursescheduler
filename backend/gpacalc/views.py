@@ -1,38 +1,28 @@
 import json
-from django.shortcuts import render
-from django.http import JsonResponse, HttpResponse
+from django.shortcuts   import render
+from django.http        import JsonResponse ,HttpResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
 from applogger.utils import log_info, log_error
 from applogger.views import log_user_year_estimate, log_app_activity, log_api_timing
 from scheduler.models import Course, CourseEvent
-from .models import CourseGrade, AssessmentGrade, GpaCalcProgress, GradingScheme, AssessmentWeightage
+from .models          import CourseGrade, AssessmentGrade, GpaCalcProgress, GradingScheme, AssessmentWeightage
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
 from io import BytesIO
-
+#testing from work laptop
 app_name = "GPA-Calculator"
 section_name = "Index"
 
 @require_GET
 def index(request):
+    log_app_activity(request, app_name,section_name)
     """
-    API: Get available terms for GPA calculator
-    
-    Returns:
-        JSON: {
-            "terms": ["Term1", "Term2", ...],
-            "progress_data": {...} (if user is authenticated)
-        }
-    
-    Frontend usage:
-    - Call on initial load to get available terms
-    - If user is logged in, returns saved progress data to prefill the form
+    Renders the GPA calculator page.
+    If user is authenticated and has progress, prefill the form.
     """
-    log_app_activity(request, app_name, section_name)
     log_info("GPA index page accessed", extra={"user": str(request.user)})
-    
     terms = (
         Course.objects
         .filter(events__isnull=False)
@@ -40,8 +30,6 @@ def index(request):
         .distinct()
         .order_by("offered_term")
     )
-    
-    # Get saved progress for authenticated users
     progress_data = None
     if request.user.is_authenticated:
         try:
@@ -49,25 +37,15 @@ def index(request):
             progress_data = progress.data
         except GpaCalcProgress.DoesNotExist:
             pass
-    
-    return JsonResponse({
-        "terms": list(terms),
-        "progress_data": progress_data
+    return render(request, "gpacalc/index.html", {
+        "offered_terms": terms,
+        "progress_data": progress_data,
     })
 
 @require_GET
 @log_api_timing("get_offered_terms")
 def get_offered_terms(request):
-    """
-    API: Get all available terms
-    
-    Returns:
-        JSON: Array of term strings ["Fall 2025", "Winter 2026", ...]
-    
-    Frontend usage:
-    - Call to populate term dropdown in UI
-    """
-    log_app_activity(request, app_name, section_name)
+    log_app_activity(request, app_name,section_name)
     terms = (
         Course.objects
         .filter(events__isnull=False)
@@ -76,24 +54,11 @@ def get_offered_terms(request):
         .order_by("offered_term")
     )
     return JsonResponse(list(terms), safe=False)
-
 @require_POST
 @csrf_exempt
 @log_api_timing("get_course_types")
 def get_course_types(request):
-    """
-    API: Get course types for a given term
-    
-    Request:
-        JSON: {"offered_term": "Fall 2025"}
-    
-    Returns:
-        JSON: Array of course types ["CS", "MATH", ...]
-    
-    Frontend usage:
-    - Call when user selects a term to populate the course type dropdown
-    """
-    log_app_activity(request, app_name, section_name)
+    log_app_activity(request, app_name,section_name)
     data = json.loads(request.body)
     cterm = data.get("offered_term")
     types = (
@@ -104,27 +69,18 @@ def get_course_types(request):
         .order_by("course_type")
     )
     return JsonResponse(list(types), safe=False)
-
 @require_POST
 @csrf_exempt
 @log_api_timing("get_course_codes")
 def get_course_codes(request):
+    log_app_activity(request, app_name,section_name)
     """
-    API: Get course codes for a given course type and term
-    
-    Request:
-        JSON: {
-            "course_type": "CS",
-            "offered_term": "Fall 2025"
-        }
-    
-    Returns:
-        JSON: Array of course codes ["101", "202", ...]
-    
-    Frontend usage:
-    - Call when user selects a course type to populate the course code dropdown
+    AJAX endpoint.
+    Request: JSON { "course_type": "CS" }
+    Response: JSON list of course codes for the given type, e.g. ["CS101", "CS201"]
+    Usage (frontend):
+        - Call when user selects a course type to populate the course code dropdown.
     """
-    log_app_activity(request, app_name, section_name)
     data = json.loads(request.body)
     cterm = data.get("offered_term")
     ctype = data.get("course_type")
@@ -141,30 +97,21 @@ def get_course_codes(request):
 @csrf_exempt
 @log_api_timing("get_section_numbers")
 def get_section_numbers(request):
+    log_app_activity(request, app_name,section_name)
     """
-    API: Get section numbers for a given course type, code, and term
-    
-    Request:
-        JSON: {
-            "course_type": "CS",
-            "course_code": "101",
-            "offered_term": "Fall 2025"
-        }
-    
-    Returns:
-        JSON: Array of section numbers ["001", "002", ...]
-    
-    Frontend usage:
-    - Call when user selects a course code to populate the section dropdown
+    AJAX endpoint.
+    Request: JSON { "course_type": "CS", "course_code": "CS101" }
+    Response: JSON list of section numbers for the given type+code, e.g. ["001", "002"]
+    Usage (frontend):
+        - Call when user selects a course code to populate the section dropdown.
     """
-    log_app_activity(request, app_name, section_name)
     data = json.loads(request.body)
     ctype = data.get("course_type")
-    ccode = data.get("course_code")
+    ccode  = data.get("course_code")
     cterm = data.get("offered_term")
     secs = (
         Course.objects
-        .filter(course_type=ctype, offered_term=cterm, course_code=ccode, events__isnull=False)
+        .filter(course_type=ctype,offered_term = cterm, course_code=ccode, events__isnull=False)
         .values_list("section_number", flat=True)
         .distinct()
         .order_by("section_number")
@@ -175,123 +122,71 @@ def get_section_numbers(request):
 @csrf_exempt
 @log_api_timing("get_course_events")
 def get_course_events(request):
-    """
-    API: Get assessment events for a specific course section
-    
-    Request:
-        JSON: {
-            "course_type": "CS",
-            "course_code": "101",
-            "section_number": "001",
-            "offered_term": "Fall 2025"
-        }
-    
-    Returns:
-        JSON: Array of event objects
-        [
-            {
-                "id": 12,
-                "event_type": "Midterm",
-                "weightage": "30"
-            },
-            ...
-        ]
-    
-    Frontend usage:
-    - Call when user selects a section to display assessment components
-    - Display each event with its weight and an input field for the achieved grade
-    - Store the event_id with each input field to submit with calculations
-    """
     log_app_activity(request, app_name, section_name)
+    """
+    Returns course events with their weightages for each grading scheme.
+    """
     data = json.loads(request.body)
     ctype = data.get("course_type")
     code = data.get("course_code")
     csn = data.get("section_number")
     cterm = data.get("offered_term")
-    user = request.user if request.user.is_authenticated else None
-    evs = CourseEvent.objects.filter(
-        course__course_type=ctype,
-        course__course_code=code,
-        course__section_number=csn,
-        course__offered_term=cterm
-    ).values("id", "event_type", "weightage")
-    return JsonResponse(list(evs), safe=False)
+    
+    try:
+        course = Course.objects.get(
+            course_type=ctype,
+            course_code=code,
+            section_number=csn,
+            offered_term=cterm
+        )
+        
+        # Get all events
+        events = CourseEvent.objects.filter(course=course).values("id", "event_type").order_by("event_date")
+        
+        # Get all grading schemes
+        schemes = []
+        for scheme in GradingScheme.objects.filter(course=course):
+            scheme_data = {
+                "id": scheme.id,
+                "name": scheme.name,
+                "description": scheme.description,
+                "is_default": scheme.is_default,
+                "weightages": {}
+            }
+            
+            # Get weightages for each event in this scheme
+            weightages = AssessmentWeightage.objects.filter(grading_scheme=scheme)
+            for w in weightages:
+                scheme_data["weightages"][str(w.course_event.id)] = f"{w.weightage}%"
+            
+            schemes.append(scheme_data)
+        
+        # If no schemes exist, create a default one from CourseEvent.weightage
+        if not schemes:
+            default_scheme = {
+                "id": 0,
+                "name": "Default",
+                "description": "Default grading scheme",
+                "is_default": True,
+                "weightages": {}
+            }
+            
+            for event in CourseEvent.objects.filter(course=course).order_by("event_date"):
+                if event.weightage:
+                    default_scheme["weightages"][str(event.id)] = event.weightage
+            
+            schemes.append(default_scheme)
+        return JsonResponse({
+            "events": list(events),
+            "grading_schemes": schemes
+        })
+    except Course.DoesNotExist:
+        return JsonResponse({"events": [], "grading_schemes": []})
 
 @require_POST
+@csrf_exempt
 @log_api_timing("calculate_gpa")
 def calculate_gpa(request):
-    """
-    API: Calculate GPA based on course selections and grades, considering multiple grading schemes
-    
-    Request:
-        JSON: {
-            "offered_term": "Fall 2025",
-            "courses": [
-                {
-                    "course_type": "CS",
-                    "course_code": "101",
-                    "section_number": "001",
-                    "assessments": [
-                        {"event_id": 12, "achieved": 87.5},
-                        ...
-                    ]
-                },
-                ...
-            ]
-        }
-    
-    Returns:
-        JSON: {
-            "combinations": [
-                {
-                    "scheme_id": "combo_0",
-                    "scheme_name": "CS 101: Default + MATH 135: Scheme A",
-                    "per_course": [
-                        {
-                            "course": "CS101-001",
-                            "final_percentage": 85.0,
-                            "letter_grade": "A",
-                            "gpa_value": 4.0,
-                            "credits": 0.5,
-                            "scheme_name": "Default"
-                        },
-                        ...
-                    ],
-                    "overall_gpa": 3.7,
-                    "overall_final_percentage": 82.5,
-                    "schemes_used": ["CS 101: Default", "MATH 135: Scheme A"]
-                },
-                ...
-            ],
-            "best_combination": {...},  // The combination with the highest GPA
-            "individual_schemes": [
-                {
-                    "course": "CS101-001",
-                    "course_type": "CS",
-                    "course_code": "101",
-                    "section_number": "001",
-                    "scheme_id": "default",
-                    "scheme_name": "Default",
-                    "scheme_description": "Default grading scheme",
-                    "weightages": {"Midterm": "30%", "Final": "50%"},
-                    "final_percentage": 85.0,
-                    "letter_grade": "A",
-                    "gpa_value": 4.0
-                },
-                ...
-            ],
-            "total_credit": 2.5,
-            "courses": [...],  // Cleaned course data
-            "offered_term": "Fall 2025"
-        }
-    
-    Frontend usage:
-    - Call after user enters all grades to calculate GPA
-    - Display the overall GPA for the best combination of grading schemes
-    - Allow users to explore different grading scheme combinations
-    - Show how each grading scheme affects individual course grades
-    - For logged-in users, this data is automatically saved
-    """
     log_app_activity(request, app_name, section_name)
     
     payload = json.loads(request.body)
@@ -488,16 +383,7 @@ def calculate_gpa(request):
 
 
 def calculate_for_default_scheme(course, assessments):
-    """
-    Calculate grades using the default weightages from CourseEvent
-    
-    Args:
-        course: Course object
-        assessments: List of assessment data with event_id and achieved percentage
-        
-    Returns:
-        CourseGrade object with calculated final percentage, letter grade and GPA value
-    """
+    """Calculate grades using the default weightages from CourseEvent"""
     cg = CourseGrade.objects.create(course=course)
     
     for a in assessments:
@@ -526,17 +412,7 @@ def calculate_for_default_scheme(course, assessments):
 
 
 def calculate_for_scheme(course, scheme, assessments):
-    """
-    Calculate grades using a specific grading scheme
-    
-    Args:
-        course: Course object
-        scheme: GradingScheme object
-        assessments: List of assessment data with event_id and achieved percentage
-        
-    Returns:
-        CourseGrade object with calculated final percentage, letter grade and GPA value
-    """
+    """Calculate grades using a specific grading scheme"""
     cg = CourseGrade.objects.create(course=course)
     
     for a in assessments:
@@ -570,28 +446,30 @@ def calculate_for_scheme(course, scheme, assessments):
     return cg
 
 
+def update_scheme_results(scheme_data, course_grade, course_obj):
+    """Update the results for a scheme with a new course grade"""
+    course_result = {
+        "course": str(course_obj),
+        "final_percentage": float(course_grade.final_percentage) if course_grade.final_percentage is not None else None,
+        "letter_grade": course_grade.letter_grade,
+        "gpa_value": float(course_grade.gpa_value) if course_grade.gpa_value is not None else None,
+        "credits": float(course_obj.credits)
+    }
+    
+    scheme_data["per_course"].append(course_result)
+    
+    if course_grade.gpa_value is not None:
+        scheme_data["total_points"] += float(course_grade.gpa_value) * float(course_obj.credits)
+        
+    if course_grade.final_percentage is not None:
+        scheme_data["total_weighted_percentage"] += float(course_grade.final_percentage) * float(course_obj.credits)
+    
+    scheme_data["total_credit"] += float(course_obj.credits)
+
 @require_GET
 @csrf_exempt
 @log_api_timing("progress_export_excel")
 def progress_export_excel(request):
-    """
-    API: Export GPA calculation results to Excel file, including multiple grading schemes
-    
-    Request: GET request (no parameters needed)
-    
-    Returns:
-        Excel file as attachment with the following sheets:
-        - Best Combination: Summary of the optimal grading scheme combination
-        - All Combinations: Overview of all possible grading scheme combinations
-        - Individual Schemes: How each scheme affects each course
-        - Scheme Weightages: Detailed breakdown of assessment weights per scheme
-        - Per-course sheets: One sheet per course with assessment details
-    
-    Frontend usage:
-    - Provide an "Export to Excel" button that links to this endpoint
-    - Uses the saved progress data (for logged-in users) or session data
-    - Comprehensive report showing optimal grading scheme selection
-    """
     section_name = "Excel Export"
     log_app_activity(request, app_name, section_name)
     
@@ -773,7 +651,7 @@ def progress_export_excel(request):
             for cell in row:
                 cell.number_format = '0.00%'
                 if cell.value is not None:
-                    cell.value = cell.value / 100 if cell.value > 1 else cell.value  # Ensure value is in 0-1 range
+                    cell.value = cell.value / 100 if cell.value > 1 else cell.value
         
         # Format the sheet
         for col in range(1, 7):
@@ -791,26 +669,3 @@ def progress_export_excel(request):
     response['Content-Disposition'] = 'attachment; filename="gpacalc_progress.xlsx"'
     
     return response
-
-
-@require_GET
-def get_user_progress(request):
-    """
-    API: Get the user's saved GPA calculation progress
-    
-    Returns:
-        JSON: The user's most recent GPA calculation data or empty object if none exists
-    
-    Frontend usage:
-    - Call when loading the GPA calculator page to restore previous state
-    - Used to prefill form fields and display previously calculated results
-    - Returns empty object if no previous calculations exist
-    """
-    if request.user.is_authenticated:
-        try:
-            progress = GpaCalcProgress.objects.get(user=request.user)
-            return JsonResponse(progress.data)
-        except GpaCalcProgress.DoesNotExist:
-            return JsonResponse({})
-    else:
-        return JsonResponse(request.session.get('gpacalc_progress', {}))

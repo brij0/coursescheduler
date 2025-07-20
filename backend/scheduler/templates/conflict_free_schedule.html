@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Conflict-Free Schedule Tester</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    {% csrf_token %}
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f4f0; }
+        .container { max-width: 600px; margin: 2rem auto; background: #fff; border-radius: 10px; padding: 2rem; box-shadow: 0 2px 10px #ccc; }
+        .dropdown-row { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        select, button { padding: 0.5rem; border-radius: 5px; border: 1px solid #ccc; }
+        #result { margin-top: 2rem; }
+        .term-selector { margin-bottom: 1.5rem; }
+        .btn-secondary, .btn-primary {
+            padding: 0.5rem 1.2rem;
+            border-radius: 5px;
+            border: none;
+            margin: 0 0.5rem;
+            cursor: pointer;
+        }
+        .btn-secondary { background: #aaa; color: #fff; }
+        .btn-primary { background: #764ba2; color: #fff; }
+        .btn-secondary:disabled, .btn-primary:disabled { background: #e0e0e0; color: #888; cursor: not-allowed; }
+        h4 { margin-bottom: 0.5rem; }
+        pre { background: #f8f8f8; padding: 1rem; border-radius: 5px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Test Conflict-Free Schedule</h2>
+    <form id="conflict-form" autocomplete="off" onsubmit="return false;">
+        <div class="term-selector">
+            <label for="offered-term">Select Term:</label>
+            <select id="offered-term" name="offered_term">
+                <option value="">Select Term</option>
+            </select>
+        </div>
+        <div id="course-rows"></div>
+        <button type="button" id="add-course">Add Course</button>
+        <button type="button" id="find-schedule">Find Conflict-Free Schedule</button>
+    </form>
+    <div id="result"></div>
+    <div class="d-flex justify-content-between mt-3">
+        <button id="prev-page" class="btn btn-secondary" disabled>Previous</button>
+        <button id="next-page" class="btn btn-primary" disabled>Next</button>
+    </div>
+</div>
+<script>
+$(document).ready(function() {
+    let courseTypes = [];
+    let courseCodes = {};
+    let rowCount = 0;
+    let offset = 0;
+    const limit = 10;
+
+    // CSRF setup
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!(/^GET|HEAD|OPTIONS|TRACE$/i.test(settings.type))) {
+                xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+            }
+        }
+    });
+
+    // Fetch offered terms on load
+    $.get('/api/scheduler/offered_terms/', function(data) {
+        const termSelect = $('#offered-term');
+        data.forEach(term => {
+            termSelect.append(`<option value="${term}">${term}</option>`);
+        });
+    });
+
+    // Fetch course types when term is selected
+    $('#offered-term').change(function() {
+        const term = $(this).val();
+        if (!term) return;
+        $('#course-rows').empty();
+        rowCount = 0;
+        courseTypes = [];
+        courseCodes = {};
+        $.ajax({
+            url: '/api/scheduler/course_types/',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ offered_term: term }),
+            success: function(data) {
+                courseTypes = data;
+                addCourseRow();
+            }
+        });
+    });
+
+    function fetchCodes(type, cb) {
+        const term = $('#offered-term').val();
+        if (!term) {
+            alert('Please select a term first');
+            return;
+        }
+        if (courseCodes[type]) return cb(courseCodes[type]);
+        $.ajax({
+            url: '/api/scheduler/course_codes/',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ 
+                course_type: type,
+                offered_term: term 
+            }),
+            success: function(data) {
+                courseCodes[type] = data;
+                cb(data);
+            }
+        });
+    }
+
+    function addCourseRow() {
+        const idx = rowCount++;
+        const row = $(`
+            <div class="dropdown-row" data-idx="${idx}">
+                <select class="course-type" name="course_type_${idx}">
+                    <option value="">Type</option>
+                </select>
+                <select class="course-code" name="course_code_${idx}">
+                    <option value="">Code</option>
+                </select>
+                <button type="button" class="remove-row">Remove</button>
+            </div>
+        `);
+        courseTypes.forEach(t => row.find('.course-type').append(`<option value="${t}">${t}</option>`));
+        row.find('.remove-row').click(function() { row.remove(); });
+        row.find('.course-type').change(function() {
+            const type = $(this).val();
+            const codeSel = row.find('.course-code');
+            codeSel.empty().append('<option value="">Code</option>');
+            if (type) {
+                fetchCodes(type, codes => {
+                    codes.forEach(c => codeSel.append(`<option value="${c}">${c}</option>`));
+                });
+            }
+        });
+        $('#course-rows').append(row);
+    }
+    $('#add-course').click(addCourseRow);
+
+    // Helper to collect selected courses
+    function getSelectedCourses() {
+        const courses = [];
+        $('#course-rows .dropdown-row').each(function() {
+            const type = $(this).find('.course-type').val();
+            const code = $(this).find('.course-code').val();
+            if (type && code) courses.push({ course_type: type, course_code: code });
+        });
+        return courses;
+    }
+
+    // Main fetch function for schedules
+    function fetchSchedules() {
+        const term = $('#offered-term').val();
+        if (!term) {
+            $('#result').html('<span style="color:red;">Please select a term.</span>');
+            return;
+        }
+        const courses = getSelectedCourses();
+        if (!courses.length) {
+            $('#result').html('<span style="color:red;">Please select at least one course.</span>');
+            return;
+        }
+        $('#result').html('<span>Loading...</span>');
+        $.ajax({
+            url: '/api/scheduler/conflict_free_schedule/',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ 
+                courses, 
+                offered_term: term,
+                offset, 
+                limit
+            }),
+            success: function(data) {
+                renderResults(data.schedules, offset, limit);
+                $('#prev-page').prop('disabled', offset === 0);
+                $('#next-page').prop('disabled', !data.has_more);
+            },
+            error: function(xhr) {
+                $('#result').html('<span style="color:red;">' + (xhr.responseJSON?.error || 'Error') + '</span>');
+            }
+        });
+    }
+
+    // Render results in #result
+    function renderResults(schedules, offset, limit) {
+        let html = '';
+        if (!schedules.length) {
+            html = '<div>No conflict-free schedules found.</div>';
+        } else {
+            schedules.forEach((sched, idx) => {
+                html += `<h4>Schedule ${offset + idx + 1}</h4><pre>${JSON.stringify(sched, null, 2)}</pre>`;
+            });
+        }
+        $('#result').html(html);
+    }
+
+    // Button handlers
+    $('#find-schedule').click(function() {
+        offset = 0;
+        fetchSchedules();
+    });
+    $('#prev-page').click(function() {
+        if (offset >= limit) {
+            offset -= limit;
+            fetchSchedules();
+        }
+    });
+    $('#next-page').click(function() {
+        offset += limit;
+        fetchSchedules();
+    });
+});
+</script>
+</body>
+</html>

@@ -112,23 +112,6 @@ def log_user_year_estimate(request):
         log_error("Failed to log user year estimate", extra={"error": str(e), "data": data})
         return JsonResponse({"status": "error", "error": str(e)}, status=400)
 
-# @require_GET
-# @login_required
-# def analytics_dashboard(request):
-#     # Example: total clicks, section views, year estimates
-#     clicks = AppSession.objects.count()
-#     section_views = SectionView.objects.count()
-#     year_counts = (
-#         UserYearEstimate.objects.values("estimated_year")
-#         .order_by("estimated_year")
-#         .annotate(count=models.Count("id"))
-#     )
-#     return JsonResponse({
-#         "total_clicks": clicks,
-#         "total_section_views": section_views,
-#         "year_estimates": list(year_counts),
-#     })
-
 # --- Decorator for logging API timing and errors ---
 def log_api_timing(api_name=None):
     def decorator(view_func):
