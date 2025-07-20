@@ -136,4 +136,4 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get('GMAIL_EMAIL')
 EMAIL_HOST_PASSWORD = os.environ.get('GMAIL_APP_PASSWORD')
 DEFAULT_FROM_EMAIL = os.environ.get('GMAIL_EMAIL')
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+SITE_URL = os.getenv("SITE_URL", "http://localhost:3000")

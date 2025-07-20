@@ -31,11 +31,18 @@ def login_view(request):
     """
     try:
         data = json.loads(request.body)
-        username = data.get('username')
+        username_or_email = data.get('username')
         password = data.get('password')
         
-        if not username or not password:
+        if not username_or_email or not password:
             return JsonResponse({'error': 'Username and password required'}, status=400)
+        
+        # Try to find user by username or email
+        try:
+            user_obj = User.objects.get(Q(username=username_or_email) | Q(email=username_or_email))
+            username = user_obj.username
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'Invalid credentials'}, status=401)
         
         user = authenticate(request, username=username, password=password)
         if user is not None:
@@ -181,36 +188,66 @@ def send_verification_email_gmail(user, token):
         print(f"Failed to send verification email: {e}")
         return False
 
-def verify_email(request, token):
-    """
-    GET /api/auth/verify-email/<token>/
-    Verifies the user's email using the provided token.
-    Response: JSON { "message": "...", "verified": true/false }
-    Usage (frontend):
-        - Call this endpoint when user clicks the verification link.
-        - Show success or error message based on response.
-    """
+def send_verification_email_gmail(user, token):
+    """Send verification email using Gmail SMTP"""
     try:
-        verification_token = get_object_or_404(EmailVerificationToken, token=token)
+        verification_url = f"{settings.SITE_URL}/api/auth/verify-email/{token}/"
         
-        if verification_token.is_expired():
-            return JsonResponse({'error': 'Verification link has expired. Please request a new one.', 'verified': False}, status=400)
+        subject = 'Verify Your Email Address'
         
-        if verification_token.is_verified:
-            return JsonResponse({'message': 'Email already verified. You can now log in.', 'verified': True})
+        html_message = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <h2 style="color: #333; text-align: center;">Welcome {user.username}!</h2>
+                <p style="color: #666; font-size: 16px;">Thank you for registering. Please click the button below to verify your email address:</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{verification_url}" 
+                       style="background-color: #007bff; color: white; padding: 12px 30px; 
+                              text-decoration: none; border-radius: 5px; font-weight: bold;
+                              display: inline-block;">
+                        Verify Email Address
+                    </a>
+                </div>
+                
+                <p style="color: #666; font-size: 14px;">Or copy and paste this URL into your browser:</p>
+                <p style="background-color: #e9ecef; padding: 10px; border-radius: 5px; word-break: break-all; font-size: 12px;">
+                    {verification_url}
+                </p>
+                
+                <p style="color: #999; font-size: 12px; text-align: center; margin-top: 30px;">
+                    This link will expire in 24 hours for security reasons.
+                </p>
+            </div>
+        </body>
+        </html>
+        """
         
-        # Verify the email
-        user = verification_token.user
-        user.is_active = True
-        user.save()
+        plain_message = f"""
+        Welcome {user.username}!
         
-        verification_token.is_verified = True
-        verification_token.save()
+        Thank you for registering. Please click the link below to verify your email address:
+        {verification_url}
         
-        return JsonResponse({'message': 'Email verified successfully! You can now log in.', 'verified': True})
+        This link will expire in 24 hours.
+        """
+        
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False
+        )
+
+        print(f"Verification email sent successfully to {user.email}")
+        return True
         
     except Exception as e:
-        return JsonResponse({'error': 'Invalid verification link.', 'verified': False}, status=400)
+        print(f"Failed to send verification email to {user.email}: {str(e)}")
+        return False
 
 @require_http_methods(["POST"])
 @csrf_exempt
