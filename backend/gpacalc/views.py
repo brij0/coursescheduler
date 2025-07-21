@@ -725,14 +725,28 @@ def progress_export_excel(request):
         
         ws = wb.create_sheet(title=sheet_name)
         ws.append(['Term', 'Assessment', 'Date', 'Weightage', 'Achieved', 'Achieved %'])
-
+        section_name = f"{course.get('course_type', '')}*{course.get('course_code', '')}*{course.get('section_number', '')}"
+        course_temp = Course.objects.filter(section_name=section_name)
+        course_id = course_temp.first().course_id if course else None
         for assessment in course.get('assessments', []):
             event_id = assessment.get('event_id', '')
             try:
                 event = CourseEvent.objects.get(id=event_id)
                 description = event.event_type
                 event_date = event.event_date
-                weightage = event.weightage
+                per_course = data.get('best_combination', {}).get('per_course', {})
+                for course in per_course:
+                    if course.get('course') == section_name: 
+                        scheme_name= course.get('scheme_name', '')
+                grading_scheme = GradingScheme.objects.filter(
+                    course=course_id,name = scheme_name).first()
+                if grading_scheme:
+                    scheme_id = grading_scheme.id
+                weightage = AssessmentWeightage.objects.filter(
+                    grading_scheme__id=scheme_id,
+                    course_event__id=event_id
+                ).first()
+                weightage = weightage.weightage if weightage else event.weightage
             except Exception:
                 description = ''
                 event_date = ''

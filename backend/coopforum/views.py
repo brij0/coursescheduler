@@ -1,3 +1,4 @@
+from pyexpat.errors import messages
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
@@ -18,6 +19,7 @@ import random
 import uuid
 import time
 from applogger.utils import log_info, log_error, log_debug
+from django.utils.decorators import method_decorator
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -174,21 +176,6 @@ def generate_unique_username():
             return username
 
 def send_verification_email_gmail(user, token):
-    """
-    Send verification email using Gmail SMTP.
-    The frontend should provide a page to handle the verification link.
-    """
-    try:
-        subject = 'Verify your email for Course Scheduler'
-        verification_url = f"{settings.FRONTEND_URL}/verify-email/{token}/"
-        message = f"Hi {user.username},\n\nPlease verify your email by clicking the link below:\n{verification_url}\n\nThank you!"
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
-        return True
-    except Exception as e:
-        print(f"Failed to send verification email: {e}")
-        return False
-
-def send_verification_email_gmail(user, token):
     """Send verification email using Gmail SMTP"""
     try:
         verification_url = f"{settings.SITE_URL}/api/auth/verify-email/{token}/"
@@ -248,6 +235,35 @@ def send_verification_email_gmail(user, token):
     except Exception as e:
         print(f"Failed to send verification email to {user.email}: {str(e)}")
         return False
+
+@csrf_exempt
+def verify_email(request, token):
+    """
+    GET /api/auth/verify-email/<token>/
+    Verifies the user's email using the provided token.
+    Returns a JSON response indicating the result.
+    """
+    try:
+        verification_token = get_object_or_404(EmailVerificationToken, token=token)
+
+        if verification_token.is_expired():
+            return JsonResponse({'error': 'Verification link has expired. Please request a new one.'}, status=400)
+
+        if verification_token.is_verified:
+            return JsonResponse({'message': 'Email already verified. You can now log in.'})
+
+        # Verify the email
+        user = verification_token.user
+        user.is_active = True
+        user.save()
+
+        verification_token.is_verified = True
+        verification_token.save()
+
+        return JsonResponse({'message': 'Email verified successfully! You can now log in.'})
+
+    except Exception:
+        return JsonResponse({'error': 'Invalid verification link.'}, status=400)
 
 @require_http_methods(["POST"])
 @csrf_exempt
