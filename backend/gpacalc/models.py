@@ -100,7 +100,7 @@ class CourseGrade(models.Model):
         
         # Calculate final percentage if we have assessments with weights
         if total_weight > 0:
-            self.final_percentage = round(weighted_sum * 100 / total_weight, 2)
+            self.final_percentage = round(weighted_sum * 100 / 100, 2) # Normalize to percentage scale, previously calculated percentage achieved on the assignments now doing percentage achieved in the entire course.
             
             # Map percentage to letter grade
             if self.final_percentage >= 90:
