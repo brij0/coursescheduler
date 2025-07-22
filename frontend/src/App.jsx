@@ -4,6 +4,8 @@ import LoadingScreen from './components/LoadingScreen'
 import HomePage from './pages/HomePage'
 import AboutPage from './pages/AboutPage'
 import PrivacyPage from './pages/PrivacyPage'
+import AuthPage from './pages/AuthPage'
+import EmailVerificationPage from './pages/EmailVerificationPage'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -27,6 +29,8 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
       </Routes>
     </div>
   )

@@ -53,6 +53,7 @@ const Navbar = () => {
                 className="flex items-center space-x-2 bg-primary-500 text-white px-4 py-2 rounded-full font-medium hover:bg-primary-600 transition-all duration-300 shadow-lg"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={() => window.location.href = '/auth'}
               >
                 <User size={16} />
                 <span>Login</span>
@@ -98,6 +99,10 @@ const Navbar = () => {
                 <motion.button
                   className="flex items-center justify-center space-x-2 bg-primary-500 text-white px-4 py-2 rounded-full font-medium mt-2 shadow-lg"
                   whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setIsMenuOpen(false)
+                    window.location.href = '/auth'
+                  }}
                 >
                   <User size={16} />
                   <span>Login</span>
