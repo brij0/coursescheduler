@@ -182,18 +182,19 @@ const AuthPage = () => {
       {/* Hero Section with Fireflies */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24">
         {/* Fireflies Animation */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 pointer-events-none">
           {/* Main Fireflies */}
           {[...Array(20)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute w-1 h-1 rounded-full shadow-lg"
+              className="absolute w-1 h-1 rounded-full shadow-lg pointer-events-none"
               style={{
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
                 backgroundColor: '#456882',
                 boxShadow: `0 0 6px #456882, 0 0 12px #456882, 0 0 18px #456882`,
               }}
+              initial={false}
               animate={{
                 x: [
                   0,
@@ -226,13 +227,14 @@ const AuthPage = () => {
           {[...Array(15)].map((_, i) => (
             <motion.div
               key={`small-${i}`}
-              className="absolute w-0.5 h-0.5 rounded-full"
+              className="absolute w-0.5 h-0.5 rounded-full pointer-events-none"
               style={{
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
                 backgroundColor: '#456882',
                 boxShadow: `0 0 4px #456882, 0 0 8px #456882`,
               }}
+              initial={false}
               animate={{
                 x: [
                   0,
