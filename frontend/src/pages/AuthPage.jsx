@@ -14,6 +14,8 @@ import {
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 
+const BACKEND_API_URL = 'http://127.0.0.1:8000';
+
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
@@ -59,7 +61,7 @@ const AuthPage = () => {
     try {
       if (isLogin) {
         // Login logic
-        const response = await fetch('/api/auth/login/', {
+        const response = await fetch(`${BACKEND_API_URL}/api/auth/login/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -99,7 +101,7 @@ const AuthPage = () => {
           return
         }
 
-        const response = await fetch('/api/auth/register/', {
+        const response = await fetch(`${BACKEND_API_URL}/api/auth/register/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -141,7 +143,7 @@ const AuthPage = () => {
   const handleResendVerification = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/auth/resend-verification/', {
+      const response = await fetch(`${BACKEND_API_URL}/api/auth/resend-verification/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
