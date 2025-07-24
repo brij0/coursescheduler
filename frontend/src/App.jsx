@@ -6,6 +6,7 @@ import AboutPage from './pages/AboutPage'
 import PrivacyPage from './pages/PrivacyPage'
 import AuthPage from './pages/AuthPage'
 import EmailVerificationPage from './pages/EmailVerificationPage'
+import GPACalculatorPage from './pages/GPACalculatorPage'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -31,6 +32,7 @@ function App() {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
+        <Route path="/gpa-calculator" element={<GPACalculatorPage />} />
       </Routes>
     </div>
   )
