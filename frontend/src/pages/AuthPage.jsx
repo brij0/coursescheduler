@@ -89,6 +89,8 @@ const AuthPage = () => {
             type: 'success', 
             text: `Welcome back, ${data.user.username}!` 
           })
+          // Update navbar by triggering a re-check of auth status
+          window.dispatchEvent(new Event('auth-change'))
           // Redirect to original page or homepage after successful login
           const redirectPath = getRedirectPath()
           setTimeout(() => {

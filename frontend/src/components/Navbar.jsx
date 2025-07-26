@@ -1,12 +1,53 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { User, Menu, X } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { User, Menu, X, LogOut, ChevronDown } from 'lucide-react'
+
+const BACKEND_API_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [user, setUser] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
   const location = useLocation()
   const navigate = useNavigate()
+
+  // Check user authentication status on component mount
+  useEffect(() => {
+    checkAuthStatus()
+    
+    // Listen for auth changes from other components
+    const handleAuthChange = () => {
+      checkAuthStatus()
+    }
+    
+    window.addEventListener('auth-change', handleAuthChange)
+    
+    return () => {
+      window.removeEventListener('auth-change', handleAuthChange)
+    }
+  }, [])
+
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/api/auth/user/`, {
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const userData = await response.json()
+        setUser(userData.user)
+      } else {
+        setUser(null)
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error)
+      setUser(null)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleAuthNavigation = () => {
     // Pass current location as redirect parameter
@@ -15,6 +56,25 @@ const Navbar = () => {
     const fullPath = currentPath + searchParams
     navigate(`/auth?from=${encodeURIComponent(fullPath)}`)
   }
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/api/auth/logout/`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        setUser(null)
+        setIsUserMenuOpen(false)
+        // Optionally redirect to homepage
+        navigate('/')
+      }
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+  }
+
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'GPA Calculator', path: '/gpa-calculator' },
@@ -56,17 +116,63 @@ const Navbar = () => {
               ))}
             </div>
 
-            {/* Login Button */}
+            {/* User Authentication Section */}
             <div className="hidden md:flex">
-              <motion.button
-                className="flex items-center space-x-2 bg-primary-500 text-white px-4 py-2 rounded-full font-medium hover:bg-primary-600 transition-all duration-300 shadow-lg"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleAuthNavigation}
-              >
-                <User size={16} />
-                <span>Login</span>
-              </motion.button>
+              {isLoading ? (
+                <div className="w-8 h-8 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
+              ) : user ? (
+                // Logged in - Show user dropdown
+                <div className="relative">
+                  <motion.button
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="flex items-center space-x-2 bg-primary-500 text-white px-4 py-2 rounded-full font-medium hover:bg-primary-600 transition-all duration-300 shadow-lg"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <User size={16} />
+                    <span>{user.username}</span>
+                    <ChevronDown size={14} className={`transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+                  </motion.button>
+
+                  {/* User Dropdown Menu */}
+                  <AnimatePresence>
+                    {isUserMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-0 mt-2 w-48 bg-white/90 backdrop-blur-md border border-white/30 rounded-xl shadow-2xl py-2"
+                      >
+                        <div className="px-4 py-2 border-b border-neutral-200/50">
+                          <p className="text-sm font-medium text-neutral-800">{user.username}</p>
+                          <p className="text-xs text-neutral-600">{user.email}</p>
+                        </div>
+                        
+                        <motion.button
+                          onClick={handleLogout}
+                          className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50/50 transition-colors"
+                          whileHover={{ x: 4 }}
+                        >
+                          <LogOut size={16} />
+                          <span>Logout</span>
+                        </motion.button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                // Not logged in - Show login button
+                <motion.button
+                  className="flex items-center space-x-2 bg-primary-500 text-white px-4 py-2 rounded-full font-medium hover:bg-primary-600 transition-all duration-300 shadow-lg"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleAuthNavigation}
+                >
+                  <User size={16} />
+                  <span>Login</span>
+                </motion.button>
+              )}
             </div>
 
             {/* Mobile menu button */}
@@ -105,22 +211,56 @@ const Navbar = () => {
                     {item.name}
                   </Link>
                 ))}
-                <motion.button
-                  className="flex items-center justify-center space-x-2 bg-primary-500 text-white px-4 py-2 rounded-full font-medium mt-2 shadow-lg"
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    setIsMenuOpen(false)
-                    handleAuthNavigation()
-                  }}
-                >
-                  <User size={16} />
-                  <span>Login</span>
-                </motion.button>
+                
+                {/* Mobile Auth Section */}
+                {isLoading ? (
+                  <div className="flex justify-center py-2">
+                    <div className="w-6 h-6 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
+                  </div>
+                ) : user ? (
+                  <div className="pt-2 border-t border-white/20">
+                    <div className="px-4 py-2 text-sm">
+                      <p className="font-medium text-neutral-800">{user.username}</p>
+                      <p className="text-xs text-neutral-600">{user.email}</p>
+                    </div>
+                    <motion.button
+                      onClick={() => {
+                        handleLogout()
+                        setIsMenuOpen(false)
+                      }}
+                      className="w-full flex items-center justify-center space-x-2 bg-red-500 text-white px-4 py-2 rounded-full font-medium mt-2 shadow-lg"
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <LogOut size={16} />
+                      <span>Logout</span>
+                    </motion.button>
+                  </div>
+                ) : (
+                  <motion.button
+                    className="flex items-center justify-center space-x-2 bg-primary-500 text-white px-4 py-2 rounded-full font-medium mt-2 shadow-lg"
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      setIsMenuOpen(false)
+                      handleAuthNavigation()
+                    }}
+                  >
+                    <User size={16} />
+                    <span>Login</span>
+                  </motion.button>
+                )}
               </div>
             </motion.div>
           )}
         </div>
       </motion.nav>
+
+      {/* Click outside to close user menu */}
+      {isUserMenuOpen && (
+        <div
+          className="fixed inset-0 z-30"
+          onClick={() => setIsUserMenuOpen(false)}
+        />
+      )}
     </div>
   )
 }
