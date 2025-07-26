@@ -10,7 +10,11 @@ import {
   AlertCircle,
   CheckCircle,
   Info,
-  X
+  X,
+  ChevronDown,
+  ChevronUp,
+  Award,
+  BarChart3
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 
@@ -23,11 +27,37 @@ const GPACalculatorPage = () => {
   const [results, setResults] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
+  const [showResultsPopup, setShowResultsPopup] = useState(false)
+  const [user, setUser] = useState(null)
 
-  // Fetch offered terms on component mount
+  // Check user authentication status
+  useEffect(() => {
+    checkAuthStatus()
+  }, [])
+
+  // Fetch offered terms and load saved progress on component mount
   useEffect(() => {
     fetchOfferedTerms()
-  }, [])
+    loadSavedProgress()
+  }, [user])
+
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/api/auth/user/`, {
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const userData = await response.json()
+        setUser(userData.user)
+      } else {
+        setUser(null)
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error)
+      setUser(null)
+    }
+  }
 
   const fetchOfferedTerms = async () => {
     try {
@@ -41,6 +71,75 @@ const GPACalculatorPage = () => {
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to load terms' })
+    }
+  }
+
+  const loadSavedProgress = async () => {
+    if (user) {
+      // Load from server for authenticated users
+      try {
+        const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/user_progress/`, {
+          credentials: 'include'
+        })
+        if (response.ok) {
+          const data = await response.json()
+          if (data.courses && data.courses.length > 0) {
+            restoreProgressData(data)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load server progress:', error)
+      }
+    } else {
+      // Load from localStorage for non-authenticated users
+      try {
+        const savedData = localStorage.getItem('gpacalc_progress')
+        if (savedData) {
+          const data = JSON.parse(savedData)
+          if (data.courses && data.courses.length > 0) {
+            restoreProgressData(data)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load local progress:', error)
+      }
+    }
+  }
+
+  const restoreProgressData = (data) => {
+    if (data.offered_term) {
+      setSelectedTerm(data.offered_term)
+    }
+    if (data.courses) {
+      const restoredCourses = data.courses.map((course, index) => ({
+        id: Date.now() + index,
+        course_type: course.course_type,
+        course_code: course.course_code,
+        section_number: course.section_number,
+        courseTypes: [],
+        courseCodes: [],
+        sectionNumbers: [],
+        events: [],
+        assessments: course.assessments || []
+      }))
+      setCourses(restoredCourses)
+    }
+    if (data.combinations || data.best_combination) {
+      setResults(data)
+    }
+  }
+
+  const saveProgress = (progressData) => {
+    if (user) {
+      // Progress is automatically saved on server during calculation
+      return
+    } else {
+      // Save to localStorage for non-authenticated users
+      try {
+        localStorage.setItem('gpacalc_progress', JSON.stringify(progressData))
+      } catch (error) {
+        console.error('Failed to save local progress:', error)
+      }
     }
   }
 
@@ -63,7 +162,6 @@ const GPACalculatorPage = () => {
   }
 
   const updateCourse = (courseId, field, value) => {
-    // Use functional update to avoid stale state
     setCourses(prevCourses => prevCourses.map(course => 
       course.id === courseId 
         ? { ...course, [field]: value }
@@ -71,7 +169,6 @@ const GPACalculatorPage = () => {
     ))
   }
 
-  // Create a reusable function to get CSRF token
   const getCsrfToken = () => {
     const name = 'csrftoken='
     const decodedCookie = decodeURIComponent(document.cookie)
@@ -106,7 +203,6 @@ const GPACalculatorPage = () => {
       })
       const data = await response.json()
       
-      // Use functional update to avoid stale closures
       setCourses(prevCourses => prevCourses.map(course => 
         course.id === courseId 
           ? { ...course, courseTypes: data }
@@ -142,7 +238,6 @@ const GPACalculatorPage = () => {
       })
       const data = await response.json()
       
-      // Use functional update
       setCourses(prevCourses => prevCourses.map(course => 
         course.id === courseId 
           ? { ...course, courseCodes: data, course_code: '', section_number: '', events: [] }
@@ -179,7 +274,6 @@ const GPACalculatorPage = () => {
       })
       const data = await response.json()
       
-      // Use functional update here to prevent stale state
       setCourses(prevCourses => prevCourses.map(course => 
         course.id === courseId 
           ? { ...course, sectionNumbers: data, section_number: '', events: [] }
@@ -217,7 +311,6 @@ const GPACalculatorPage = () => {
       })
       const data = await response.json()
       
-      // Use functional update here too
       setCourses(prevCourses => prevCourses.map(course => 
         course.id === courseId 
           ? { 
@@ -238,7 +331,6 @@ const GPACalculatorPage = () => {
   }
 
   const updateAssessment = (courseId, eventId, value) => {
-    // Use functional update here as well
     setCourses(prevCourses => prevCourses.map(course => 
       course.id === courseId 
         ? {
@@ -277,9 +369,6 @@ const GPACalculatorPage = () => {
 
     try {
       const csrfToken = getCsrfToken()
-      console.log('CSRF token:', csrfToken ? 'Found' : 'Not found')
-      
-      console.log('Sending request to:', `${BACKEND_API_URL}/api/gpacalc/calculate/`)
       
       const payload = {
         offered_term: selectedTerm,
@@ -294,13 +383,10 @@ const GPACalculatorPage = () => {
         }))
       }
 
-      console.log('Payload:', JSON.stringify(payload, null, 2))
-
       const headers = { 
         'Content-Type': 'application/json',
       }
       
-      // Add CSRF token if available
       if (csrfToken) {
         headers['X-CSRFToken'] = csrfToken
       }
@@ -312,13 +398,17 @@ const GPACalculatorPage = () => {
         body: JSON.stringify(payload)
       })
       
-      console.log('Response status:', response.status)
       const data = await response.json()
-      console.log('Response data:', data)
       
       if (response.ok) {
         setResults(data)
+        setShowResultsPopup(true)
         setMessage({ type: 'success', text: 'GPA calculated successfully!' })
+        
+        // Save progress (server saves automatically for authenticated users)
+        if (!user) {
+          saveProgress(data)
+        }
       } else {
         setMessage({ type: 'error', text: data.error || 'Calculation failed' })
       }
@@ -531,6 +621,7 @@ const GPACalculatorPage = () => {
                     index={index}
                     selectedTerm={selectedTerm}
                     isLoading={isLoading}
+                    isCompact={courses.length > 1}
                     onRemove={() => removeCourse(course.id)}
                     onUpdate={(field, value) => updateCourse(course.id, field, value)}
                     onFetchCourseTypes={() => fetchCourseTypes(course.id)}
@@ -570,127 +661,29 @@ const GPACalculatorPage = () => {
             </motion.div>
           )}
 
-          {/* Results Section */}
-          {results && (
-            <motion.div
-              className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 border border-white/30"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold" style={{ color: '#456882' }}>
-                  GPA Results
-                </h2>
-                
-                <motion.button
-                  onClick={exportToExcel}
-                  className="flex items-center space-x-2 px-4 py-2 rounded-lg font-semibold text-white hover:shadow-lg transition-all duration-300"
-                  style={{ backgroundColor: '#456882' }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Download className="w-5 h-5" />
-                  <span>Export Excel</span>
-                </motion.button>
-              </div>
-
-              {/* Best Combination */}
-              {results.best_combination && (
-                <div className="mb-8 p-6 bg-green-50 border border-green-200 rounded-lg">
-                  <h3 className="text-xl font-bold text-green-800 mb-4">Best Grading Scheme Combination</h3>
-                  
-                  <div className="grid md:grid-cols-3 gap-4 mb-4">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-green-600">
-                        {results.best_combination.overall_gpa}
-                      </div>
-                      <div className="text-sm text-green-700">Overall GPA</div>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-green-600">
-                        {results.best_combination.overall_final_percentage}%
-                      </div>
-                      <div className="text-sm text-green-700">Final Percentage</div>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-green-600">
-                        {results.total_credit}
-                      </div>
-                      <div className="text-sm text-green-700">Total Credits</div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    {results.best_combination.per_course?.map((course, index) => (
-                      <div key={index} className="flex justify-between items-center p-3 bg-white rounded-lg">
-                        <div>
-                          <span className="font-semibold">{course.course}</span>
-                          <span className="text-sm text-neutral-600 ml-2">({course.scheme_name})</span>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold">{course.letter_grade} ({course.gpa_value})</div>
-                          <div className="text-sm text-neutral-600">{course.final_percentage}%</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* All Combinations */}
-              {results.combinations && results.combinations.length > 1 && (
-                <div className="mb-8">
-                  <h3 className="text-xl font-bold mb-4" style={{ color: '#456882' }}>
-                    All Grading Scheme Combinations
-                  </h3>
-                  
-                  <div className="space-y-3">
-                    {results.combinations.map((combo, index) => (
-                      <div 
-                        key={index} 
-                        className={`p-4 rounded-lg border ${
-                          combo.scheme_id === results.best_combination?.scheme_id
-                            ? 'bg-green-50 border-green-200'
-                            : 'bg-neutral-50 border-neutral-200'
-                        }`}
-                      >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <div className="font-semibold">
-                              Combination {index + 1}
-                              {combo.scheme_id === results.best_combination?.scheme_id && (
-                                <span className="ml-2 text-green-600 text-sm">(Best)</span>
-                              )}
-                            </div>
-                            <div className="text-sm text-neutral-600">{combo.scheme_name}</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-bold">GPA: {combo.overall_gpa}</div>
-                            <div className="text-sm text-neutral-600">{combo.overall_final_percentage}%</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
+          {/* Results Popup */}
+          <AnimatePresence>
+            {showResultsPopup && results && (
+              <ResultsPopup
+                results={results}
+                onClose={() => setShowResultsPopup(false)}
+                onExport={exportToExcel}
+              />
+            )}
+          </AnimatePresence>
         </div>
       </section>
     </div>
   )
 }
 
-// Course Card Component
+// Course Card Component with Compact Mode
 const CourseCard = ({ 
   course, 
   index, 
   selectedTerm,
   isLoading,
+  isCompact,
   onRemove, 
   onUpdate, 
   onFetchCourseTypes,
@@ -699,7 +692,7 @@ const CourseCard = ({
   onFetchCourseEvents,
   onUpdateAssessment
 }) => {
-  const [isLoadingState, setIsLoading] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(!isCompact)
 
   useEffect(() => {
     if (selectedTerm && course.courseTypes.length === 0) {
@@ -709,139 +702,366 @@ const CourseCard = ({
 
   return (
     <motion.div
-      className="border border-neutral-200 rounded-lg p-6 bg-neutral-50"
+      className="border border-neutral-200 rounded-lg bg-neutral-50"
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
     >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold" style={{ color: '#456882' }}>
-          Course {index + 1}
-        </h3>
+      {/* Course Header */}
+      <div className="flex items-center justify-between p-4 border-b border-neutral-200">
+        <div className="flex items-center space-x-3">
+          <h3 className="text-lg font-semibold" style={{ color: '#456882' }}>
+            Course {index + 1}
+          </h3>
+          {course.course_type && course.course_code && course.section_number && (
+            <span className="text-sm text-neutral-600 bg-neutral-200 px-2 py-1 rounded">
+              {course.course_type}*{course.course_code}*{course.section_number}
+            </span>
+          )}
+        </div>
         
-        <motion.button
-          onClick={onRemove}
-          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          <Trash2 className="w-5 h-5" />
-        </motion.button>
-      </div>
-
-      {/* Course Selection */}
-      <div className="grid md:grid-cols-3 gap-4 mb-6">
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-2">
-            Course Type
-          </label>
-          <div className="relative">
-            {/* Add loading indicator overlay */}
-            {isLoadingState && 
-              <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-10">
-                <div className="w-5 h-5 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin"></div>
-              </div>
-            }
-            <select
-              value={course.course_type}
-              onChange={(e) => {
-                onUpdate('course_type', e.target.value)
-                if (e.target.value) {
-                  onFetchCourseCodes(e.target.value)
-                }
-              }}
-              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all"
-              style={{ '--tw-ring-color': '#456882' }}
-              disabled={isLoadingState}
+        <div className="flex items-center space-x-2">
+          {isCompact && (
+            <motion.button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="p-2 text-neutral-500 hover:text-neutral-700 transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
             >
-              <option value="">Select Type</option>
-              {course.courseTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-2">
-            Course Code
-          </label>
-          <select
-            value={course.course_code}
-            onChange={(e) => {
-              onUpdate('course_code', e.target.value)
-              if (e.target.value) {
-                onFetchSectionNumbers(course.course_type, e.target.value)
-              }
-            }}
-            disabled={!course.course_type}
-            className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all disabled:opacity-50"
-            style={{ '--tw-ring-color': '#456882' }}
+              {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            </motion.button>
+          )}
+          
+          <motion.button
+            onClick={onRemove}
+            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
           >
-            <option value="">Select Code</option>
-            {course.courseCodes.map(code => (
-              <option key={code} value={code}>{code}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-2">
-            Section
-          </label>
-          <select
-            value={course.section_number}
-            onChange={(e) => {
-              onUpdate('section_number', e.target.value)
-              if (e.target.value) {
-                onFetchCourseEvents(course.course_type, course.course_code, e.target.value)
-              }
-            }}
-            disabled={!course.course_code}
-            className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all disabled:opacity-50"
-            style={{ '--tw-ring-color': '#456882' }}
-          >
-            <option value="">Select Section</option>
-            {course.sectionNumbers.map(section => (
-              <option key={section} value={section}>{section}</option>
-            ))}
-          </select>
+            <Trash2 className="w-5 h-5" />
+          </motion.button>
         </div>
       </div>
 
-      {/* Assessments */}
-      {course.events.length > 0 && (
-        <div>
-          <h4 className="font-semibold mb-3" style={{ color: '#456882' }}>
-            Assessment Grades
-          </h4>
-          
-          <div className="space-y-3">
-            {course.events.map((event, eventIndex) => (
-              <div key={event.id} className="flex items-center space-x-4 p-3 bg-white rounded-lg">
-                <div className="flex-1">
-                  <div className="font-medium">{event.event_type}</div>
-                  <div className="text-sm text-neutral-600">Weight: {event.weightage}</div>
-                </div>
-                
-                <div className="w-32">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    placeholder="Grade %"
-                    value={course.assessments.find(a => a.event_id === event.id)?.achieved || ''}
-                    onChange={(e) => onUpdateAssessment(event.id, e.target.value)}
+      {/* Course Content */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden"
+          >
+            <div className="p-6">
+              {/* Course Selection */}
+              <div className="grid md:grid-cols-3 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Course Type
+                  </label>
+                  <select
+                    value={course.course_type}
+                    onChange={(e) => {
+                      onUpdate('course_type', e.target.value)
+                      if (e.target.value) {
+                        onFetchCourseCodes(e.target.value)
+                      }
+                    }}
                     className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all"
                     style={{ '--tw-ring-color': '#456882' }}
-                  />
+                  >
+                    <option value="">Select Type</option>
+                    {course.courseTypes.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Course Code
+                  </label>
+                  <select
+                    value={course.course_code}
+                    onChange={(e) => {
+                      onUpdate('course_code', e.target.value)
+                      if (e.target.value) {
+                        onFetchSectionNumbers(course.course_type, e.target.value)
+                      }
+                    }}
+                    disabled={!course.course_type}
+                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all disabled:opacity-50"
+                    style={{ '--tw-ring-color': '#456882' }}
+                  >
+                    <option value="">Select Code</option>
+                    {course.courseCodes.map(code => (
+                      <option key={code} value={code}>{code}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Section
+                  </label>
+                  <select
+                    value={course.section_number}
+                    onChange={(e) => {
+                      onUpdate('section_number', e.target.value)
+                      if (e.target.value) {
+                        onFetchCourseEvents(course.course_type, course.course_code, e.target.value)
+                      }
+                    }}
+                    disabled={!course.course_code}
+                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all disabled:opacity-50"
+                    style={{ '--tw-ring-color': '#456882' }}
+                  >
+                    <option value="">Select Section</option>
+                    {course.sectionNumbers.map(section => (
+                      <option key={section} value={section}>{section}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
-            ))}
+
+              {/* Assessments */}
+              {course.events.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-3" style={{ color: '#456882' }}>
+                    Assessment Grades
+                  </h4>
+                  
+                  <div className="space-y-3">
+                    {course.events.map((event) => (
+                      <div key={event.id} className="flex items-center space-x-4 p-3 bg-white rounded-lg">
+                        <div className="flex-1">
+                          <div className="font-medium">{event.event_type}</div>
+                          <div className="text-sm text-neutral-600">Weight: {event.weightage}</div>
+                        </div>
+                        
+                        <div className="w-32">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            placeholder="Grade %"
+                            value={course.assessments.find(a => a.event_id === event.id)?.achieved || ''}
+                            onChange={(e) => onUpdateAssessment(event.id, e.target.value)}
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all"
+                            style={{ '--tw-ring-color': '#456882' }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  )
+}
+
+// Results Popup Component
+const ResultsPopup = ({ results, onClose, onExport }) => {
+  return (
+    <motion.div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-neutral-200">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#456882' }}>
+              <Award className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold" style={{ color: '#456882' }}>
+              GPA Calculation Results
+            </h2>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <motion.button
+              onClick={onExport}
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg font-semibold text-white hover:shadow-lg transition-all duration-300"
+              style={{ backgroundColor: '#456882' }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Download className="w-4 h-4" />
+              <span>Export Excel</span>
+            </motion.button>
+            
+            <motion.button
+              onClick={onClose}
+              className="p-2 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded-lg transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <X className="w-5 h-5" />
+            </motion.button>
           </div>
         </div>
-      )}
+
+        {/* Content */}
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+          {/* Best Combination Highlight */}
+          {results.best_combination && (
+            <motion.div
+              className="mb-8 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <div className="flex items-center mb-4">
+                <Award className="w-6 h-6 text-green-600 mr-2" />
+                <h3 className="text-xl font-bold text-green-800">Best Grading Scheme Combination</h3>
+              </div>
+              
+              <div className="grid md:grid-cols-3 gap-4 mb-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-600">
+                    {results.best_combination.overall_gpa}
+                  </div>
+                  <div className="text-sm text-green-700">Overall GPA</div>
+                </div>
+                
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-600">
+                    {results.best_combination.overall_final_percentage}%
+                  </div>
+                  <div className="text-sm text-green-700">Final Percentage</div>
+                </div>
+                
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-600">
+                    {results.total_credit}
+                  </div>
+                  <div className="text-sm text-green-700">Total Credits</div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {results.best_combination.per_course?.map((course, index) => (
+                  <div key={index} className="flex justify-between items-center p-3 bg-white rounded-lg">
+                    <div>
+                      <span className="font-semibold">{course.course}</span>
+                      <span className="text-sm text-neutral-600 ml-2">({course.scheme_name})</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold">{course.letter_grade} ({course.gpa_value})</div>
+                      <div className="text-sm text-neutral-600">{course.final_percentage}%</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* All Combinations */}
+          {results.combinations && results.combinations.length > 1 && (
+            <motion.div
+              className="mb-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="flex items-center mb-4">
+                <BarChart3 className="w-6 h-6 mr-2" style={{ color: '#456882' }} />
+                <h3 className="text-xl font-bold" style={{ color: '#456882' }}>
+                  All Grading Scheme Combinations
+                </h3>
+              </div>
+              
+              <div className="space-y-3 max-h-60 overflow-y-auto">
+                {results.combinations.map((combo, index) => (
+                  <div 
+                    key={index} 
+                    className={`p-4 rounded-lg border ${
+                      combo.scheme_id === results.best_combination?.scheme_id
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-neutral-50 border-neutral-200'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="font-semibold">
+                          Combination {index + 1}
+                          {combo.scheme_id === results.best_combination?.scheme_id && (
+                            <span className="ml-2 text-green-600 text-sm">(Best)</span>
+                          )}
+                        </div>
+                        <div className="text-sm text-neutral-600">{combo.scheme_name}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold">GPA: {combo.overall_gpa}</div>
+                        <div className="text-sm text-neutral-600">{combo.overall_final_percentage}%</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Individual Schemes */}
+          {results.individual_schemes && results.individual_schemes.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <h3 className="text-xl font-bold mb-4" style={{ color: '#456882' }}>
+                Individual Course Schemes
+              </h3>
+              
+              <div className="space-y-4">
+                {results.individual_schemes.map((scheme, index) => (
+                  <div key={index} className="p-4 bg-neutral-50 rounded-lg border border-neutral-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="font-semibold">{scheme.course}</div>
+                        <div className="text-sm text-neutral-600">{scheme.scheme_name}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold">{scheme.letter_grade} ({scheme.gpa_value})</div>
+                        <div className="text-sm text-neutral-600">{scheme.final_percentage}%</div>
+                      </div>
+                    </div>
+                    
+                    {scheme.weightages && Object.keys(scheme.weightages).length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-neutral-200">
+                        <div className="text-xs text-neutral-500 mb-1">Assessment Weights:</div>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(scheme.weightages).map(([assessment, weight]) => (
+                            <span key={assessment} className="text-xs bg-neutral-200 px-2 py-1 rounded">
+                              {assessment}: {weight}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
     </motion.div>
   )
 }
