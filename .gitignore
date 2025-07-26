@@ -28,6 +28,10 @@ frontend/node_modules/
 !package.json
 !package-lock.json
 
+# Don't ignore these specific files in frontend directory
+!frontend/package.json
+!frontend/package-lock.json
+
 # Ignore common private key filenames
 id_rsa
 id_rsa.pub
