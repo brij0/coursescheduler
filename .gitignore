@@ -24,6 +24,10 @@ frontend/node_modules/
 *.github
 *.json
 
+# But don't ignore these specific files
+!package.json
+!package-lock.json
+
 # Ignore common private key filenames
 id_rsa
 id_rsa.pub
