@@ -8,6 +8,11 @@ const Navbar = () => {
   const location = useLocation()
   const navigate = useNavigate()
 
+  const handleAuthNavigation = () => {
+    // Pass current location as redirect parameter
+    const currentPath = location.pathname
+    navigate(`/auth?from=${encodeURIComponent(currentPath)}`)
+  }
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'GPA Calculator', path: '/gpa-calculator' },
@@ -55,7 +60,7 @@ const Navbar = () => {
                 className="flex items-center space-x-2 bg-primary-500 text-white px-4 py-2 rounded-full font-medium hover:bg-primary-600 transition-all duration-300 shadow-lg"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/auth')}
+                onClick={handleAuthNavigation}
               >
                 <User size={16} />
                 <span>Login</span>
@@ -103,7 +108,7 @@ const Navbar = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
                     setIsMenuOpen(false)
-                    navigate('/auth')
+                    handleAuthNavigation()
                   }}
                 >
                   <User size={16} />

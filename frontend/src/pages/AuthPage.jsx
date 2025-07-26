@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   User, 
@@ -17,6 +18,8 @@ import Navbar from '../components/Navbar'
 const BACKEND_API_URL = 'http://127.0.0.1:8000';
 
 const AuthPage = () => {
+  const navigate = useNavigate()
+  const location = useLocation()
   const [isLogin, setIsLogin] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -30,6 +33,12 @@ const AuthPage = () => {
     password: ''
   })
 
+  // Get the redirect path from URL params or default to homepage
+  const getRedirectPath = () => {
+    const urlParams = new URLSearchParams(location.search)
+    const from = urlParams.get('from')
+    return from || '/'
+  }
   // Clear messages when switching between login/register
   useEffect(() => {
     setMessage({ type: '', text: '' })
@@ -80,9 +89,10 @@ const AuthPage = () => {
             type: 'success', 
             text: `Welcome back, ${data.user.username}!` 
           })
-          // Redirect to dashboard or home page after successful login
+          // Redirect to original page or homepage after successful login
+          const redirectPath = getRedirectPath()
           setTimeout(() => {
-            window.location.href = '/'
+            navigate(redirectPath)
           }, 1500)
         } else {
           setMessage({ 
