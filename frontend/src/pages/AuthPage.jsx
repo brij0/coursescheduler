@@ -92,8 +92,8 @@ const AuthPage = () => {
           // Redirect to original page or homepage after successful login
           const redirectPath = getRedirectPath()
           setTimeout(() => {
-            navigate(redirectPath)
-          }, 1500)
+            navigate(redirectPath, { replace: true })
+          }, 1000)
         } else {
           setMessage({ 
             type: 'error', 

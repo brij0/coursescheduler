@@ -11,7 +11,9 @@ const Navbar = () => {
   const handleAuthNavigation = () => {
     // Pass current location as redirect parameter
     const currentPath = location.pathname
-    navigate(`/auth?from=${encodeURIComponent(currentPath)}`)
+    const searchParams = location.search
+    const fullPath = currentPath + searchParams
+    navigate(`/auth?from=${encodeURIComponent(fullPath)}`)
   }
   const navItems = [
     { name: 'Home', path: '/' },
