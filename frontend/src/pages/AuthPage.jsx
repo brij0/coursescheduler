@@ -14,12 +14,14 @@ import {
   GraduationCap
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
+import { useAuth } from '../contexts/AuthContext'
 
 const BACKEND_API_URL = 'http://127.0.0.1:8000';
 
 const AuthPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
+  const { login, register } = useAuth()
   const [isLogin, setIsLogin] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -69,41 +71,19 @@ const AuthPage = () => {
 
     try {
       if (isLogin) {
-        // Login logic
-        const response = await fetch(`${BACKEND_API_URL}/api/auth/login/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            username: formData.username,
-            password: formData.password
-          })
+        const result = await login(formData.username, formData.password)
+        setMessage({ 
+          type: result.success ? 'success' : 'error', 
+          text: result.message 
         })
-
-        const data = await response.json()
-
-        if (response.ok) {
-          setMessage({ 
-            type: 'success', 
-            text: `Welcome back, ${data.user.username}!` 
-          })
-          // Update navbar by triggering a re-check of auth status
-          window.dispatchEvent(new Event('auth-change'))
-          // Redirect to original page or homepage after successful login
+        
+        if (result.success) {
           const redirectPath = getRedirectPath()
           setTimeout(() => {
             navigate(redirectPath, { replace: true })
           }, 1000)
-        } else {
-          setMessage({ 
-            type: 'error', 
-            text: data.error || 'Login failed. Please try again.' 
-          })
         }
       } else {
-        // Register logic
         if (!validateEmail(formData.email)) {
           setMessage({ 
             type: 'error', 
@@ -113,39 +93,22 @@ const AuthPage = () => {
           return
         }
 
-        const response = await fetch(`${BACKEND_API_URL}/api/auth/register/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            username: formData.username,
-            email: formData.email,
-            password: formData.password
-          })
-        })
-
-        const data = await response.json()
-
-        if (response.ok) {
+        const result = await register(formData.username, formData.email, formData.password)
+        
+        if (result.success) {
           setUserEmail(formData.email)
           setNeedsVerification(true)
-          setMessage({ 
-            type: 'success', 
-            text: data.message 
-          })
-        } else {
-          setMessage({ 
-            type: 'error', 
-            text: data.error || 'Registration failed. Please try again.' 
-          })
         }
+        
+        setMessage({ 
+          type: result.success ? 'success' : 'error', 
+          text: result.message 
+        })
       }
     } catch (error) {
       setMessage({ 
         type: 'error', 
-        text: 'Network error. Please check your connection and try again.' 
+        text: 'Unexpected error occurred.' 
       })
     } finally {
       setIsLoading(false)

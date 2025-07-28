@@ -1,53 +1,15 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { User, Menu, X, LogOut, ChevronDown } from 'lucide-react'
-
-const BACKEND_API_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+import { useAuth } from '../contexts/AuthContext'
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  const [user, setUser] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
   const location = useLocation()
   const navigate = useNavigate()
-
-  // Check user authentication status on component mount
-  useEffect(() => {
-    checkAuthStatus()
-    
-    // Listen for auth changes from other components
-    const handleAuthChange = () => {
-      checkAuthStatus()
-    }
-    
-    window.addEventListener('auth-change', handleAuthChange)
-    
-    return () => {
-      window.removeEventListener('auth-change', handleAuthChange)
-    }
-  }, [])
-
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch(`${BACKEND_API_URL}/api/auth/user/`, {
-        credentials: 'include'
-      })
-      
-      if (response.ok) {
-        const userData = await response.json()
-        setUser(userData.user)
-      } else {
-        setUser(null)
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error)
-      setUser(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const { user, isLoading, logout } = useAuth()
 
   const handleAuthNavigation = () => {
     // Pass current location as redirect parameter
@@ -58,21 +20,9 @@ const Navbar = () => {
   }
 
   const handleLogout = async () => {
-    try {
-      const response = await fetch(`${BACKEND_API_URL}/api/auth/logout/`, {
-        method: 'POST',
-        credentials: 'include'
-      })
-      
-      if (response.ok) {
-        setUser(null)
-        setIsUserMenuOpen(false)
-        // Optionally redirect to homepage
-        navigate('/')
-      }
-    } catch (error) {
-      console.error('Logout failed:', error)
-    }
+    await logout()
+    setIsUserMenuOpen(false)
+    navigate('/')
   }
 
   const navItems = [

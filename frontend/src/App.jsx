@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
+import { AuthProvider } from './contexts/AuthContext'
 import LoadingScreen from './components/LoadingScreen'
 import HomePage from './pages/HomePage'
 import AboutPage from './pages/AboutPage'
@@ -25,16 +26,18 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
-        <Route path="/gpa-calculator" element={<GPACalculatorPage />} />
-      </Routes>
-    </div>
+    <AuthProvider>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
+          <Route path="/gpa-calculator" element={<GPACalculatorPage />} />
+        </Routes>
+      </div>
+    </AuthProvider>
   )
 }
 

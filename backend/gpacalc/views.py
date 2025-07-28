@@ -213,10 +213,11 @@ def get_course_events(request):
         course__course_code=code,
         course__section_number=csn,
         course__offered_term=cterm
-    ).values("id", "event_type", "weightage")
+    ).values("id", "event_type", "weightage","event_date").order_by("event_date")
     return JsonResponse(list(evs), safe=False)
 
 @require_POST
+@csrf_exempt
 @log_api_timing("calculate_gpa")
 def calculate_gpa(request):
     """
