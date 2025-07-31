@@ -49,9 +49,9 @@ def log_user_year_estimate(request):
         else:
             user = None
             # Ensure the session exists
-            if not request.session.session_key:
-                request.session.save()
-            session_key = request.session.session_key
+            # if not request.session.session_key:
+            #     request.session.save()
+            # session_key = request.session.session_key
         if not courses:
             # fallback to single course dict for backward compatibility
             courses = [{
@@ -108,10 +108,11 @@ def log_api_timing(api_name=None):
         @wraps(view_func)
         def _wrapped_view(request, *args, **kwargs):
             start = time.perf_counter()
+            session_id = None
             # Ensure session exists
-            if not request.session.session_key:
-                request.session.save()
-            session_id = request.session.session_key
+            # if not request.session.session_key:
+            #     request.session.save()
+            # session_id = request.session.session_key
             try:
                 response = view_func(request, *args, **kwargs)
                 duration = time.perf_counter() - start
