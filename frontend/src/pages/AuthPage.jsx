@@ -16,7 +16,7 @@ import {
 import Navbar from '../components/Navbar'
 import { useAuth } from '../contexts/AuthContext'
 
-const BACKEND_API_URL = 'http://127.0.0.1:8000';
+const BACKEND_API_URL = 'http://localhost:8000';
 
 const AuthPage = () => {
   const navigate = useNavigate()

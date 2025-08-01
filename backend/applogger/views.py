@@ -15,10 +15,14 @@ from django.views.decorators.http import require_http_methods
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
 def log_app_activity(request, app_name, section_name):
-    section_name = section_name
-    session_id = request.session.session_key if request.session.session_key else request.session.save()
+    # Don't create a session if one doesn't exist
+    session_id = request.session.session_key
+    if not session_id:
+        return JsonResponse({"status": "error", "error": "No session found"}, status=400)
+
     user = request.user if request.user.is_authenticated else None
     now = timezone.now()
+    
     try:
         obj, created = AppSession.objects.get_or_create(
             user=user,
@@ -29,29 +33,34 @@ def log_app_activity(request, app_name, section_name):
         )
         if not created:
             obj.last_api_call_time = now
-            # Save duration in seconds
             duration_seconds = (now - obj.start_time).total_seconds()
             obj.duration = datetime.timedelta(seconds=duration_seconds)
             obj.save()
+        return JsonResponse({"status": "ok"})
     except Exception as e:
-        log_error("Failed to log app activity", extra={"error": str(e), "app_name": app_name, "section_name": section_name, "user": user})
+        log_error("Failed to log app activity", extra={
+            "error": str(e), 
+            "app_name": app_name, 
+            "section_name": section_name, 
+            "user": user
+        })
         return JsonResponse({"status": "error", "error": str(e)}, status=500)
 @csrf_exempt
 @require_POST
 def log_user_year_estimate(request):
     try:
         data = json.loads(request.body)
-        # Get user or session key for anonymous users
         courses = data.get("courses", [])
+        
         if request.user.is_authenticated:
             user = request.user
             session_key = None
         else:
             user = None
             # Ensure the session exists
-            # if not request.session.session_key:
-            #     request.session.save()
-            # session_key = request.session.session_key
+            if not request.session.session_key:
+                request.session.save()
+            session_key = request.session.session_key
         if not courses:
             # fallback to single course dict for backward compatibility
             courses = [{
@@ -108,19 +117,19 @@ def log_api_timing(api_name=None):
         @wraps(view_func)
         def _wrapped_view(request, *args, **kwargs):
             start = time.perf_counter()
-            session_id = None
             # Ensure session exists
-            # if not request.session.session_key:
-            #     request.session.save()
-            # session_id = request.session.session_key
+            if not request.session.session_key:
+                request.session.save()
+            session_id = request.session.session_key
             try:
                 response = view_func(request, *args, **kwargs)
                 duration = time.perf_counter() - start
                 user = getattr(request, "user", None)
                 status_code = getattr(response, "status_code", None)
+                
                 ApiTimingLog.objects.create(
                     user=user if user and user.is_authenticated else None,
-                    session_id=session_id,  # Save session_id
+                    session_id=session_id,
                     path=request.path,
                     method=request.method,
                     api_name=api_name or view_func.__name__,
@@ -131,6 +140,7 @@ def log_api_timing(api_name=None):
                         "body": request.body.decode(errors="ignore") if request.method in ["POST", "PUT"] else "",
                     }
                 )
+                
                 log_info(
                     f"API '{api_name or view_func.__name__}' processed in {duration:.3f}s",
                     extra={
@@ -143,12 +153,14 @@ def log_api_timing(api_name=None):
                     }
                 )
                 return response
+                
             except Exception as e:
                 duration = time.perf_counter() - start
                 user = getattr(request, "user", None)
+                
                 ApiTimingLog.objects.create(
                     user=user if user and user.is_authenticated else None,
-                    session_id=session_id,  # Save session_id
+                    session_id=session_id,
                     path=request.path,
                     method=request.method,
                     api_name=api_name or view_func.__name__,
@@ -161,6 +173,7 @@ def log_api_timing(api_name=None):
                         "body": request.body.decode(errors="ignore") if request.method in ["POST", "PUT"] else "",
                     }
                 )
+                
                 log_error(
                     f"Exception in API '{api_name or view_func.__name__}' after {duration:.3f}s: {e}",
                     extra={

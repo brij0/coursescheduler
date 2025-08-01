@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 
-const BACKEND_API_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+const BACKEND_API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
 const GPACalculatorPage = () => {
   const [offeredTerms, setOfferedTerms] = useState([])
