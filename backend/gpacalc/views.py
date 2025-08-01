@@ -12,48 +12,6 @@ from openpyxl.utils import get_column_letter
 from io import BytesIO
 
 app_name = "GPA-Calculator"
-section_name = "Index"
-
-@require_GET
-def index(request):
-    """
-    API: Get available terms for GPA calculator
-    
-    Returns:
-        JSON: {
-            "terms": ["Term1", "Term2", ...],
-            "progress_data": {...} (if user is authenticated)
-        }
-    
-    Frontend usage:
-    - Call on initial load to get available terms
-    - If user is logged in, returns saved progress data to prefill the form
-    """
-    log_app_activity(request, app_name, section_name)
-    log_info("GPA index page accessed", extra={"user": str(request.user)})
-    
-    terms = (
-        Course.objects
-        .filter(events__isnull=False)
-        .values_list("offered_term", flat=True)
-        .distinct()
-        .order_by("offered_term")
-    )
-    
-    # Get saved progress for authenticated users
-    progress_data = None
-    if request.user.is_authenticated:
-        try:
-            progress = GpaCalcProgress.objects.get(user=request.user)
-            progress_data = progress.data
-        except GpaCalcProgress.DoesNotExist:
-            pass
-    
-    return JsonResponse({
-        "terms": list(terms),
-        "progress_data": progress_data
-    })
-
 @require_GET
 @log_api_timing("get_offered_terms")
 def get_offered_terms(request):
@@ -66,6 +24,7 @@ def get_offered_terms(request):
     Frontend usage:
     - Call to populate term dropdown in UI
     """
+    section_name = "get offered terms"
     log_app_activity(request, app_name, section_name)
     terms = (
         Course.objects
@@ -92,6 +51,7 @@ def get_course_types(request):
     Frontend usage:
     - Call when user selects a term to populate the course type dropdown
     """
+    section_name = "get course types"
     log_app_activity(request, app_name, section_name)
     data = json.loads(request.body)
     cterm = data.get("offered_term")
@@ -123,6 +83,7 @@ def get_course_codes(request):
     Frontend usage:
     - Call when user selects a course type to populate the course code dropdown
     """
+    section_name = "get course codes"
     log_app_activity(request, app_name, section_name)
     data = json.loads(request.body)
     cterm = data.get("offered_term")
@@ -156,6 +117,7 @@ def get_section_numbers(request):
     Frontend usage:
     - Call when user selects a course code to populate the section dropdown
     """
+    section_name = "get section numbers"
     log_app_activity(request, app_name, section_name)
     data = json.loads(request.body)
     ctype = data.get("course_type")
@@ -201,6 +163,7 @@ def get_course_events(request):
     - Display each event with its weight and an input field for the achieved grade
     - Store the event_id with each input field to submit with calculations
     """
+    section_name = "get course events"
     log_app_activity(request, app_name, section_name)
     data = json.loads(request.body)
     ctype = data.get("course_type")
@@ -292,6 +255,7 @@ def calculate_gpa(request):
     - Show how each grading scheme affects individual course grades
     - For logged-in users, this data is automatically saved
     """
+    section_name = "GPA Calculation"
     log_app_activity(request, app_name, section_name)
     
     payload = json.loads(request.body)

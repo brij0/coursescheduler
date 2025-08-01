@@ -9,29 +9,7 @@ router = DefaultRouter()
 router.register(r'posts', forum_views.PostViewSet, basename='coopforum-post')
 router.register(r'comments', forum_views.CommentViewSet, basename='coopforum-comment')
 
-def api_root(request):
-    return JsonResponse({
-        'message': 'SmartGryph Backend API is running!',
-        'version': '1.0',
-        'available_endpoints': {
-            'authentication': '/api/auth/',
-            'scheduler': '/api/scheduler/',
-            'gpa_calculator': '/api/gpacalc/',
-            'coop_forum': '/api/coopforum/',
-            'admin': '/admin/'
-        }
-    })
-
 urlpatterns = [
-    # Root endpoint
-    path('', api_root, name='api_root'),
-    
-    # Admin & main pages
-    path('admin/', admin.site.urls),
-    path('scheduler/', include('scheduler.urls', namespace='scheduler')),  # Scheduler web pages
-    path('gpacalc/', include('gpacalc.urls', namespace='gpacalc')),  # GPA calculator web pages
-    path('forum/', include('coopforum.urls', namespace='coopforum')),  # CoopForum web pages
-
     # API endpoints
     path('api/scheduler/', include('scheduler.api_urls', namespace='scheduler-api')),
     path('api/gpacalc/', include('gpacalc.api_urls', namespace='gpacalc-api')),

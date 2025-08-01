@@ -15,11 +15,11 @@ from django.views.decorators.http import require_http_methods
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
 def log_app_activity(request, app_name, section_name):
-    # Don't create a session if one doesn't exist
+    # Ensure session exists for all users (logged-in or anonymous)
+    if not request.session.session_key:
+        request.session.create()  # This creates a new session for anonymous users
+    
     session_id = request.session.session_key
-    if not session_id:
-        return JsonResponse({"status": "error", "error": "No session found"}, status=400)
-
     user = request.user if request.user.is_authenticated else None
     now = timezone.now()
     
@@ -119,7 +119,7 @@ def log_api_timing(api_name=None):
             start = time.perf_counter()
             # Ensure session exists
             if not request.session.session_key:
-                request.session.save()
+                request.session.create()
             session_id = request.session.session_key
             try:
                 response = view_func(request, *args, **kwargs)

@@ -8,7 +8,6 @@ import PrivacyPage from './pages/PrivacyPage'
 import AuthPage from './pages/AuthPage'
 import EmailVerificationPage from './pages/EmailVerificationPage'
 import GPACalculatorPage from './pages/GPACalculatorPage'
-import AuthTest from './pages/AuthTest'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -36,7 +35,6 @@ function App() {
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
           <Route path="/gpa-calculator" element={<GPACalculatorPage />} />
-          <Route path="/auth-test" element={<AuthTest />} />
         </Routes>
       </div>
     </AuthProvider>

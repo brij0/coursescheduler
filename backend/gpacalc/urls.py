@@ -12,5 +12,4 @@ app_name = 'gpacalc'
 
 urlpatterns = [
     # Main entry point - returns basic data and saved progress
-    path('', views.index, name='index'),
 ]
