@@ -162,7 +162,6 @@ def register_view(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
-        print(f"Unexpected error in register_view: {e}")
         return JsonResponse({'error': 'Registration failed'}, status=500)
 
 def generate_unique_username():
@@ -227,12 +226,9 @@ def send_verification_email_gmail(user, token):
             html_message=html_message,
             fail_silently=False
         )
-
-        print(f"Verification email sent successfully to {user.email}")
         return True
         
     except Exception as e:
-        print(f"Failed to send verification email to {user.email}: {str(e)}")
         return False
 
 @csrf_exempt
