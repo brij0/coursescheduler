@@ -8,7 +8,6 @@ import time
 import logging
 from datetime import datetime, timedelta
 from .models import Course, CourseEvent, Event, Suggestion
-from applogger.views import log_api_timing
 from icalendar import Calendar
 from icalendar import Event as calendarEvent
 import pytz
@@ -18,7 +17,6 @@ import pytz
 # -----------------------------------------
 @require_POST
 @csrf_exempt
-@log_api_timing("course_events_schedule")
 def course_events_schedule(request):
     """
     API: Get all events for multiple course sections
@@ -74,7 +72,6 @@ def course_events_schedule(request):
 # API: Generate Conflict-Free Schedules
 # -----------------------------------------
 @csrf_exempt
-@log_api_timing("conflict_free_schedule")
 def conflict_free_schedule(request):
     """
     API: Generate paginated conflict-free schedules for selected courses.

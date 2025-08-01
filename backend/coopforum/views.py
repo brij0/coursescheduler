@@ -18,7 +18,6 @@ import json
 import random
 import uuid
 import time
-from applogger.utils import log_info, log_error, log_debug
 from django.utils.decorators import method_decorator
 
 @csrf_exempt

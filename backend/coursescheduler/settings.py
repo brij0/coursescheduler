@@ -5,8 +5,6 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import pymysql
-from applogger.log_config import LOGGING
-
 # Initialize environment variables
 pymysql.install_as_MySQLdb()
 load_dotenv()
@@ -41,7 +39,6 @@ INSTALLED_APPS = [
     "scheduler",
     "gpacalc",
     "coopforum",
-    "applogger",
 ]
 
 SITE_ID = 1
@@ -151,4 +148,3 @@ SITE_URL = os.getenv("SITE_URL", "http://localhost:3000")
 # Logging configuration
 LOG_DIR = os.path.join(BASE_DIR, 'logs')
 os.makedirs(LOG_DIR, exist_ok=True)
-LOGGING = LOGGING

@@ -112,7 +112,7 @@ If you have sample data, test data, or want to share your current database state
 
 ```bash
 # Export all data to a JSON fixture file
-python manage.py dumpdata sample.json
+python manage.py dumpdata > sample.json
 
 # Or export specific apps only (recommended for large databases)
 python manage.py dumpdata courses users scheduling > sample.json
