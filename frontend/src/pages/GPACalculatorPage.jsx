@@ -17,10 +17,12 @@ import {
   BarChart3
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
+import { useAuth } from '../contexts/AuthContext'
 
 const BACKEND_API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
 const GPACalculatorPage = () => {
+  const { user } = useAuth()
   const [offeredTerms, setOfferedTerms] = useState([])
   const [selectedTerm, setSelectedTerm] = useState('')
   const [courses, setCourses] = useState([])
@@ -28,36 +30,12 @@ const GPACalculatorPage = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
   const [showResultsPopup, setShowResultsPopup] = useState(false)
-  const [user, setUser] = useState(null)
-
-  // Check user authentication status
-  useEffect(() => {
-    checkAuthStatus()
-  }, [])
 
   // Fetch offered terms and load saved progress on component mount
   useEffect(() => {
     fetchOfferedTerms()
     loadSavedProgress()
   }, [user])
-
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch(`${BACKEND_API_URL}/api/auth/user/`, {
-        credentials: 'include'
-      })
-      
-      if (response.ok) {
-        const userData = await response.json()
-        setUser(userData.user)
-      } else {
-        setUser(null)
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error)
-      setUser(null)
-    }
-  }
 
   const fetchOfferedTerms = async () => {
     try {
@@ -75,34 +53,18 @@ const GPACalculatorPage = () => {
   }
 
   const loadSavedProgress = async () => {
-    if (user) {
-      // Load from server for authenticated users
-      try {
-        const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/user_progress/`, {
-          credentials: 'include'
-        })
-        if (response.ok) {
-          const data = await response.json()
-          if (data.courses && data.courses.length > 0) {
-            restoreProgressData(data)
-          }
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/user_progress/`, {
+        credentials: 'include'
+      })
+      if (response.ok) {
+        const data = await response.json()
+        if (data.courses && data.courses.length > 0) {
+          restoreProgressData(data)
         }
-      } catch (error) {
-        console.error('Failed to load server progress:', error)
       }
-    } else {
-      // Load from localStorage for non-authenticated users
-      try {
-        const savedData = localStorage.getItem('gpacalc_progress')
-        if (savedData) {
-          const data = JSON.parse(savedData)
-          if (data.courses && data.courses.length > 0) {
-            restoreProgressData(data)
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load local progress:', error)
-      }
+    } catch (error) {
+      console.error('Failed to load progress:', error)
     }
   }
 
@@ -126,20 +88,6 @@ const GPACalculatorPage = () => {
     }
     if (data.combinations || data.best_combination) {
       setResults(data)
-    }
-  }
-
-  const saveProgress = (progressData) => {
-    if (user) {
-      // Progress is automatically saved on server during calculation
-      return
-    } else {
-      // Save to localStorage for non-authenticated users
-      try {
-        localStorage.setItem('gpacalc_progress', JSON.stringify(progressData))
-      } catch (error) {
-        console.error('Failed to save local progress:', error)
-      }
     }
   }
 
@@ -357,11 +305,6 @@ const GPACalculatorPage = () => {
         setMessage({ type: 'error', text: 'Please complete all course selections' })
         return
       }
-      
-      if (course.assessments.some(a => a.achieved === '' || a.achieved === null)) {
-        setMessage({ type: 'error', text: 'Please enter all assessment grades' })
-        return
-      }
     }
 
     setIsLoading(true)
@@ -376,10 +319,12 @@ const GPACalculatorPage = () => {
           course_type: course.course_type,
           course_code: course.course_code,
           section_number: course.section_number,
-          assessments: course.assessments.map(assessment => ({
-            event_id: assessment.event_id,
-            achieved: parseFloat(assessment.achieved)
-          }))
+          assessments: course.assessments
+            .filter(assessment => assessment.achieved !== '' && assessment.achieved !== null)
+            .map(assessment => ({
+              event_id: assessment.event_id,
+              achieved: parseFloat(assessment.achieved)
+            }))
         }))
       }
 
@@ -404,11 +349,6 @@ const GPACalculatorPage = () => {
         setResults(data)
         setShowResultsPopup(true)
         setMessage({ type: 'success', text: 'GPA calculated successfully!' })
-        
-        // Save progress (server saves automatically for authenticated users)
-        if (!user) {
-          saveProgress(data)
-        }
       } else {
         setMessage({ type: 'error', text: data.error || 'Calculation failed' })
       }
@@ -508,8 +448,8 @@ const GPACalculatorPage = () => {
                 <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#456882' }}>
                   <span className="text-white font-bold">2</span>
                 </div>
-                <h3 className="font-semibold mb-2" style={{ color: '#456882' }}>Enter Grades</h3>
-                <p className="text-sm text-neutral-600">Input your achieved grades for each assessment component (assignments, midterms, finals).</p>
+                <h3 className="font-semibold mb-2" style={{ color: '#456882' }}>Enter Available Grades</h3>
+                <p className="text-sm text-neutral-600">Input grades you have received so far. Leave blank for future assessments.</p>
               </div>
               
               <div className="text-center">
@@ -517,7 +457,7 @@ const GPACalculatorPage = () => {
                   <span className="text-white font-bold">3</span>
                 </div>
                 <h3 className="font-semibold mb-2" style={{ color: '#456882' }}>Calculate & Export</h3>
-                <p className="text-sm text-neutral-600">Get your GPA with optimal grading schemes and export detailed Excel reports.</p>
+                <p className="text-sm text-neutral-600">Get your current GPA with optimal grading schemes and export detailed Excel reports.</p>
               </div>
             </div>
           </motion.div>
@@ -829,7 +769,7 @@ const CourseCard = ({
               {course.events.length > 0 && (
                 <div>
                   <h4 className="font-semibold mb-3" style={{ color: '#456882' }}>
-                    Assessment Grades
+                    Assessment Grades (Enter grades you have received)
                   </h4>
                   
                   <div className="space-y-3">
@@ -838,6 +778,9 @@ const CourseCard = ({
                         <div className="flex-1">
                           <div className="font-medium">{event.event_type}</div>
                           <div className="text-sm text-neutral-600">Weight: {event.weightage}</div>
+                          {event.event_date && (
+                            <div className="text-xs text-neutral-500">Date: {event.event_date}</div>
+                          )}
                         </div>
                         
                         <div className="w-32">
@@ -846,7 +789,7 @@ const CourseCard = ({
                             min="0"
                             max="100"
                             step="0.1"
-                            placeholder="Grade %"
+                            placeholder="Grade % (optional)"
                             value={course.assessments.find(a => a.event_id === event.id)?.achieved || ''}
                             onChange={(e) => onUpdateAssessment(event.id, e.target.value)}
                             className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all"
@@ -855,6 +798,13 @@ const CourseCard = ({
                         </div>
                       </div>
                     ))}
+                  </div>
+                  
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-700">
+                      <Info className="w-4 h-4 inline mr-1" />
+                      Leave assessments blank if you haven't received grades yet. The calculator will work with partial data.
+                    </p>
                   </div>
                 </div>
               )}
