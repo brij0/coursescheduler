@@ -90,9 +90,79 @@ class CourseGrade(models.Model):
             
         total_weight = 0
         weighted_sum = 0
+        total_possible_weight = 0
         
         for assessment in assessments:
-            if assessment.weightage and assessment.achieved_percentage is not None:
+            # Always count the weight towards total possible
+            if assessment.weightage:
+                weight = float(assessment.weightage)
+                total_possible_weight += weight
+                
+                # Only include in calculation if grade is provided
+                if assessment.achieved_percentage is not None:
+                    achieved = float(assessment.achieved_percentage)
+                    weighted_sum += (achieved * weight / 100)
+                    total_weight += weight
+        
+        # Calculate final percentage based on completed assessments only
+        if total_weight > 0:
+            # Calculate percentage based on completed work
+            self.final_percentage = round((weighted_sum / total_weight) * 100, 2)
+        else:
+            self.final_percentage = None
+            self.letter_grade = None
+            self.gpa_value = None
+            self.save()
+            return
+            
+        # Only assign letter grades if we have the final percentage
+        if self.final_percentage is not None:
+            # Map percentage to letter grade
+            if self.final_percentage >= 90:
+                self.letter_grade = "A+"
+                self.gpa_value = 4.0
+            elif self.final_percentage >= 85:
+                self.letter_grade = "A"
+                self.gpa_value = 4.0
+            elif self.final_percentage >= 80:
+                self.letter_grade = "A-"
+                self.gpa_value = 3.7
+            elif self.final_percentage >= 77:
+                self.letter_grade = "B+"
+                self.gpa_value = 3.3
+            elif self.final_percentage >= 73:
+                self.letter_grade = "B"
+                self.gpa_value = 3.0
+            elif self.final_percentage >= 70:
+                self.letter_grade = "B-"
+                self.gpa_value = 2.7
+            elif self.final_percentage >= 67:
+                self.letter_grade = "C+"
+                self.gpa_value = 2.3
+            elif self.final_percentage >= 63:
+                self.letter_grade = "C"
+                self.gpa_value = 2.0
+            elif self.final_percentage >= 60:
+                self.letter_grade = "C-"
+                self.gpa_value = 1.7
+            elif self.final_percentage >= 57:
+                self.letter_grade = "D+"
+                self.gpa_value = 1.3
+            elif self.final_percentage >= 53:
+                self.letter_grade = "D"
+                self.gpa_value = 1.0
+            elif self.final_percentage >= 50:
+                self.letter_grade = "D-"
+                self.gpa_value = 0.7
+            else:
+                self.letter_grade = "F"
+                self.gpa_value = 0.0
+        else:
+            self.final_percentage = None
+            self.letter_grade = None
+            self.gpa_value = None
+        
+        self.save()
                 weight = float(assessment.weightage)
                 achieved = float(assessment.achieved_percentage)
                 weighted_sum += (achieved * weight / 100)

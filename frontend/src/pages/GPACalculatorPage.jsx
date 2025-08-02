@@ -320,7 +320,10 @@ const GPACalculatorPage = () => {
           course_code: course.course_code,
           section_number: course.section_number,
           assessments: course.assessments
-            .filter(assessment => assessment.achieved !== '' && assessment.achieved !== null)
+            .filter(assessment => {
+              const grade = assessment.achieved
+              return grade !== '' && grade !== null && grade !== undefined && !isNaN(parseFloat(grade))
+            })
             .map(assessment => ({
               event_id: assessment.event_id,
               achieved: parseFloat(assessment.achieved)
@@ -803,7 +806,7 @@ const CourseCard = ({
                   <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-sm text-blue-700">
                       <Info className="w-4 h-4 inline mr-1" />
-                      Leave assessments blank if you haven't received grades yet. The calculator will work with partial data.
+                      Leave assessments blank if you haven't received grades yet. GPA is calculated based only on completed assessments.
                     </p>
                   </div>
                 </div>
