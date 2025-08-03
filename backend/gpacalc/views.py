@@ -509,7 +509,7 @@ def calculate_for_default_scheme(course, assessments):
                 course_grade=cg,
                 course_event=ev,
                 weightage=weight,
-                achieved_percentage=a.get("achieved") if a.get("achieved") is not None else None
+                achieved_percentage=a["achieved"]
             )
         except Exception as e:
             continue  # Skip invalid assessments
