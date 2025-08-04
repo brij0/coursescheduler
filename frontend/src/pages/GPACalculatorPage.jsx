@@ -654,7 +654,7 @@ const GPACalculatorPage = () => {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#E5E0D8' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#F3F9FF' }}>
       <Navbar />
       
       {/* Header Section */}
@@ -858,7 +858,7 @@ const GPACalculatorPage = () => {
                 )}
                 <span>{isLoading ? 'Calculating...' : 'Calculate GPA'}</span>
               </motion.button>
-            </div>
+            </motion.div>
           )}
 
           {/* Results Section */}
