@@ -8,6 +8,8 @@ import PrivacyPage from './pages/PrivacyPage'
 import AuthPage from './pages/AuthPage'
 import EmailVerificationPage from './pages/EmailVerificationPage'
 import GPACalculatorPage from './pages/GPACalculatorPage'
+import CoopForumPage from './pages/CoopForumPage' 
+import PostPage from './pages/PostPage'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -35,6 +37,8 @@ function App() {
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
           <Route path="/gpa-calculator" element={<GPACalculatorPage />} />
+          <Route path="/coop-forum" element={<CoopForumPage />} />
+          <Route path="/coop-forum/post/:id" element={<PostPage />} />
         </Routes>
       </div>
     </AuthProvider>

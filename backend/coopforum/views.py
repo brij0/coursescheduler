@@ -331,7 +331,7 @@ class PostViewSet(viewsets.ModelViewSet):
         """
         post = self.get_object()
         comments = post.comments.filter(is_deleted=False)
-        serializer = CommentSerializer(comments, many=True)
+        serializer = CommentSerializer(comments, many=True, context={'request': request})  # Add context here
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'], url_path='vote')
@@ -339,10 +339,7 @@ class PostViewSet(viewsets.ModelViewSet):
         """
         POST /api/coopforum/posts/{id}/vote/
         Request: JSON { "value": 1 } or { "value": -1 }
-        Response: JSON { "message": ... }
-        Usage (frontend):
-            - Call to upvote or downvote a post.
-            - If the same vote is sent again, the vote is removed (toggle).
+        Response: JSON with updated post data including score and userVote
         """
         post = self.get_object()
         value = request.data.get('value')
@@ -364,14 +361,14 @@ class PostViewSet(viewsets.ModelViewSet):
             if vote.value == value:
                 # Same vote - remove it (toggle off)
                 vote.delete()
-                return Response({'message': 'Vote removed'})
             else:
                 # Different vote - update it
                 vote.value = value
                 vote.save()
-                return Response({'message': 'Vote updated'})
         
-        return Response({'message': 'Vote created'})
+        # Return updated post data using serializer
+        serializer = PostSerializer(post, context={'request': request})
+        return Response(serializer.data)
 
     @action(detail=False, methods=['get'], url_path='search')
     def search(self, request):
@@ -426,10 +423,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         """
         POST /api/coopforum/comments/{id}/vote/
         Request: JSON { "value": 1 } or { "value": -1 }
-        Response: JSON { "message": ... }
-        Usage (frontend):
-            - Call to upvote or downvote a comment.
-            - If the same vote is sent again, the vote is removed (toggle).
+        Response: JSON with updated comment data including score and userVote
         """
         comment = self.get_object()
         value = request.data.get('value')
@@ -451,11 +445,11 @@ class CommentViewSet(viewsets.ModelViewSet):
             if vote.value == value:
                 # Same vote - remove it (toggle off)
                 vote.delete()
-                return Response({'message': 'Vote removed'})
             else:
                 # Different vote - update it
                 vote.value = value
                 vote.save()
-                return Response({'message': 'Vote updated'})
         
-        return Response({'message': 'Vote created'})
+        # Return updated comment data using serializer
+        serializer = CommentSerializer(comment, context={'request': request})
+        return Response(serializer.data)

@@ -28,6 +28,7 @@ const Navbar = () => {
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'GPA Calculator', path: '/gpa-calculator' },
+    { name: 'Co-op Forum', path: '/coop-forum' },
     { name: 'About', path: '/about' },
     { name: 'Privacy', path: '/privacy' },
   ]

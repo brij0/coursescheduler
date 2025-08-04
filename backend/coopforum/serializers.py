@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Post, Comment, Vote
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 
 class UserSerializer(serializers.ModelSerializer):
     """
@@ -17,33 +18,56 @@ class PostSerializer(serializers.ModelSerializer):
     Fields:
       - id, title, content, user (UserSerializer), created_at, updated_at, score (int)
       - job_id, job_term, job_title, organization, job_location (optional job info)
-    Usage (frontend):
-      - Use job_* fields for job-related posts, otherwise use title/content.
+      - user_vote: current user's vote (1, -1, or None)
     """
     user = UserSerializer(read_only=True)
     score = serializers.ReadOnlyField()
+    user_vote = serializers.SerializerMethodField()
     
     class Meta:
         model = Post
         fields = ['id', 'title', 'content', 'user', 'created_at', 'updated_at', 'score', 
-                 'job_id', 'job_term', 'job_title', 'organization', 'job_location']
-        read_only_fields = ['user', 'created_at', 'updated_at', 'score']
+                 'job_id', 'job_term', 'job_title', 'organization', 'job_location', 'user_vote']
+        read_only_fields = ['user', 'created_at', 'updated_at', 'score', 'user_vote']
+
+    def get_user_vote(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            vote = Vote.objects.filter(
+                user=request.user,
+                content_type=ContentType.objects.get_for_model(Post),
+                object_id=obj.id
+            ).first()
+            return vote.value if vote else None
+        return None
+    
 
 class CommentSerializer(serializers.ModelSerializer):
     """
     Serializes comment data for API.
     Fields:
       - id, content, user (UserSerializer), post (id), parent (id), created_at, updated_at, score (int)
-    Usage (frontend):
-      - Use parent field to build nested comment trees.
+      - user_vote: current user's vote (1, -1, or None)
     """
     user = UserSerializer(read_only=True)
     score = serializers.ReadOnlyField()
+    user_vote = serializers.SerializerMethodField()
     
     class Meta:
         model = Comment
-        fields = ['id', 'content', 'user', 'post', 'parent', 'created_at', 'updated_at', 'score']
-        read_only_fields = ['user', 'created_at', 'updated_at', 'score']
+        fields = ['id', 'content', 'user', 'post', 'parent', 'created_at', 'updated_at', 'score', 'user_vote']
+        read_only_fields = ['user', 'created_at', 'updated_at', 'score', 'user_vote']
+
+    def get_user_vote(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            vote = Vote.objects.filter(
+                user=request.user,
+                content_type=ContentType.objects.get_for_model(Comment),
+                object_id=obj.id
+            ).first()
+            return vote.value if vote else None
+        return None
 
 class VoteSerializer(serializers.ModelSerializer):
     """
