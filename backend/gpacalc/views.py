@@ -23,8 +23,6 @@ def get_offered_terms(request):
     Frontend usage:
     - Call to populate term dropdown in UI
     """
-    section_name = "get offered terms"
-    #log_app_activity(request, app_name, section_name)
 
     # Add query timing
     query_start = time.perf_counter()
@@ -64,8 +62,6 @@ def get_course_types(request):
     Frontend usage:
     - Call when user selects a term to populate the course type dropdown
     """
-    section_name = "get course types"
-    #log_app_activity(request, app_name, section_name)
     
     # JSON parsing timing
     parse_start = time.perf_counter()
@@ -116,8 +112,6 @@ def get_course_codes(request):
     Frontend usage:
     - Call when user selects a course type to populate the course code dropdown
     """
-    section_name = "get course codes"
-    #log_app_activity(request, app_name, section_name)
     data = json.loads(request.body)
     cterm = data.get("offered_term")
     ctype = data.get("course_type")
@@ -149,8 +143,6 @@ def get_section_numbers(request):
     Frontend usage:
     - Call when user selects a course code to populate the section dropdown
     """
-    section_name = "get section numbers"
-    #log_app_activity(request, app_name, section_name)
     data = json.loads(request.body)
     ctype = data.get("course_type")
     ccode = data.get("course_code")
@@ -194,8 +186,6 @@ def get_course_events(request):
     - Display each event with its weight and an input field for the achieved grade
     - Store the event_id with each input field to submit with calculations
     """
-    section_name = "get course events"
-    #log_app_activity(request, app_name, section_name)
     data = json.loads(request.body)
     ctype = data.get("course_type")
     code = data.get("course_code")
@@ -285,8 +275,6 @@ def calculate_gpa(request):
     - Show how each grading scheme affects individual course grades
     - For logged-in users, this data is automatically saved
     """
-    section_name = "GPA Calculation"
-    #log_app_activity(request, app_name, section_name)
     
     payload = json.loads(request.body)
     offered_term = payload.get("offered_term")
@@ -584,8 +572,6 @@ def progress_export_excel(request):
     - Uses the saved progress data (for logged-in users) or session data
     - Comprehensive report showing optimal grading scheme selection
     """
-    section_name = "Excel Export"
-    #log_app_activity(request, app_name, section_name)
     
     # Get progress data
     if request.user.is_authenticated:
