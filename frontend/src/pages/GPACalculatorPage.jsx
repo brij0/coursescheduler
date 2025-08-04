@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Calculator, 
@@ -29,15 +29,38 @@ const GPACalculatorPage = () => {
   const [results, setResults] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
-  const [showResultsPopup, setShowResultsPopup] = useState(false)
+  const [dataLoaded, setDataLoaded] = useState(false)
+  const resultsRef = useRef(null)
+
+  // Cache for API responses to prevent duplicate requests
+  const [apiCache, setApiCache] = useState({
+    offeredTerms: null,
+    courseTypes: {},
+    courseCodes: {},
+    sectionNumbers: {},
+    courseEvents: {}
+  })
 
   // Fetch offered terms and load saved progress on component mount
   useEffect(() => {
     fetchOfferedTerms()
-    loadSavedProgress()
-  }, [user])
+  }, [])
+
+  // Load saved progress when user changes or data is loaded
+  useEffect(() => {
+    if (dataLoaded && user !== undefined) {
+      loadSavedProgress()
+    }
+  }, [user, dataLoaded])
 
   const fetchOfferedTerms = async () => {
+    // Check cache first
+    if (apiCache.offeredTerms) {
+      setOfferedTerms(apiCache.offeredTerms)
+      setDataLoaded(true)
+      return
+    }
+
     try {
       const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/offered_terms/`, {
         credentials: 'include'
@@ -47,12 +70,19 @@ const GPACalculatorPage = () => {
       if (data.length > 0) {
         setSelectedTerm(data[0])
       }
+      
+      // Cache the response
+      setApiCache(prev => ({ ...prev, offeredTerms: data }))
+      setDataLoaded(true)
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to load terms' })
+      setDataLoaded(true)
     }
   }
 
   const loadSavedProgress = async () => {
+    if (!user) return // Only load for authenticated users
+    
     try {
       const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/user_progress/`, {
         credentials: 'include'
@@ -68,22 +98,32 @@ const GPACalculatorPage = () => {
     }
   }
 
-  const restoreProgressData = (data) => {
+  const restoreProgressData = async (data) => {
     if (data.offered_term) {
       setSelectedTerm(data.offered_term)
     }
     if (data.courses) {
-      const restoredCourses = data.courses.map((course, index) => ({
-        id: Date.now() + index,
-        course_type: course.course_type,
-        course_code: course.course_code,
-        section_number: course.section_number,
-        courseTypes: [],
-        courseCodes: [],
-        sectionNumbers: [],
-        events: [],
-        assessments: course.assessments || []
-      }))
+      const restoredCourses = []
+      
+      for (let i = 0; i < data.courses.length; i++) {
+        const course = data.courses[i]
+        const newCourse = {
+          id: Date.now() + i,
+          course_type: course.course_type,
+          course_code: course.course_code,
+          section_number: course.section_number,
+          courseTypes: [],
+          courseCodes: [],
+          sectionNumbers: [],
+          events: [],
+          assessments: course.assessments || []
+        }
+        
+        // Load course data progressively
+        await loadCourseDataForRestore(newCourse, data.offered_term)
+        restoredCourses.push(newCourse)
+      }
+      
       setCourses(restoredCourses)
     }
     if (data.combinations || data.best_combination) {
@@ -91,8 +131,125 @@ const GPACalculatorPage = () => {
     }
   }
 
+  const loadCourseDataForRestore = async (course, offeredTerm) => {
+    try {
+      // Load course types
+      const courseTypes = await fetchCourseTypesForRestore(offeredTerm)
+      course.courseTypes = courseTypes
+      
+      if (course.course_type) {
+        // Load course codes
+        const courseCodes = await fetchCourseCodesForRestore(offeredTerm, course.course_type)
+        course.courseCodes = courseCodes
+        
+        if (course.course_code) {
+          // Load section numbers
+          const sectionNumbers = await fetchSectionNumbersForRestore(offeredTerm, course.course_type, course.course_code)
+          course.sectionNumbers = sectionNumbers
+          
+          if (course.section_number) {
+            // Load course events
+            const events = await fetchCourseEventsForRestore(offeredTerm, course.course_type, course.course_code, course.section_number)
+            course.events = events
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading course data for restore:', error)
+    }
+  }
+
+  const fetchCourseTypesForRestore = async (offeredTerm) => {
+    const cacheKey = offeredTerm
+    if (apiCache.courseTypes[cacheKey]) {
+      return apiCache.courseTypes[cacheKey]
+    }
+
+    const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/course_types/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ offered_term: offeredTerm })
+    })
+    const data = await response.json()
+    
+    setApiCache(prev => ({
+      ...prev,
+      courseTypes: { ...prev.courseTypes, [cacheKey]: data }
+    }))
+    
+    return data
+  }
+
+  const fetchCourseCodesForRestore = async (offeredTerm, courseType) => {
+    const cacheKey = `${offeredTerm}-${courseType}`
+    if (apiCache.courseCodes[cacheKey]) {
+      return apiCache.courseCodes[cacheKey]
+    }
+
+    const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/course_codes/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ offered_term: offeredTerm, course_type: courseType })
+    })
+    const data = await response.json()
+    
+    setApiCache(prev => ({
+      ...prev,
+      courseCodes: { ...prev.courseCodes, [cacheKey]: data }
+    }))
+    
+    return data
+  }
+
+  const fetchSectionNumbersForRestore = async (offeredTerm, courseType, courseCode) => {
+    const cacheKey = `${offeredTerm}-${courseType}-${courseCode}`
+    if (apiCache.sectionNumbers[cacheKey]) {
+      return apiCache.sectionNumbers[cacheKey]
+    }
+
+    const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/section_numbers/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ offered_term: offeredTerm, course_type: courseType, course_code: courseCode })
+    })
+    const data = await response.json()
+    
+    setApiCache(prev => ({
+      ...prev,
+      sectionNumbers: { ...prev.sectionNumbers, [cacheKey]: data }
+    }))
+    
+    return data
+  }
+
+  const fetchCourseEventsForRestore = async (offeredTerm, courseType, courseCode, sectionNumber) => {
+    const cacheKey = `${offeredTerm}-${courseType}-${courseCode}-${sectionNumber}`
+    if (apiCache.courseEvents[cacheKey]) {
+      return apiCache.courseEvents[cacheKey]
+    }
+
+    const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/course_events/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ offered_term: offeredTerm, course_type: courseType, course_code: courseCode, section_number: sectionNumber })
+    })
+    const data = await response.json()
+    
+    setApiCache(prev => ({
+      ...prev,
+      courseEvents: { ...prev.courseEvents, [cacheKey]: data }
+    }))
+    
+    return data
+  }
+
   const addCourse = () => {
-    setCourses([...courses, {
+    // Close all existing courses and add new one at the end
+    const newCourse = {
       id: Date.now(),
       course_type: '',
       course_code: '',
@@ -102,11 +259,29 @@ const GPACalculatorPage = () => {
       sectionNumbers: [],
       events: [],
       assessments: []
-    }])
+    }
+    
+    setCourses(prevCourses => [...prevCourses, newCourse])
+    
+    // Scroll to the new course after a short delay
+    setTimeout(() => {
+      const newCourseElement = document.querySelector(`[data-course-id="${newCourse.id}"]`)
+      if (newCourseElement) {
+        newCourseElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }, 100)
   }
 
   const removeCourse = (courseId) => {
-    setCourses(courses.filter(course => course.id !== courseId))
+    setCourses(prevCourses => {
+      const newCourses = prevCourses.filter(course => course.id !== courseId)
+      // Reset expansion state for remaining courses
+      return newCourses.map((course, index) => ({
+        ...course,
+        // Keep first course expanded if only one remains, otherwise keep compact
+        isExpanded: newCourses.length === 1 ? true : false
+      }))
+    })
   }
 
   const updateCourse = (courseId, field, value) => {
@@ -134,6 +309,17 @@ const GPACalculatorPage = () => {
   const fetchCourseTypes = async (courseId) => {
     if (!selectedTerm) return
     
+    // Check cache first
+    const cacheKey = selectedTerm
+    if (apiCache.courseTypes[cacheKey]) {
+      setCourses(prevCourses => prevCourses.map(course => 
+        course.id === courseId 
+          ? { ...course, courseTypes: apiCache.courseTypes[cacheKey] }
+          : course
+      ))
+      return
+    }
+    
     try {
       setIsLoading(true)
       const csrfToken = getCsrfToken()
@@ -151,6 +337,12 @@ const GPACalculatorPage = () => {
       })
       const data = await response.json()
       
+      // Cache the response
+      setApiCache(prev => ({
+        ...prev,
+        courseTypes: { ...prev.courseTypes, [cacheKey]: data }
+      }))
+      
       setCourses(prevCourses => prevCourses.map(course => 
         course.id === courseId 
           ? { ...course, courseTypes: data }
@@ -165,6 +357,17 @@ const GPACalculatorPage = () => {
 
   const fetchCourseCodes = async (courseId, courseType) => {
     if (!selectedTerm || !courseType) return
+    
+    // Check cache first
+    const cacheKey = `${selectedTerm}-${courseType}`
+    if (apiCache.courseCodes[cacheKey]) {
+      setCourses(prevCourses => prevCourses.map(course => 
+        course.id === courseId 
+          ? { ...course, courseCodes: apiCache.courseCodes[cacheKey], course_code: '', section_number: '', events: [] }
+          : course
+      ))
+      return
+    }
     
     try {
       setIsLoading(true)
@@ -186,6 +389,12 @@ const GPACalculatorPage = () => {
       })
       const data = await response.json()
       
+      // Cache the response
+      setApiCache(prev => ({
+        ...prev,
+        courseCodes: { ...prev.courseCodes, [cacheKey]: data }
+      }))
+      
       setCourses(prevCourses => prevCourses.map(course => 
         course.id === courseId 
           ? { ...course, courseCodes: data, course_code: '', section_number: '', events: [] }
@@ -200,6 +409,17 @@ const GPACalculatorPage = () => {
 
   const fetchSectionNumbers = async (courseId, courseType, courseCode) => {
     if (!selectedTerm || !courseType || !courseCode) return
+    
+    // Check cache first
+    const cacheKey = `${selectedTerm}-${courseType}-${courseCode}`
+    if (apiCache.sectionNumbers[cacheKey]) {
+      setCourses(prevCourses => prevCourses.map(course => 
+        course.id === courseId 
+          ? { ...course, sectionNumbers: apiCache.sectionNumbers[cacheKey], section_number: '', events: [] }
+          : course
+      ))
+      return
+    }
     
     try {
       setIsLoading(true)
@@ -222,6 +442,12 @@ const GPACalculatorPage = () => {
       })
       const data = await response.json()
       
+      // Cache the response
+      setApiCache(prev => ({
+        ...prev,
+        sectionNumbers: { ...prev.sectionNumbers, [cacheKey]: data }
+      }))
+      
       setCourses(prevCourses => prevCourses.map(course => 
         course.id === courseId 
           ? { ...course, sectionNumbers: data, section_number: '', events: [] }
@@ -236,6 +462,25 @@ const GPACalculatorPage = () => {
 
   const fetchCourseEvents = async (courseId, courseType, courseCode, sectionNumber) => {
     if (!selectedTerm || !courseType || !courseCode || !sectionNumber) return
+    
+    // Check cache first
+    const cacheKey = `${selectedTerm}-${courseType}-${courseCode}-${sectionNumber}`
+    if (apiCache.courseEvents[cacheKey]) {
+      const events = apiCache.courseEvents[cacheKey]
+      setCourses(prevCourses => prevCourses.map(course => 
+        course.id === courseId 
+          ? { 
+              ...course, 
+              events: events,
+              assessments: events.map(event => ({
+                event_id: event.id,
+                achieved: ''
+              }))
+            }
+          : course
+      ))
+      return
+    }
     
     try {
       setIsLoading(true)
@@ -258,6 +503,12 @@ const GPACalculatorPage = () => {
         })
       })
       const data = await response.json()
+      
+      // Cache the response
+      setApiCache(prev => ({
+        ...prev,
+        courseEvents: { ...prev.courseEvents, [cacheKey]: data }
+      }))
       
       setCourses(prevCourses => prevCourses.map(course => 
         course.id === courseId 
@@ -350,8 +601,14 @@ const GPACalculatorPage = () => {
       
       if (response.ok) {
         setResults(data)
-        setShowResultsPopup(true)
         setMessage({ type: 'success', text: 'GPA calculated successfully!' })
+        
+        // Scroll to results after a short delay
+        setTimeout(() => {
+          if (resultsRef.current) {
+            resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }, 100)
       } else {
         setMessage({ type: 'error', text: data.error || 'Calculation failed' })
       }
@@ -601,19 +858,175 @@ const GPACalculatorPage = () => {
                 )}
                 <span>{isLoading ? 'Calculating...' : 'Calculate GPA'}</span>
               </motion.button>
-            </motion.div>
+            </div>
           )}
 
-          {/* Results Popup */}
-          <AnimatePresence>
-            {showResultsPopup && results && (
-              <ResultsPopup
-                results={results}
-                onClose={() => setShowResultsPopup(false)}
-                onExport={exportToExcel}
-              />
-            )}
-          </AnimatePresence>
+          {/* Results Section */}
+          {results && (
+            <motion.div
+              ref={resultsRef}
+              className="space-y-8"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+            >
+              {/* Best Combination Highlight */}
+              {results.best_combination && (
+                <motion.div
+                  className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-8"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center">
+                      <Award className="w-6 h-6 text-green-600 mr-2" />
+                      <h3 className="text-xl font-bold text-green-800">Best Grading Scheme Combination</h3>
+                    </div>
+                    
+                    <motion.button
+                      onClick={exportToExcel}
+                      className="flex items-center space-x-2 px-4 py-2 rounded-lg font-semibold text-white hover:shadow-lg transition-all duration-300"
+                      style={{ backgroundColor: '#456882' }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Export Excel</span>
+                    </motion.button>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-3 gap-4 mb-4">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-green-600">
+                        {results.best_combination.overall_gpa}
+                      </div>
+                      <div className="text-sm text-green-700">Overall GPA</div>
+                    </div>
+                    
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-green-600">
+                        {results.best_combination.overall_final_percentage}%
+                      </div>
+                      <div className="text-sm text-green-700">Final Percentage</div>
+                    </div>
+                    
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-green-600">
+                        {results.total_credit}
+                      </div>
+                      <div className="text-sm text-green-700">Total Credits</div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {results.best_combination.per_course?.map((course, index) => (
+                      <div key={index} className="flex justify-between items-center p-3 bg-white rounded-lg">
+                        <div>
+                          <span className="font-semibold">{course.course}</span>
+                          <span className="text-sm text-neutral-600 ml-2">({course.scheme_name})</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold">{course.letter_grade} ({course.gpa_value})</div>
+                          <div className="text-sm text-neutral-600">{course.final_percentage}%</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* All Combinations */}
+              {results.combinations && results.combinations.length > 1 && (
+                <motion.div
+                  className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 border border-white/30"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <div className="flex items-center mb-4">
+                    <BarChart3 className="w-6 h-6 mr-2" style={{ color: '#456882' }} />
+                    <h3 className="text-xl font-bold" style={{ color: '#456882' }}>
+                      All Grading Scheme Combinations
+                    </h3>
+                  </div>
+                  
+                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                    {results.combinations.map((combo, index) => (
+                      <div 
+                        key={index} 
+                        className={`p-4 rounded-lg border ${
+                          combo.scheme_id === results.best_combination?.scheme_id
+                            ? 'bg-green-50 border-green-200'
+                            : 'bg-neutral-50 border-neutral-200'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <div className="font-semibold">
+                              Combination {index + 1}
+                              {combo.scheme_id === results.best_combination?.scheme_id && (
+                                <span className="ml-2 text-green-600 text-sm">(Best)</span>
+                              )}
+                            </div>
+                            <div className="text-sm text-neutral-600">{combo.scheme_name}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold">GPA: {combo.overall_gpa}</div>
+                            <div className="text-sm text-neutral-600">{combo.overall_final_percentage}%</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Individual Schemes */}
+              {results.individual_schemes && results.individual_schemes.length > 0 && (
+                <motion.div
+                  className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 border border-white/30"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <h3 className="text-xl font-bold mb-4" style={{ color: '#456882' }}>
+                    Individual Course Schemes
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    {results.individual_schemes.map((scheme, index) => (
+                      <div key={index} className="p-4 bg-neutral-50 rounded-lg border border-neutral-200">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <div className="font-semibold">{scheme.course}</div>
+                            <div className="text-sm text-neutral-600">{scheme.scheme_name}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold">{scheme.letter_grade} ({scheme.gpa_value})</div>
+                            <div className="text-sm text-neutral-600">{scheme.final_percentage}%</div>
+                          </div>
+                        </div>
+                        
+                        {scheme.weightages && Object.keys(scheme.weightages).length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-neutral-200">
+                            <div className="text-xs text-neutral-500 mb-1">Assessment Weights:</div>
+                            <div className="flex flex-wrap gap-2">
+                              {Object.entries(scheme.weightages).map(([assessment, weight]) => (
+                                <span key={assessment} className="text-xs bg-neutral-200 px-2 py-1 rounded">
+                                  {assessment}: {weight}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
         </div>
       </section>
     </div>
@@ -643,8 +1056,16 @@ const CourseCard = ({
     }
   }, [selectedTerm])
 
+  // Auto-expand when course is newly added (last in the list)
+  useEffect(() => {
+    if (index === 0 && !isCompact) {
+      setIsExpanded(true)
+    }
+  }, [index, isCompact])
+
   return (
     <motion.div
+      data-course-id={course.id}
       className="border border-neutral-200 rounded-lg bg-neutral-50"
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
@@ -792,10 +1213,10 @@ const CourseCard = ({
                             min="0"
                             max="100"
                             step="0.1"
-                            placeholder="Grade % (optional)"
+                            placeholder="Grade %"
                             value={course.assessments.find(a => a.event_id === event.id)?.achieved || ''}
                             onChange={(e) => onUpdateAssessment(event.id, e.target.value)}
-                            className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             style={{ '--tw-ring-color': '#456882' }}
                           />
                         </div>
@@ -806,7 +1227,7 @@ const CourseCard = ({
                   <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-sm text-blue-700">
                       <Info className="w-4 h-4 inline mr-1" />
-                      Leave assessments blank if you haven't received grades yet. GPA is calculated based only on completed assessments.
+                      GPA is calculated based only on completed assessments. Leave blank for future assessments.
                     </p>
                   </div>
                 </div>
@@ -815,206 +1236,6 @@ const CourseCard = ({
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
-  )
-}
-
-// Results Popup Component
-const ResultsPopup = ({ results, onClose, onExport }) => {
-  return (
-    <motion.div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div
-        className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-neutral-200">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#456882' }}>
-              <Award className="w-5 h-5 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold" style={{ color: '#456882' }}>
-              GPA Calculation Results
-            </h2>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <motion.button
-              onClick={onExport}
-              className="flex items-center space-x-2 px-4 py-2 rounded-lg font-semibold text-white hover:shadow-lg transition-all duration-300"
-              style={{ backgroundColor: '#456882' }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Download className="w-4 h-4" />
-              <span>Export Excel</span>
-            </motion.button>
-            
-            <motion.button
-              onClick={onClose}
-              className="p-2 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded-lg transition-colors"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <X className="w-5 h-5" />
-            </motion.button>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-          {/* Best Combination Highlight */}
-          {results.best_combination && (
-            <motion.div
-              className="mb-8 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <div className="flex items-center mb-4">
-                <Award className="w-6 h-6 text-green-600 mr-2" />
-                <h3 className="text-xl font-bold text-green-800">Best Grading Scheme Combination</h3>
-              </div>
-              
-              <div className="grid md:grid-cols-3 gap-4 mb-4">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">
-                    {results.best_combination.overall_gpa}
-                  </div>
-                  <div className="text-sm text-green-700">Overall GPA</div>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">
-                    {results.best_combination.overall_final_percentage}%
-                  </div>
-                  <div className="text-sm text-green-700">Final Percentage</div>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">
-                    {results.total_credit}
-                  </div>
-                  <div className="text-sm text-green-700">Total Credits</div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {results.best_combination.per_course?.map((course, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-white rounded-lg">
-                    <div>
-                      <span className="font-semibold">{course.course}</span>
-                      <span className="text-sm text-neutral-600 ml-2">({course.scheme_name})</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold">{course.letter_grade} ({course.gpa_value})</div>
-                      <div className="text-sm text-neutral-600">{course.final_percentage}%</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* All Combinations */}
-          {results.combinations && results.combinations.length > 1 && (
-            <motion.div
-              className="mb-8"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className="flex items-center mb-4">
-                <BarChart3 className="w-6 h-6 mr-2" style={{ color: '#456882' }} />
-                <h3 className="text-xl font-bold" style={{ color: '#456882' }}>
-                  All Grading Scheme Combinations
-                </h3>
-              </div>
-              
-              <div className="space-y-3 max-h-60 overflow-y-auto">
-                {results.combinations.map((combo, index) => (
-                  <div 
-                    key={index} 
-                    className={`p-4 rounded-lg border ${
-                      combo.scheme_id === results.best_combination?.scheme_id
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-neutral-50 border-neutral-200'
-                    }`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <div className="font-semibold">
-                          Combination {index + 1}
-                          {combo.scheme_id === results.best_combination?.scheme_id && (
-                            <span className="ml-2 text-green-600 text-sm">(Best)</span>
-                          )}
-                        </div>
-                        <div className="text-sm text-neutral-600">{combo.scheme_name}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold">GPA: {combo.overall_gpa}</div>
-                        <div className="text-sm text-neutral-600">{combo.overall_final_percentage}%</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Individual Schemes */}
-          {results.individual_schemes && results.individual_schemes.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <h3 className="text-xl font-bold mb-4" style={{ color: '#456882' }}>
-                Individual Course Schemes
-              </h3>
-              
-              <div className="space-y-4">
-                {results.individual_schemes.map((scheme, index) => (
-                  <div key={index} className="p-4 bg-neutral-50 rounded-lg border border-neutral-200">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <div className="font-semibold">{scheme.course}</div>
-                        <div className="text-sm text-neutral-600">{scheme.scheme_name}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold">{scheme.letter_grade} ({scheme.gpa_value})</div>
-                        <div className="text-sm text-neutral-600">{scheme.final_percentage}%</div>
-                      </div>
-                    </div>
-                    
-                    {scheme.weightages && Object.keys(scheme.weightages).length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-neutral-200">
-                        <div className="text-xs text-neutral-500 mb-1">Assessment Weights:</div>
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(scheme.weightages).map(([assessment, weight]) => (
-                            <span key={assessment} className="text-xs bg-neutral-200 px-2 py-1 rounded">
-                              {assessment}: {weight}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
     </motion.div>
   )
 }
