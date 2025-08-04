@@ -248,7 +248,6 @@ const GPACalculatorPage = () => {
   }
 
   const addCourse = () => {
-    // Close all existing courses and add new one at the end
     const newCourse = {
       id: Date.now(),
       course_type: '',
@@ -261,15 +260,14 @@ const GPACalculatorPage = () => {
       assessments: []
     }
     
-    setCourses(prevCourses => [...prevCourses, newCourse])
-    
-    // Scroll to the new course after a short delay
-    setTimeout(() => {
-      const newCourseElement = document.querySelector(`[data-course-id="${newCourse.id}"]`)
-      if (newCourseElement) {
-        newCourseElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
-    }, 100)
+    // Add new course to the top and collapse all existing ones
+    setCourses(prevCourses => [
+      newCourse, 
+      ...prevCourses.map(course => ({
+        ...course,
+        isExpanded: false // Force all existing courses to collapse
+      }))
+    ])
   }
 
   const removeCourse = (courseId) => {
@@ -994,32 +992,49 @@ const GPACalculatorPage = () => {
                     Individual Course Schemes
                   </h3>
                   
-                  <div className="space-y-4">
-                    {results.individual_schemes.map((scheme, index) => (
-                      <div key={index} className="p-4 bg-neutral-50 rounded-lg border border-neutral-200">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <div className="font-semibold">{scheme.course}</div>
-                            <div className="text-sm text-neutral-600">{scheme.scheme_name}</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-bold">{scheme.letter_grade} ({scheme.gpa_value})</div>
-                            <div className="text-sm text-neutral-600">{scheme.final_percentage}%</div>
-                          </div>
-                        </div>
+                  <div className="space-y-6">
+                    {/* Group schemes by course */}
+                    {Object.entries(results.individual_schemes.reduce((acc, scheme) => {
+                      // Group by course
+                      if (!acc[scheme.course]) {
+                        acc[scheme.course] = [];
+                      }
+                      acc[scheme.course].push(scheme);
+                      return acc;
+                    }, {})).map(([course, schemes]) => (
+                      <div key={course} className="bg-white/50 rounded-xl p-4 border border-neutral-100">
+                        <h4 className="text-lg font-semibold mb-3" style={{ color: '#456882' }}>
+                          {course}
+                        </h4>
                         
-                        {scheme.weightages && Object.keys(scheme.weightages).length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-neutral-200">
-                            <div className="text-xs text-neutral-500 mb-1">Assessment Weights:</div>
-                            <div className="flex flex-wrap gap-2">
-                              {Object.entries(scheme.weightages).map(([assessment, weight]) => (
-                                <span key={assessment} className="text-xs bg-neutral-200 px-2 py-1 rounded">
-                                  {assessment}: {weight}
-                                </span>
-                              ))}
+                        <div className="space-y-3">
+                          {schemes.map((scheme, index) => (
+                            <div key={index} className="p-3 bg-neutral-50 rounded-lg border border-neutral-200">
+                              <div className="flex justify-between items-start mb-2">
+                                <div>
+                                  <div className="font-medium">{scheme.scheme_name}</div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-bold">{scheme.letter_grade} ({scheme.gpa_value})</div>
+                                  <div className="text-sm text-neutral-600">{scheme.final_percentage}%</div>
+                                </div>
+                              </div>
+                              
+                              {scheme.weightages && Object.keys(scheme.weightages).length > 0 && (
+                                <div className="mt-2 pt-2 border-t border-neutral-200">
+                                  <div className="text-xs text-neutral-500 mb-1">Assessment Weights:</div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {Object.entries(scheme.weightages).map(([assessment, weight]) => (
+                                      <span key={assessment} className="text-xs bg-neutral-200 px-2 py-1 rounded">
+                                        {assessment}: {weight}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        )}
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1048,20 +1063,22 @@ const CourseCard = ({
   onFetchCourseEvents,
   onUpdateAssessment
 }) => {
-  const [isExpanded, setIsExpanded] = useState(!isCompact)
+  // Use course.isExpanded if available, otherwise expand only if it's the first course
+  const [isExpanded, setIsExpanded] = useState(course.isExpanded !== undefined ? 
+    course.isExpanded : (index === 0));
+
+  // When isExpanded changes in parent (via course.isExpanded), update local state
+  useEffect(() => {
+    if (course.isExpanded !== undefined) {
+      setIsExpanded(course.isExpanded);
+    }
+  }, [course.isExpanded]);
 
   useEffect(() => {
     if (selectedTerm && course.courseTypes.length === 0) {
       onFetchCourseTypes()
     }
   }, [selectedTerm])
-
-  // Auto-expand when course is newly added (last in the list)
-  useEffect(() => {
-    if (index === 0 && !isCompact) {
-      setIsExpanded(true)
-    }
-  }, [index, isCompact])
 
   return (
     <motion.div
