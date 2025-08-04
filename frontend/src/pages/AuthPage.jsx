@@ -153,7 +153,7 @@ const AuthPage = () => {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#E5E0D8' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#F3F9FF' }}>
       <Navbar />
       
       {/* Hero Section with Fireflies */}
