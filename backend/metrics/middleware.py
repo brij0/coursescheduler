@@ -1,5 +1,6 @@
 import time
-from metrics.tasks import log_api_metrics
+import json
+from metrics.tasks import log_api_metrics, estimate_user_year
 
 class APIMetricsMiddleware:
     def __init__(self, get_response):
@@ -27,4 +28,36 @@ class APIMetricsMiddleware:
             except Exception as e:
                 None
 
+        return response
+
+class ApiYearEstimateMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        print("ApiYearEstimateMiddleware initialized")
+
+    def __call__(self, request):
+        # Store request body before it gets consumed
+        if request.method == 'POST' and request.path == '/api/gpacalc/calculate/':
+            try:
+                # Read and store the body
+                body = request.body
+                if body:
+                    data = json.loads(body.decode('utf-8'))
+                    print("Request data:", data)
+                    
+                    # Prepare task data
+                    task_data = {
+                        "user_id": request.user.id if request.user.is_authenticated else None,
+                        "session_id": request.session.session_key,
+                        "courses": data.get("courses", [])
+                    }
+                    
+                    print("Sending task data:", task_data)
+                    # Pass as JSON string, not dictionary
+                    estimate_user_year.delay(json.dumps(task_data))
+                    
+            except Exception as e:
+                print(f"Error in ApiYearEstimateMiddleware: {e}")
+
+        response = self.get_response(request)
         return response

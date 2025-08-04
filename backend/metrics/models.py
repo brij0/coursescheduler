@@ -18,3 +18,15 @@ class ApiTimingLog(models.Model):
 
     def __str__(self):
         return f"{self.method} {self.path} ({self.status_code}) - {self.duration:.3f}s"
+
+class EstimateUserYear(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    session_id = models.CharField(max_length=100, null=True, blank=True)
+    year = models.IntegerField()
+    school = models.CharField(max_length=100, null=True, blank=True)
+
+    class Meta:
+        unique_together = ('user', 'session_id')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.year}: {self.school}"
