@@ -151,6 +151,17 @@ const GPACalculatorPage = () => {
             // Load course events
             const events = await fetchCourseEventsForRestore(offeredTerm, course.course_type, course.course_code, course.section_number)
             course.events = events
+            
+            // Create assessments for ALL events, not just saved ones
+            const savedAssessments = course.assessments || []
+            course.assessments = events.map(event => {
+              // Find existing assessment data for this event
+              const existingAssessment = savedAssessments.find(a => a.event_id === event.id)
+              return {
+                event_id: event.id,
+                achieved: existingAssessment ? existingAssessment.achieved : ''
+              }
+            })
           }
         }
       }
