@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.http import JsonResponse
 from rest_framework.routers import DefaultRouter
 from coopforum import views as forum_views
-
+from metrics.prometheus import metrics_view
 # DRF router for CoopForum API
 router = DefaultRouter()
 router.register(r'posts', forum_views.PostViewSet, basename='coopforum-post')
@@ -17,4 +17,7 @@ urlpatterns = [
 
     # Authentication API endpoints
     path('api/auth/', include('coopforum.auth_urls', namespace='auth-api')),
+
+    # For Prometheus metrics endpoint
+    path('metrics/', metrics_view, name='prometheus_metrics'),
 ]

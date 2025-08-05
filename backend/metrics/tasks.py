@@ -25,13 +25,13 @@ def log_api_metrics(self, data):
 @shared_task(bind=True)
 def estimate_user_year(self, request_data):
     try:
-        print("Received request data in estimate_user_year:", request_data)
+        # print("Received request data in estimate_user_year:", request_data)
         payload = json.loads(request_data)
         course_list = payload.get("courses", [])
 
         # Step 1: Normalize course identifiers
         course_keys = [
-            f"{course.get('course_type', '')}-{course.get('course_code', '')}"
+            course.get('course_type', '')
             for course in course_list
         ]
 
@@ -55,10 +55,10 @@ def estimate_user_year(self, request_data):
                     'school': most_common_course
                 }
             )
-            print(f"Successfully saved user year estimate: {most_common_first_digit}")
+            # print(f"Successfully saved user year estimate: {most_common_first_digit}")
         
         return {"status": "success", "year": most_common_first_digit}
         
     except Exception as e:
-        print(f"Error in estimate_user_year task: {e}")
+        # print(f"Error in estimate_user_year task: {e}")
         return {"status": "error", "detail": str(e)}

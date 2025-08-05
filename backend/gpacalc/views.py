@@ -91,7 +91,6 @@ def get_course_types(request):
     response['X-Query-Time'] = f"{query_time*1000:.2f}ms"
     response['X-Response-Time'] = f"{response_time*1000:.2f}ms"
     
-    print(connection.queries)
     return response
 
 @require_POST

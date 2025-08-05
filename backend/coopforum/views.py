@@ -19,6 +19,9 @@ import random
 import uuid
 import time
 from django.utils.decorators import method_decorator
+import logging
+
+logger = logging.getLogger(__name__)
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -35,19 +38,24 @@ def login_view(request):
         username_or_email = data.get('username')
         password = data.get('password')
         
+        logger.info(f"Login attempt for user: {username_or_email}") 
         if not username_or_email or not password:
+            logger.warning(f"Login failed - missing credentials for: {username_or_email}")
             return JsonResponse({'error': 'Username and password required'}, status=400)
         
         # Try to find user by username or email
         try:
             user_obj = User.objects.get(Q(username=username_or_email) | Q(email=username_or_email))
             username = user_obj.username
+            logger.debug(f"Found user object for: {username_or_email} -> {username}")
         except User.DoesNotExist:
+            logger.warning(f"Login failed - user not found: {username_or_email}")
             return JsonResponse({'error': 'Invalid credentials'}, status=401)
         
         user = authenticate(request, username=username, password=password)
         if user is not None:
             auth_login(request, user)
+            logger.info(f"Successful login for user: {user.username} (ID: {user.id})")
             return JsonResponse({
                 'user': {
                     'id': user.id,
@@ -56,10 +64,13 @@ def login_view(request):
                 }
             })
         else:
+            logger.warning(f"Login failed - invalid password for user: {username}")
             return JsonResponse({'error': 'Invalid credentials'}, status=401)
     except json.JSONDecodeError:
+        logger.error("Login failed - invalid JSON in request body")
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
+        logger.error(f"Login failed - unexpected error: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
@@ -72,7 +83,11 @@ def logout_view(request):
     Usage (frontend):
         - Call to log out user and clear session.
     """
+    user_info = f"{request.user.username} (ID: {request.user.id})" if request.user.is_authenticated else "Anonymous user"
+    logger.info(f"Logout request from: {user_info}")
+    
     auth_logout(request)
+    logger.info(f"Successfully logged out: {user_info}")
     return JsonResponse({'message': 'Logged out successfully'})
 
 @require_http_methods(["GET"])
@@ -85,6 +100,7 @@ def user_view(request):
         - Call on page load to check if user is logged in.
     """
     if request.user.is_authenticated:
+        logger.debug(f"User info requested for authenticated user: {request.user.username} (ID: {request.user.id})")
         return JsonResponse({
             'user': {
                 'id': request.user.id,
@@ -93,6 +109,7 @@ def user_view(request):
             }
         })
     else:
+        logger.debug("User info requested for unauthenticated user")
         return JsonResponse({'error': 'Not authenticated'}, status=401)
 
 @require_http_methods(["GET","POST"])
@@ -110,25 +127,33 @@ def register_view(request):
         data = json.loads(request.body)
         email = data.get('email', '').lower().strip()
         username = data.get('username', '').strip()
+        logger.info(f"Registration attempt for email: {email}, username: {username}")
                 
         # Validate email domain
         if not email.endswith('@uoguelph.ca'):
+            logger.warning(f"Registration failed - invalid email domain: {email}")
             return JsonResponse({'error': 'Only @uoguelph.ca emails are allowed'}, status=400)
 
         # Check if email already exists
         if User.objects.filter(email=email).exists():
+            logger.warning(f"Registration failed - email already exists: {email}")
             return JsonResponse({'error': 'Email already registered'}, status=400)
 
         # Check if username already exists
         if User.objects.filter(username=username).exists():
+            logger.warning(f"Registration failed - username already taken: {username}")
             return JsonResponse({'error': 'Username already taken'}, status=400)
 
         password = data.get('password')
         if not password:
+            logger.warning(f"Registration failed - no password provided for: {email}")
             return JsonResponse({'error': 'Password is required'}, status=400)
+            
         # Generate a unique username if not provided
         if not username:
             username = generate_unique_username()
+            logger.debug(f"Generated unique username: {username} for email: {email}")
+            
         # Create user (inactive until email verification)
         user = User.objects.create_user(
             username=username,
@@ -136,14 +161,17 @@ def register_view(request):
             password=password,
             is_active=False
         )
+        logger.info(f"Created inactive user: {username} (ID: {user.id}) with email: {email}")
         
         # Create verification token
         verification_token = EmailVerificationToken.objects.create(user=user)
+        logger.debug(f"Created verification token for user: {username} (token: {verification_token.token[:8]}...)")
         
         # Send verification email
         success = send_verification_email_gmail(user, verification_token.token)
         
         if success:
+            logger.info(f"Registration successful and verification email sent to: {email}")
             return JsonResponse({
                 'message': 'Registration successful. Please check your email to verify your account.',
                 'user': {
@@ -155,27 +183,39 @@ def register_view(request):
             # Clean up user if email fails
             EmailVerificationToken.objects.filter(user=user).delete()
             user.delete()
+            logger.error(f"Registration failed - could not send verification email to: {email}")
             return JsonResponse({
                 'error': 'Failed to send verification email. Please try again or contact support.'
             }, status=500)
         
     except json.JSONDecodeError:
+        logger.error("Registration failed - invalid JSON in request body")
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
+        logger.error(f"Registration failed - unexpected error: {str(e)}")
         return JsonResponse({'error': 'Registration failed'}, status=500)
 
 def generate_unique_username():
     """
     Generates a unique username for users who do not provide one.
     """
-    while True:
+    attempts = 0
+    while attempts < 10:  # Prevent infinite loops
         username = f"Gryphon{random.randint(1, 8000)}"
         if not User.objects.filter(username=username).exists():
+            logger.debug(f"Generated unique username: {username} after {attempts + 1} attempts")
             return username
+        attempts += 1
+    
+    # Fallback to UUID if we can't generate a unique username
+    fallback_username = f"Gryphon{uuid.uuid4().hex[:8]}"
+    logger.warning(f"Used fallback username generation: {fallback_username}")
+    return fallback_username
 
 def send_verification_email_gmail(user, token):
     """Send verification email using Gmail SMTP"""
     try:
+        logger.info(f"Attempting to send verification email to: {user.email}")   
         verification_url = f"{settings.SITE_URL}/api/auth/verify-email/{token}/"
         
         subject = 'Verify Your Email Address'
@@ -226,9 +266,11 @@ def send_verification_email_gmail(user, token):
             html_message=html_message,
             fail_silently=False
         )
+        logger.info(f"Successfully sent verification email to: {user.email}")
         return True
         
     except Exception as e:
+        logger.error(f"Failed to send verification email to {user.email}: {str(e)}")
         return False
 
 @csrf_exempt
@@ -239,25 +281,33 @@ def verify_email(request, token):
     Returns a JSON response indicating the result.
     """
     try:
+        logger.info(f"Email verification attempt with token: {token[:8]}...")
+        
         verification_token = get_object_or_404(EmailVerificationToken, token=token)
+        user = verification_token.user
+        
+        logger.debug(f"Found verification token for user: {user.username} (ID: {user.id})")
 
         if verification_token.is_expired():
+            logger.warning(f"Email verification failed - token expired for user: {user.username}")
             return JsonResponse({'error': 'Verification link has expired. Please request a new one.'}, status=400)
 
         if verification_token.is_verified:
+            logger.info(f"Email verification - already verified for user: {user.username}")
             return JsonResponse({'message': 'Email already verified. You can now log in.'})
 
         # Verify the email
-        user = verification_token.user
         user.is_active = True
         user.save()
 
         verification_token.is_verified = True
         verification_token.save()
 
+        logger.info(f"Email successfully verified for user: {user.username} (ID: {user.id})")
         return JsonResponse({'message': 'Email verified successfully! You can now log in.'})
 
-    except Exception:
+    except Exception as e:
+        logger.error(f"Email verification failed for token {token[:8]}...: {str(e)}")
         return JsonResponse({'error': 'Invalid verification link.'}, status=400)
 
 @require_http_methods(["POST"])
@@ -274,20 +324,36 @@ def resend_verification(request):
     try:
         data = json.loads(request.body)
         email = data.get('email', '').lower().strip()
+        
+        logger.info(f"Resend verification email request for: {email}")
+        
         user = User.objects.filter(email=email).first()
         if not user:
+            logger.warning(f"Resend verification failed - user not found: {email}")
             return JsonResponse({'error': 'User not found.'}, status=404)
+            
         if user.is_active:
+            logger.info(f"Resend verification - email already verified for: {email}")
             return JsonResponse({'message': 'Email already verified.'})
+            
         # Delete old tokens and create a new one
+        old_tokens_count = EmailVerificationToken.objects.filter(user=user).count()
         EmailVerificationToken.objects.filter(user=user).delete()
+        logger.debug(f"Deleted {old_tokens_count} old verification tokens for user: {user.username}")
+        
         verification_token = EmailVerificationToken.objects.create(user=user)
+        logger.debug(f"Created new verification token for user: {user.username}")
+        
         success = send_verification_email_gmail(user, verification_token.token)
+        
         if success:
+            logger.info(f"Successfully resent verification email to: {email}")
             return JsonResponse({'message': 'Verification email resent.', 'resent': True})
         else:
+            logger.error(f"Failed to resend verification email to: {email}")
             return JsonResponse({'error': 'Failed to send verification email.', 'resent': False}, status=500)
     except Exception as e:
+        logger.error(f"Resend verification failed: {str(e)}")
         return JsonResponse({'error': 'Failed to resend verification email.'}, status=500)
 
 # --- API ViewSets for Posts and Comments ---
@@ -314,11 +380,13 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Override to automatically set the user when creating a post"""
-        serializer.save(user=self.request.user)
+        post = serializer.save(user=self.request.user)
+        logger.info(f"Post created by user {self.request.user.username} (ID: {self.request.user.id}): '{post.title}' (Post ID: {post.id})")
 
     def perform_update(self, serializer):
         """Override to ensure user can only update their own posts"""
-        serializer.save()
+        post = serializer.save()
+        logger.info(f"Post updated by user {self.request.user.username} (ID: {self.request.user.id}): '{post.title}' (Post ID: {post.id})")
 
     @action(detail=True, methods=['get'], url_path='comments')
     def comments(self, request, pk=None):
@@ -331,7 +399,11 @@ class PostViewSet(viewsets.ModelViewSet):
         """
         post = self.get_object()
         comments = post.comments.filter(is_deleted=False)
-        serializer = CommentSerializer(comments, many=True, context={'request': request})  # Add context here
+        comment_count = comments.count()
+        
+        logger.debug(f"Comments requested for post {post.id} by user {request.user.username}: {comment_count} comments found")
+        
+        serializer = CommentSerializer(comments, many=True, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'], url_path='vote')
@@ -344,7 +416,10 @@ class PostViewSet(viewsets.ModelViewSet):
         post = self.get_object()
         value = request.data.get('value')
         
+        logger.debug(f"Vote attempt on post {post.id} by user {request.user.username}: value={value}")
+        
         if value not in [1, -1]:
+            logger.warning(f"Invalid vote value {value} for post {post.id} by user {request.user.username}")
             return Response({'error': 'Value must be 1 or -1'}, status=status.HTTP_400_BAD_REQUEST)
         
         post_content_type = ContentType.objects.get_for_model(Post)
@@ -357,14 +432,21 @@ class PostViewSet(viewsets.ModelViewSet):
             defaults={'value': value}
         )
         
+        action_taken = ""
         if not created:
             if vote.value == value:
                 # Same vote - remove it (toggle off)
                 vote.delete()
+                action_taken = "removed"
             else:
                 # Different vote - update it
                 vote.value = value
                 vote.save()
+                action_taken = "changed"
+        else:
+            action_taken = "created"
+        
+        logger.info(f"Vote {action_taken} on post {post.id} by user {request.user.username}: value={value}")
         
         # Return updated post data using serializer
         serializer = PostSerializer(post, context={'request': request})
@@ -380,6 +462,9 @@ class PostViewSet(viewsets.ModelViewSet):
             - Use for searching posts by keywords.
         """
         query = request.query_params.get('q', '').strip()
+        
+        logger.info(f"Post search by user {request.user.username}: query='{query}'")
+        
         posts = Post.objects.filter(
             Q(title__icontains=query) | Q(content__icontains=query),
             is_deleted=False
@@ -389,10 +474,14 @@ class PostViewSet(viewsets.ModelViewSet):
             Q(job_title__icontains=query) |
             Q(organization__icontains=query)
         ).order_by('-created_at')
+        
+        result_count = posts.count()
+        logger.info(f"Post search completed: query='{query}', results={result_count}")
+        
         serializer = PostSerializer(posts, many=True)
         return Response({
             'query': query,
-            'count': posts.count(),
+            'count': result_count,
             'results': serializer.data
         })
 
@@ -416,7 +505,12 @@ class CommentViewSet(viewsets.ModelViewSet):
         """
         Automatically sets the user when creating a comment.
         """
-        serializer.save(user=self.request.user)
+        comment = serializer.save(user=self.request.user)
+        post_info = f"post {comment.post.id}" if comment.post else "no post"
+        parent_info = f"parent comment {comment.parent.id}" if comment.parent else "top-level"
+        
+        logger.info(f"Comment created by user {self.request.user.username} (ID: {self.request.user.id}): "
+                   f"Comment ID {comment.id} on {post_info} ({parent_info})")
 
     @action(detail=True, methods=['post'], url_path='vote')
     def vote(self, request, pk=None):
@@ -428,7 +522,10 @@ class CommentViewSet(viewsets.ModelViewSet):
         comment = self.get_object()
         value = request.data.get('value')
         
+        logger.debug(f"Vote attempt on comment {comment.id} by user {request.user.username}: value={value}")
+        
         if value not in [1, -1]:
+            logger.warning(f"Invalid vote value {value} for comment {comment.id} by user {request.user.username}")
             return Response({'error': 'Value must be 1 or -1'}, status=status.HTTP_400_BAD_REQUEST)
         
         comment_content_type = ContentType.objects.get_for_model(Comment)
@@ -441,14 +538,21 @@ class CommentViewSet(viewsets.ModelViewSet):
             defaults={'value': value}
         )
         
+        action_taken = ""
         if not created:
             if vote.value == value:
                 # Same vote - remove it (toggle off)
                 vote.delete()
+                action_taken = "removed"
             else:
                 # Different vote - update it
                 vote.value = value
                 vote.save()
+                action_taken = "changed"
+        else:
+            action_taken = "created"
+        
+        logger.info(f"Vote {action_taken} on comment {comment.id} by user {request.user.username}: value={value}")
         
         # Return updated comment data using serializer
         serializer = CommentSerializer(comment, context={'request': request})
