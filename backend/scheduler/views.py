@@ -82,7 +82,9 @@ def conflict_free_schedule(request):
     Request:
         JSON: {
             "courses": [
-                {"course_type": "ENGG", "course_code": "3380"},
+                {"course_type": "ENGG", "course_code": "3380", "course_section": "02"}, 
+                # Here course_section is optional, if user wants to select a specific section for a specific course they can do that, if no section is provided, 
+                # all sections for that course will be considered.
                 {"course_type": "CIS", "course_code": "3750"}
             ],
             "offered_term": "Fall 2025",
@@ -132,11 +134,21 @@ def conflict_free_schedule(request):
         # Get all sections for each course with their events
         course_data = []
         for course in selected_courses:
-            sections = Course.objects.filter(
-                course_type=course["course_type"],
-                course_code=course["course_code"],
-                offered_term=offered_term
-            )
+            # Here course_section is optional, if user wants to select a specific section for a specific course they can do that, if no section is provided, 
+            # all sections for that course will be considered.
+            if not course.get("course_section"):
+                sections = Course.objects.filter(
+                    course_type=course["course_type"],
+                    course_code=course["course_code"],
+                    offered_term=offered_term
+                )
+            else:
+                sections = Course.objects.filter(
+                    course_type=course["course_type"],
+                    course_code=course["course_code"],
+                    section_number=course["course_section"],
+                    offered_term=offered_term
+                )
             section_events = []
             for section in sections:
                 events = list(Event.objects.filter(course_id=section.course_id).values(
