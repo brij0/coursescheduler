@@ -87,3 +87,11 @@ class Event(models.Model):
 
     class Meta:
         db_table = "events"
+
+class ConflictFreeSchedules(models.Model):
+    id = models.AutoField(primary_key=True)
+    offered_term = models.CharField(max_length=20, db_index=True)
+    courses = models.TextField(max_length=1000, null=True, blank=True,default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    conflict_free = models.JSONField(help_text="List of conflict-free schedules")

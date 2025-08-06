@@ -1,6 +1,6 @@
 import json
 from django.http import JsonResponse, HttpResponse
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from scheduler.models import Course, CourseEvent
 from .models import CourseGrade, AssessmentGrade, GpaCalcProgress, GradingScheme, AssessmentWeightage
@@ -8,11 +8,12 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
 from io import BytesIO
-import time
-from django.db import connection
+import logging
 
+logger = logging.getLogger(__name__)
 app_name = "GPA-Calculator"
-@require_GET
+@require_http_methods(["GET", "POST"])
+@csrf_exempt
 def get_offered_terms(request):
     """
     API: Get all available terms
@@ -23,27 +24,21 @@ def get_offered_terms(request):
     Frontend usage:
     - Call to populate term dropdown in UI
     """
-
-    # Add query timing
-    query_start = time.perf_counter()
+    data = json.loads(request.body) if request.body else {}
+    # Added has_events flag because for scheduler app, we don't need to have courses with events
+    # And we won't have events when students will use scheduler app because by then we wont have 
+    # Course outlines to extract events from.
+    has_events = data.get("has_events", True) 
+    print(f"Fetching offered terms with has_events={has_events}")
     terms = (
-        Course.objects
-        .filter(has_events=True)
-        .values_list("offered_term", flat=True)
-        .distinct()
-        .order_by("offered_term")
-    )
+            Course.objects
+            .filter(has_events=has_events)
+            .values_list("offered_term", flat=True)
+            .distinct()
+            .order_by("offered_term")
+        )
     terms_list = list(terms)  # Execute the query
-    query_time = time.perf_counter() - query_start
-    
-    # Add response creation timing
-    response_start = time.perf_counter()
     response = JsonResponse(terms_list, safe=False)
-    response_time = time.perf_counter() - response_start
-    
-    # Add custom timing headers
-    response['X-Query-Time'] = f"{query_time*1000:.2f}ms"
-    response['X-Response-Time'] = f"{response_time*1000:.2f}ms"
     
     return response
 
@@ -63,34 +58,25 @@ def get_course_types(request):
     - Call when user selects a term to populate the course type dropdown
     """
     
-    # JSON parsing timing
-    parse_start = time.perf_counter()
     data = json.loads(request.body)
     cterm = data.get("offered_term")
-    parse_time = time.perf_counter() - parse_start
-    
-    # Query timing
-    query_start = time.perf_counter()
-    types = (
-        Course.objects
-        .filter(has_events=True, offered_term=cterm)
-        .values_list("course_type", flat=True)
-        .distinct()
-        .order_by("course_type")
-    )
-    types_list = list(types)  # Execute the query
-    query_time = time.perf_counter() - query_start
-    
-    # Response creation timing
-    response_start = time.perf_counter()
+    # Added has_events flag because for scheduler app, we don't need to have courses with events
+    # And we won't have events when students will use scheduler app because by then we wont have 
+    # Course outlines to extract events from.
+    has_events = data.get("has_events", True) 
+    try:
+        types = (
+            Course.objects
+            .filter(has_events=has_events, offered_term=cterm)
+            .values_list("course_type", flat=True)
+            .distinct()
+            .order_by("course_type")
+        )
+        types_list = list(types)
+    except Exception as e:
+        logger.error(f"Fetching course types failed: {e}")
+        types_list = []
     response = JsonResponse(types_list, safe=False)
-    response_time = time.perf_counter() - response_start
-    
-    # Add custom timing headers
-    response['X-Parse-Time'] = f"{parse_time*1000:.2f}ms"
-    response['X-Query-Time'] = f"{query_time*1000:.2f}ms"
-    response['X-Response-Time'] = f"{response_time*1000:.2f}ms"
-    
     return response
 
 @require_POST
@@ -112,15 +98,23 @@ def get_course_codes(request):
     - Call when user selects a course type to populate the course code dropdown
     """
     data = json.loads(request.body)
+    # Added has_events flag because for scheduler app, we don't need to have courses with events
+    # And we won't have events when students will use scheduler app because by then we wont have 
+    # Course outlines to extract events from.
+    has_events = data.get("has_events", True) 
     cterm = data.get("offered_term")
     ctype = data.get("course_type")
-    codes = (
-        Course.objects
-        .filter(course_type=ctype, offered_term=cterm, has_events=True) #2025-08-01 OPTIMIZED: Uses has_events boolean field instead of JOIN Performance: ~5-10ms instead of 120ms
-        .values_list("course_code", flat=True)
-        .distinct()
-        .order_by("course_code")
-    )
+    try:
+        codes = (
+            Course.objects
+            .filter(course_type=ctype, offered_term=cterm, has_events=has_events) #2025-08-01 OPTIMIZED: Uses has_events boolean field instead of JOIN Performance: ~5-10ms instead of 120ms
+            .values_list("course_code", flat=True)
+            .distinct()
+            .order_by("course_code")
+        )
+    except Exception as e:
+        logger.error(f"Fetching course codes failed: {e}")
+        codes = []
     return JsonResponse(list(codes), safe=False)
 
 @require_POST
@@ -143,12 +137,16 @@ def get_section_numbers(request):
     - Call when user selects a course code to populate the section dropdown
     """
     data = json.loads(request.body)
+     # Added has_events flag because for scheduler app, we don't need to have courses with events
+    # And we won't have events when students will use scheduler app because by then we wont have 
+    # Course outlines to extract events from.
+    has_events = data.get("has_events", True) 
     ctype = data.get("course_type")
     ccode = data.get("course_code")
     cterm = data.get("offered_term")
     secs = (
         Course.objects
-        .filter(course_type=ctype, offered_term=cterm, course_code=ccode, has_events=True) #2025-08-01 OPTIMIZED: Uses has_events boolean field instead of JOIN Performance: ~5-10ms instead of 120ms
+        .filter(course_type=ctype, offered_term=cterm, course_code=ccode, has_events=has_events) #2025-08-01 OPTIMIZED: Uses has_events boolean field instead of JOIN Performance: ~5-10ms instead of 120ms
         .values_list("section_number", flat=True)
         .distinct()
         .order_by("section_number")
@@ -275,15 +273,15 @@ def calculate_gpa(request):
     - For logged-in users, this data is automatically saved
     """
     
-    payload = json.loads(request.body)
-    offered_term = payload.get("offered_term")
+    data = json.loads(request.body)
+    offered_term = data.get("offered_term")
     
     # Store course objects and their schemes for permutation calculation
     course_schemes = []
     total_credit = 0
     
     # First pass: Gather all courses and their available schemes
-    for c in payload.get("courses", []):
+    for c in data.get("courses", []):
         course_obj = Course.objects.get(
             course_type=c["course_type"],
             course_code=c["course_code"],
@@ -432,7 +430,7 @@ def calculate_gpa(request):
     
     # Save the original assessments for progress tracking
     clean_courses = []
-    for course in payload.get("courses", []):
+    for course in data.get("courses", []):
         clean_assessments = []
         for a in course.get("assessments", []):
             clean_assessments.append({
@@ -452,7 +450,7 @@ def calculate_gpa(request):
         "individual_schemes": individual_scheme_results,
         "total_credit": float(total_credit),
         "courses": clean_courses,
-        "offered_term": payload.get("offered_term", ""),
+        "offered_term": data.get("offered_term", ""),
     }
     
     # Save progress for logged-in users

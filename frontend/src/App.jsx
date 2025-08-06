@@ -10,6 +10,7 @@ import EmailVerificationPage from './pages/EmailVerificationPage'
 import GPACalculatorPage from './pages/GPACalculatorPage'
 import CoopForumPage from './pages/CoopForumPage' 
 import PostPage from './pages/PostPage'
+import SchedulerPage from './pages/SchedulerPage'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -38,6 +39,7 @@ function App() {
           <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
           <Route path="/gpa-calculator" element={<GPACalculatorPage />} />
           <Route path="/coop-forum" element={<CoopForumPage />} />
+          <Route path="/schedule" element={<SchedulerPage/>} />
           <Route path="/coop-forum/post/:id" element={<PostPage />} />
         </Routes>
       </div>

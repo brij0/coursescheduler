@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { User, Menu, X, LogOut, ChevronDown } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
+
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
@@ -29,6 +30,7 @@ const Navbar = () => {
     { name: 'Home', path: '/' },
     { name: 'GPA Calculator', path: '/gpa-calculator' },
     { name: 'Co-op Forum', path: '/coop-forum' },
+    { name: 'Scheduler', path: '/schedule' },
     { name: 'About', path: '/about' },
     { name: 'Privacy', path: '/privacy' },
   ]

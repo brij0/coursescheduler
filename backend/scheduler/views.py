@@ -152,9 +152,9 @@ def conflict_free_schedule(request):
                     times = e["times"].split('-')
                     days = []
                     if e["days"]:
-                        for words in e["days"].split(','):
-                            if words.strip():
-                                days.append(words.strip())
+                        for day in e["days"].split(','):
+                            if day.strip():
+                                days.append(day.strip())
                     
                     time_part = e["times"]
                     if times:
@@ -163,6 +163,7 @@ def conflict_free_schedule(request):
                             start_24 = datetime.strptime(start, "%I:%M %p").time()
                             end_24 = datetime.strptime(end, "%I:%M %p").time()
                         except:
+                            logger.error(f"Error parsing time '{time_part}' for event {e}")
                             start_24 = end_24 = None
                     else:
                         start_24 = end_24 = None
