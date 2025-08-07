@@ -262,3 +262,6 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TASK_ALWAYS_EAGER = False  # Ensure this is False in production
+
+# Timezone settings
+TIME_ZONE = 'America/Toronto'

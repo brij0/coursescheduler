@@ -14,7 +14,7 @@ urlpatterns = [
     path('api/scheduler/', include('scheduler.api_urls', namespace='scheduler-api')),
     path('api/gpacalc/', include('gpacalc.api_urls', namespace='gpacalc-api')),
     path('api/coopforum/', include((router.urls, 'coopforum'), namespace='coopforum-api')),
-
+    path('api/metrics/', include('metrics.api_urls', namespace='metrics-api')),
     # Authentication API endpoints
     path('api/auth/', include('coopforum.auth_urls', namespace='auth-api')),
 

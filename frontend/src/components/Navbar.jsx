@@ -31,6 +31,7 @@ const Navbar = () => {
     { name: 'GPA Calculator', path: '/gpa-calculator' },
     { name: 'Co-op Forum', path: '/coop-forum' },
     { name: 'Scheduler', path: '/scheduler' },
+    { name: 'Dashboard', path: '/dashboard' },
     { name: 'About', path: '/about' },
     { name: 'Privacy', path: '/privacy' },
   ]

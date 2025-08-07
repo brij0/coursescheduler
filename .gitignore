@@ -19,7 +19,7 @@ frontend/node_modules/
 *.gpg
 *.enc
 *.jks
-*.log
+*.log*
 # Ignore SSL certificates
 *.github
 *.json

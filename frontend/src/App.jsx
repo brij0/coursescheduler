@@ -13,6 +13,7 @@ import PostPage from './pages/PostPage'
 import SchedulerPage from './pages/SchedulerPage'
 import ConflictFreeSchedulePage from './pages/ConflictFreeSchedulePage'
 import EventBuilderPage from './pages/EventBuilderPage'
+import DashboardPage from './pages/DashboardPage'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -45,6 +46,7 @@ function App() {
           <Route path="/conflict-free-schedule" element={<ConflictFreeSchedulePage />} />
           <Route path="/coop-forum/post/:id" element={<PostPage />} />
           <Route path="/scheduler" element={<SchedulerPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
         </Routes>
       </div>
     </AuthProvider>
