@@ -29,10 +29,17 @@ def get_offered_terms(request):
     # And we won't have events when students will use scheduler app because by then we wont have 
     # Course outlines to extract events from.
     has_events = data.get("has_events", True) 
-    print(f"Fetching offered terms with has_events={has_events}")
-    terms = (
+    if has_events == True:
+        terms = (
+                Course.objects
+                .filter(has_events=has_events)
+                .values_list("offered_term", flat=True)
+                .distinct()
+                .order_by("offered_term")
+            )
+    else:
+        terms = (
             Course.objects
-            .filter(has_events=has_events)
             .values_list("offered_term", flat=True)
             .distinct()
             .order_by("offered_term")
@@ -64,7 +71,7 @@ def get_course_types(request):
     # And we won't have events when students will use scheduler app because by then we wont have 
     # Course outlines to extract events from.
     has_events = data.get("has_events", True) 
-    try:
+    if has_events == True:
         types = (
             Course.objects
             .filter(has_events=has_events, offered_term=cterm)
@@ -72,11 +79,16 @@ def get_course_types(request):
             .distinct()
             .order_by("course_type")
         )
-        types_list = list(types)
-    except Exception as e:
-        logger.error(f"Fetching course types failed: {e}")
-        types_list = []
-    response = JsonResponse(types_list, safe=False)
+
+    else:
+        types = (
+            Course.objects
+            .filter(offered_term=cterm)
+            .values_list("course_type", flat=True)
+            .distinct()
+            .order_by("course_type")
+        )
+    response = JsonResponse(list(types), safe=False)
     return response
 
 @require_POST
@@ -104,7 +116,7 @@ def get_course_codes(request):
     has_events = data.get("has_events", True) 
     cterm = data.get("offered_term")
     ctype = data.get("course_type")
-    try:
+    if has_events == True:
         codes = (
             Course.objects
             .filter(course_type=ctype, offered_term=cterm, has_events=has_events) #2025-08-01 OPTIMIZED: Uses has_events boolean field instead of JOIN Performance: ~5-10ms instead of 120ms
@@ -112,9 +124,14 @@ def get_course_codes(request):
             .distinct()
             .order_by("course_code")
         )
-    except Exception as e:
-        logger.error(f"Fetching course codes failed: {e}")
-        codes = []
+    else:
+        codes = (
+            Course.objects
+            .filter(course_type=ctype, offered_term=cterm)
+            .values_list("course_code", flat=True)
+            .distinct()
+            .order_by("course_code")
+        )
     return JsonResponse(list(codes), safe=False)
 
 @require_POST
@@ -144,13 +161,22 @@ def get_section_numbers(request):
     ctype = data.get("course_type")
     ccode = data.get("course_code")
     cterm = data.get("offered_term")
-    secs = (
-        Course.objects
-        .filter(course_type=ctype, offered_term=cterm, course_code=ccode, has_events=has_events) #2025-08-01 OPTIMIZED: Uses has_events boolean field instead of JOIN Performance: ~5-10ms instead of 120ms
-        .values_list("section_number", flat=True)
-        .distinct()
-        .order_by("section_number")
-    )
+    if has_events == True:
+        secs = (
+            Course.objects
+            .filter(course_type=ctype, offered_term=cterm, course_code=ccode, has_events=has_events) #2025-08-01 OPTIMIZED: Uses has_events boolean field instead of JOIN Performance: ~5-10ms instead of 120ms
+            .values_list("section_number", flat=True)
+            .distinct()
+            .order_by("section_number")
+        )
+    else:
+        secs = (
+            Course.objects
+            .filter(course_type=ctype, offered_term=cterm, course_code=ccode)
+            .values_list("section_number", flat=True)
+            .distinct()
+            .order_by("section_number")
+        )
     return JsonResponse(list(secs), safe=False)
 
 @require_POST

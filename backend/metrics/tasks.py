@@ -16,7 +16,6 @@ def log_api_metrics(self, data):
             status_code=data.get("status_code"),
             extra={
                 "query_params": data.get("query_params", {}),
-                # Remove body or add size limits
             }
         )
     except Exception as e:
@@ -25,7 +24,6 @@ def log_api_metrics(self, data):
 @shared_task(bind=True)
 def estimate_user_year(self, request_data):
     try:
-        # print("Received request data in estimate_user_year:", request_data)
         payload = json.loads(request_data)
         course_list = payload.get("courses", [])
 
@@ -46,19 +44,20 @@ def estimate_user_year(self, request_data):
         first_digits = [int(code[0]) for code in course_codes if code and code[0].isdigit()]
         most_common_first_digit = Counter(first_digits).most_common(1)[0][0] if first_digits else None
 
-        if most_common_first_digit and payload.get("user_id"):
-            EstimateUserYear.objects.update_or_create(
-                user_id=payload.get("user_id"),
-                session_id=payload.get("session_id"),
-                defaults={
-                    'year': most_common_first_digit,
-                    'school': most_common_course
-                }
-            )
-            # print(f"Successfully saved user year estimate: {most_common_first_digit}")
+        if payload.get("session_id"):
+            try:
+                EstimateUserYear.objects.update_or_create(
+                    user_id= payload.get("user_id") or None,
+                    session_id=payload.get("session_id"),
+                    defaults={
+                        'year': most_common_first_digit,
+                        'school': most_common_course
+                    }
+                )
+            except Exception as e:
+                return {"status": "error", "detail": str(e)}
         
-        return {"status": "success", "year": most_common_first_digit}
+        return {"status": "success", "year": most_common_first_digit, "school": most_common_course}
         
     except Exception as e:
-        # print(f"Error in estimate_user_year task: {e}")
         return {"status": "error", "detail": str(e)}

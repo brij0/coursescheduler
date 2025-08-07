@@ -1,3 +1,5 @@
-from django.shortcuts import render
+from .models import ApiTimingLog, EstimateUserYear
+from django.views.decorators.csrf import csrf_exempt
 
-# Create your views here.
+# @csrf_exempt
+# def 

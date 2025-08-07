@@ -360,8 +360,8 @@ def export_events_ics_format(request):
         data = json.loads(request.body)
         
         for _, value in data.items():
+            course = f"{_}"
             for event in value:
-                course = event.get("course", {})
                 event_type = event.get("event_type", {})
                 event_date = event.get("event_date", "")
                 location = event.get("location", "")

@@ -9,8 +9,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'coursescheduler.settings')
 from django.db import transaction
 from scheduler.models import Course, CourseEvent
 from gpacalc.models import GradingScheme, AssessmentWeightage
-from applogger.utils import log_info, log_error, log_debug
-
+import logging
+logger = logging.getLogger(__name__)
 def get_db_connection():
     """
     Connect to the MySQL database using the credentials from environment variables.
@@ -28,10 +28,10 @@ def get_db_connection():
             database=os.getenv("DB_NAME")
         )
         db_cursor = db_connection.cursor()
-        log_info("Connected to the database successfully!")
+        logger.info("Connected to the database successfully!")
         return db_connection, db_cursor
     except mysql.connector.Error as err:
-        log_error(f"Error: {err}")
+        logger._error(f"Error: {err}")
         return None, None
     
 # Function to insert cleaned course sections from web scraping and insert their events into the database
@@ -53,7 +53,6 @@ def insert_cleaned_sections(courses_data):
         "Sa": "Saturday",
         "Su": "Sunday"
     }
-
     db_connection, db_cursor = get_db_connection()
     # log_debug(f"course_data = {courses_data}")
     try:
@@ -61,41 +60,47 @@ def insert_cleaned_sections(courses_data):
         for course_codes, term_sections in courses_data.items():
             # Process each term for the current course
             for term, sections in term_sections.items():
-                log_info(f"Processing term: {term}")
+                logger.info(f"Processing term: {term}")
                 
                 # Process each section in the term
-                for section_info in sections:
+                for sectioninfo in sections:
                     # Clean and truncate section data
                     offered_term = term[:20] if term else ''  # VARCHAR(20)
-                    section_name = section_info.get('section_name', '')[:20]
-                    seats_info = section_info.get('seats', '0/0')[:20]
-                    course_code = section_info.get('course_code', 'Unknown')[:20]
-                    instructors = ', '.join(section_info.get('instructors', ['Unknown']))[:50]
-                    course_type = section_info.get('course_type', 'Unknown')[:20]
-                    section_number = section_info.get('section_number', '')[:20]
-                    credits = section_info.get('credits')  # Assuming credits is an integer
+                    section_name = sectioninfo.get('section_name', '')[:20]
+                    seatsinfo = sectioninfo.get('seats', '0/0')[:20]
+                    course_code = sectioninfo.get('course_code', 'Unknown')[:20]
+                    instructors = ', '.join(sectioninfo.get('instructors', ['Unknown']))[:50]
+                    course_type = sectioninfo.get('course_type', 'Unknown')[:20]
+                    section_number = sectioninfo.get('section_number', '')[:20]
+                    credits = sectioninfo.get('credits')  # Assuming credits is an integer
+                    has_events = False
                     # Insert section into database
                     insert_section_query = """
                         INSERT INTO courses 
-                        (offered_term, section_name, seats, instructor, course_type, course_code, section_number,credits)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s,%s)
+                        (offered_term, section_name, seats, instructor, course_type, course_code, section_number,credits,has_events)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s,%s, %s)
                     """
                     params = (
                         offered_term,
                         section_name,
-                        seats_info,
+                        seatsinfo,
                         instructors,
                         course_type,
                         course_code,  
                         section_number,
-                        credits
+                        credits,
+                        has_events
                     )
-                    log_info(f"Inserting section: {params}")
-                    db_cursor.execute(insert_section_query, params)
-                    course_id = db_cursor.lastrowid
-
+                    logger.info(f"Inserting section: {params}")
+                    try:
+                        db_cursor.execute(insert_section_query, params)
+                        course_id = db_cursor.lastrowid
+                
+                    except Exception as e:
+                        logger.error(f"Error inserting section {section_name} for course {course_code}: {e}")
+                        continue
                     # Process meeting details
-                    for meeting_detail in section_info.get('meeting_details', []):
+                    for meeting_detail in sectioninfo.get('meeting_details', []):
                         # Extract and clean times
                         times = meeting_detail.get('times', [])
                         
@@ -167,15 +172,14 @@ def insert_cleaned_sections(courses_data):
                             (course_id, event_type, times, location, days, dates)
                             VALUES (%s, %s, %s, %s, %s, %s)
                         """
-                        log_info(f"Inserting event: {course_id}, {event_type}, {time_range_str}, {location}, {days_str}, {date_range_str}")
                         db_cursor.execute(insert_event_query, 
                                         (course_id, event_type, time_range_str, location, 
                                         days_str, date_range_str))
 
         db_connection.commit()
-        log_info("Successfully inserted all sections and events")
+        logger.info("Successfully inserted all sections and events")
     except Exception as e:
-        log_error(f"An error occurred while adding data to the database: {e}")
+        logger._error(f"An error occurred while adding data to the database: {e}")
         db_connection.rollback()
     finally:
         db_cursor.close()
@@ -204,7 +208,7 @@ def batch_insert_events_with_schemes(events_list, course_id):
     try:
         course = Course.objects.get(course_id=course_id)
     except Course.DoesNotExist:
-        log_error(f"Course with ID {course_id} does not exist")
+        logger._error(f"Course with ID {course_id} does not exist")
         raise ValueError(f"Course with ID {course_id} does not exist")
     
     # Collect all unique scheme names from all events
@@ -228,8 +232,6 @@ def batch_insert_events_with_schemes(events_list, course_id):
                 }
             )
             schemes[scheme_name] = scheme
-            if created:
-                log_info(f"Created new grading scheme: {scheme_name} for course {course}")
         
         # Step 2: Insert events and their weightages
         for event_data in events_list:
@@ -258,9 +260,9 @@ def batch_insert_events_with_schemes(events_list, course_id):
                             course_event=course_event,
                             weightage=float(weight_value)
                         )
-            log_info(f"Created event: {course_event.event_type} with {len(weightage_data)} scheme weightages")
+            logger.info(f"Created event: {course_event.event_type} with {len(weightage_data)} scheme weightages")
     
-    log_info(f"Successfully inserted {len(events_list)} events with {len(all_scheme_names)} grading schemes")
+    logger.info(f"Successfully inserted {len(events_list)} events with {len(all_scheme_names)} grading schemes")
     return {
         'events_created': len(events_list),
         'schemes_created': len(all_scheme_names),
@@ -330,7 +332,7 @@ def get_section_details(school_code, course_code, section_number, offered_term):
 
         return section_details
     except Exception as e:
-        log_error(f"Database error: {e}")
+        logger._error(f"Database error: {e}")
         return {'course_id': None, 'section_details': []}
     finally:
         db_cursor.close()

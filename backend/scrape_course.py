@@ -2,7 +2,8 @@ import os
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'coursescheduler.settings')
 import django
 django.setup()
-from applogger.utils import log_info, log_error
+import logging
+logger = logging.getLogger(__name__)
 import time
 from seleniumbase import SB
 from bs4 import BeautifulSoup
@@ -161,7 +162,7 @@ def scrape_courses(list_of_course_types):
         courses_scraped = 0
         base_url = 'https://colleague-ss.uoguelph.ca/Student/Courses/Search?keyword={}'
         
-        log_info(f"Starting scrape for course type: {course_type}")
+        logger.info(f"Starting scrape for course type: {course_type}")
         
         try:
             with SB(browser="chrome") as sb:
@@ -169,7 +170,7 @@ def scrape_courses(list_of_course_types):
                 sb.open(url)
                 sb.wait(3)
                 total_pages = get_total_pages(sb.get_page_source())
-                log_info(f"Found {total_pages} pages for {course_type}")
+                logger.info(f"Found {total_pages} pages for {course_type}")
                 
                 for page in range(1, total_pages + 1):
                     sb.type('input[id="course-results-current-page"]', str(page))
@@ -181,7 +182,7 @@ def scrape_courses(list_of_course_types):
                         list_of_courses = extract_course_list(page_source)
                         list_of_missing_courses = get_missing_courses(list_of_courses)
                         
-                        log_info(f"Page {page}/{total_pages} for {course_type}: Found {list_of_missing_courses} courses to scrape")
+                        logger.info(f"Page {page}/{total_pages} for {course_type}: Found {list_of_missing_courses} courses to scrape")
                         
                         for course in list_of_missing_courses:
                             course_start_time = time.perf_counter()
@@ -200,20 +201,20 @@ def scrape_courses(list_of_course_types):
                                     sb.wait(2)
                                     sb.type('input[id="course-results-current-page"]', str(page))
                                     course_duration = time.perf_counter() - course_start_time
-                                    log_info(f"Scraped course {course} in {course_duration:.2f}s", 
+                                    logger.info(f"Scraped course {course} in {course_duration:.2f}s", 
                                              extra={"course": course, "duration": course_duration})
                                 else:
                                     continue
                             except Exception as e:
-                                log_error(f"Error scraping course {course}", extra={"error": str(e), "course": course})
+                                logger.error(f"Error scraping course {course}", extra={"error": str(e), "course": course})
                                 continue
                     
                         page_duration = time.perf_counter() - page_start_time
-                        log_info(f"Completed page {page}/{total_pages} for {course_type} in {page_duration:.2f}s", 
+                        logger.info(f"Completed page {page}/{total_pages} for {course_type} in {page_duration:.2f}s", 
                                  extra={"page": page, "total_pages": total_pages, "course_type": course_type, "duration": page_duration})
                         
                     except Exception as e:
-                        log_error(f"Error processing page {page} for {course_type}", extra={"error": str(e)})
+                        logger.error(f"Error processing page {page} for {course_type}", extra={"error": str(e)})
                         continue
                     insert_cleaned_sections(page_scraped_courses)
                     all_scraped_courses.update(page_scraped_courses)
@@ -229,20 +230,20 @@ def scrape_courses(list_of_course_types):
                 "avg_time_per_course": avg_time_per_course
             }
             
-            log_info(f"Completed scraping {course_type}: {courses_scraped} courses in {course_type_duration:.2f}s (avg: {avg_time_per_course:.2f}s per course)",
+            logger.info(f"Completed scraping {course_type}: {courses_scraped} courses in {course_type_duration:.2f}s (avg: {avg_time_per_course:.2f}s per course)",
                      extra={"course_type": course_type, 
                             "courses_scraped": courses_scraped, 
                             "duration": course_type_duration,
                             "avg_time_per_course": avg_time_per_course})
             
         except Exception as e:
-            log_error(f"Fatal error scraping course type {course_type}", extra={"error": str(e)})
+            logger.error(f"Fatal error scraping course type {course_type}", extra={"error": str(e)})
     
     total_duration = time.perf_counter() - total_start_time
     total_courses = sum(stats["total_courses"] for stats in scraping_stats.values())
     avg_time_overall = total_duration / total_courses if total_courses > 0 else 0
     
-    log_info(f"Completed scraping all course types: {total_courses} courses in {total_duration:.2f}s (avg: {avg_time_overall:.2f}s per course)",
+    logger.info(f"Completed scraping all course types: {total_courses} courses in {total_duration:.2f}s (avg: {avg_time_overall:.2f}s per course)",
              extra={"total_courses": total_courses, 
                     "total_duration": total_duration,
                     "avg_time_per_course": avg_time_overall,
@@ -250,6 +251,6 @@ def scrape_courses(list_of_course_types):
     
     return True
 if __name__ == '__main__':
-    course_types = ['PSYC','HIST','MGMT','POLS']
-    # course_types = ['HK']
+    # course_types = ['PSYC','HIST','MGMT','POLS']
+    course_types = ['ENGG','MATH','BIOL','CHEM','PHYS','ECON','SOCI','ANTH','GEOG','PHIL','COMM','NUTR','FDSC','STAT','CPSC']
     scraped = scrape_courses(course_types)

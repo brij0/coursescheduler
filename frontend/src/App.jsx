@@ -11,6 +11,8 @@ import GPACalculatorPage from './pages/GPACalculatorPage'
 import CoopForumPage from './pages/CoopForumPage' 
 import PostPage from './pages/PostPage'
 import SchedulerPage from './pages/SchedulerPage'
+import ConflictFreeSchedulePage from './pages/ConflictFreeSchedulePage'
+import EventBuilderPage from './pages/EventBuilderPage'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -39,8 +41,10 @@ function App() {
           <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
           <Route path="/gpa-calculator" element={<GPACalculatorPage />} />
           <Route path="/coop-forum" element={<CoopForumPage />} />
-          <Route path="/schedule" element={<SchedulerPage/>} />
+          <Route path="/schedule" element={<EventBuilderPage/>} />
+          <Route path="/conflict-free-schedule" element={<ConflictFreeSchedulePage />} />
           <Route path="/coop-forum/post/:id" element={<PostPage />} />
+          <Route path="/scheduler" element={<SchedulerPage />} />
         </Routes>
       </div>
     </AuthProvider>

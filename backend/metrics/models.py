@@ -20,7 +20,7 @@ class ApiTimingLog(models.Model):
         return f"{self.method} {self.path} ({self.status_code}) - {self.duration:.3f}s"
 
 class EstimateUserYear(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, null= True, on_delete=models.CASCADE)
     session_id = models.CharField(max_length=100, null=True, blank=True)
     year = models.IntegerField()
     school = models.CharField(max_length=100, null=True, blank=True)
