@@ -77,6 +77,24 @@ const ConflictFreeSchedulePage = () => {
     }
   }, [selectedTerm])
 
+  // Add this new useEffect after the existing one
+  // Auto-fetch course codes when course type is selected
+  useEffect(() => {
+    if (selectedTerm && newCourse.course_type && !availableCourses[newCourse.course_type]) {
+      fetchCourseCodes(newCourse.course_type)
+    }
+  }, [selectedTerm, newCourse.course_type, availableCourses])
+
+  // Auto-fetch section numbers when course code is selected
+  useEffect(() => {
+    if (selectedTerm && newCourse.course_type && newCourse.course_code) {
+      const sectionKey = `${newCourse.course_type}_${newCourse.course_code}`
+      if (!availableSections[sectionKey]) {
+        fetchSectionNumbers(newCourse.course_type, newCourse.course_code)
+      }
+    }
+  }, [selectedTerm, newCourse.course_type, newCourse.course_code, availableSections])
+
   const fetchOfferedTerms = async () => {
     try {
       const response = await fetch(`${BACKEND_API_URL}/api/scheduler/offered_terms/`, {
@@ -599,11 +617,6 @@ const ConflictFreeSchedulePage = () => {
                 disabled={!newCourse.course_type}
                 className="px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all disabled:opacity-50"
                 style={{ '--tw-ring-color': '#456882' }}
-                onFocus={() => {
-                  if (newCourse.course_type && !availableCourses[newCourse.course_type]) {
-                    fetchCourseCodes(newCourse.course_type)
-                  }
-                }}
               >
                 <option value="">Course Code</option>
                 {availableCourses[newCourse.course_type]?.map(code => (
@@ -620,11 +633,6 @@ const ConflictFreeSchedulePage = () => {
                 disabled={!newCourse.course_code}
                 className="px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all disabled:opacity-50"
                 style={{ '--tw-ring-color': '#456882' }}
-                onFocus={() => {
-                  if (newCourse.course_type && newCourse.course_code) {
-                    fetchSectionNumbers(newCourse.course_type, newCourse.course_code)
-                  }
-                }}
               >
                 <option value="">Any Section</option>
                 {availableSections[`${newCourse.course_type}_${newCourse.course_code}`]?.map(section => (
