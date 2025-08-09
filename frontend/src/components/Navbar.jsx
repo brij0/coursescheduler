@@ -1,9 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { User, Menu, X, LogOut, ChevronDown, MoreHorizontal, GraduationCap } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -11,6 +10,23 @@ const Navbar = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, isLoading, logout } = useAuth()
+  
+  // Close mobile menu on navigation
+  useEffect(() => {
+    setIsMenuOpen(false)
+  }, [location.pathname])
+  
+  // Close mobile menu on resize if screen becomes desktop sized
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) { // md breakpoint
+        setIsMenuOpen(false)
+      }
+    }
+    
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const handleAuthNavigation = () => {
     // Pass current location as redirect parameter
@@ -35,6 +51,7 @@ const Navbar = () => {
     { name: 'About', path: '/about' },
     { name: 'Privacy', path: '/privacy' },
   ]
+  
   return (
     <div className="fixed top-6 left-0 right-0 z-40 flex justify-center px-4">
       <motion.nav
@@ -170,81 +187,97 @@ const Navbar = () => {
               </motion.button>
             </div>
           </div>
-
-          {/* Mobile Navigation */}
-          {isMenuOpen && (
-            <motion.div
-              className="md:hidden mt-4 pt-4 border-t border-white/20"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex flex-col space-y-2">
-                {mainNavItems.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.path}
-                    className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
-                      location.pathname === item.path
-                        ? 'text-white bg-primary-500 shadow-lg'
-                        : 'text-neutral-700 hover:text-primary-600 hover:bg-white/30'
-                    }`}
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-                
-                {/* Mobile Auth Section */}
-                {isLoading ? (
-                  <div className="flex justify-center py-2">
-                    <div className="w-6 h-6 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
-                  </div>
-                ) : user ? (
-                  <div className="pt-2 border-t border-white/20">
-                    <div className="px-4 py-2 text-sm">
-                      <p className="font-medium text-neutral-800">{user.username}</p>
-                      <p className="text-xs text-neutral-600">{user.email}</p>
-                    </div>
-                    <motion.button
-                      onClick={() => {
-                        handleLogout()
-                        setIsMenuOpen(false)
-                      }}
-                      className="w-full flex items-center justify-center space-x-2 bg-red-500 text-white px-4 py-2 rounded-full font-medium mt-2 shadow-lg"
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <LogOut size={16} />
-                      <span>Logout</span>
-                    </motion.button>
-                  </div>
-                ) : (
-                  <motion.button
-                    className="flex items-center justify-center space-x-2 bg-primary-500 text-white px-4 py-2 rounded-full font-medium mt-2 shadow-lg"
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      setIsMenuOpen(false)
-                      handleAuthNavigation()
-                    }}
-                  >
-                    <User size={16} />
-                    <span>Login</span>
-                  </motion.button>
-                )}
-              </div>
-            </motion.div>
-          )}
         </div>
       </motion.nav>
       
-      {/* Click outside handler remains the same */}
+      {/* Improved Mobile Navigation - Fixed positioning */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            className="fixed top-24 left-4 right-4 md:hidden z-50"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="bg-white/95 backdrop-blur-lg border border-white/40 rounded-2xl shadow-lg overflow-hidden">
+              <div className="max-h-[70vh] overflow-y-auto py-4">
+                <div className="flex flex-col space-y-2 px-4">
+                  {mainNavItems.map((item) => (
+                    <Link
+                      key={item.name}
+                      to={item.path}
+                      className={`px-4 py-3 text-sm font-medium rounded-full transition-all duration-200 ${
+                        location.pathname === item.path
+                          ? 'text-white bg-primary-500 shadow-lg'
+                          : 'text-neutral-700 hover:text-primary-600 hover:bg-white/30'
+                      }`}
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                  
+                  {/* Mobile Auth Section */}
+                  <div className="pt-4 border-t border-neutral-200/60 mt-2">
+                    {isLoading ? (
+                      <div className="flex justify-center py-2">
+                        <div className="w-6 h-6 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
+                      </div>
+                    ) : user ? (
+                      <div>
+                        <div className="px-4 py-2 text-sm">
+                          <p className="font-medium text-neutral-800">{user.username}</p>
+                          <p className="text-xs text-neutral-600">{user.email}</p>
+                        </div>
+                        <motion.button
+                          onClick={() => {
+                            handleLogout()
+                            setIsMenuOpen(false)
+                          }}
+                          className="w-full flex items-center justify-center space-x-2 bg-red-500 text-white px-4 py-3 rounded-full font-medium mt-2 shadow-lg"
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <LogOut size={16} />
+                          <span>Logout</span>
+                        </motion.button>
+                      </div>
+                    ) : (
+                      <motion.button
+                        className="w-full flex items-center justify-center space-x-2 bg-primary-500 text-white px-4 py-3 rounded-full font-medium shadow-lg"
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => {
+                          handleAuthNavigation()
+                        }}
+                      >
+                        <User size={16} />
+                        <span>Login</span>
+                      </motion.button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Click outside handlers */}
       {isUserMenuOpen && (
         <div
           className="fixed inset-0"
           style={{ zIndex: 9998 }}
           onClick={() => {
             setIsUserMenuOpen(false)
+          }}
+        />
+      )}
+      
+      {isMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/5 backdrop-blur-sm"
+          style={{ zIndex: 30 }}
+          onClick={() => {
+            setIsMenuOpen(false)
           }}
         />
       )}
