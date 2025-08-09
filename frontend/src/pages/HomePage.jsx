@@ -42,9 +42,17 @@ const HomePage = () => {
       >
         <motion.span
           className="absolute inset-0 bg-gradient-to-r from-primary-200/60 to-accent-200/60 rounded-lg -skew-x-12"
-          initial={{ scaleX: 0, originX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ duration: 0.8, delay: delay + 0.3, ease: "easeOut" }}
+          animate={{ 
+            scaleX: [0, 1, 1, 0],
+            originX: [0, 0, 1, 1]
+          }}
+          transition={{ 
+            duration: 3,
+            delay: delay + 0.3,
+            repeat: Infinity,
+            repeatDelay: 2,
+            ease: "easeInOut"
+          }}
         />
         <span className="relative z-10 px-2 font-bold text-primary-800">
           {children}
