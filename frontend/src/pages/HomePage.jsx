@@ -41,13 +41,9 @@ const HomePage = () => {
   }
 
   // Typewriter effect component
-  const TypewriterText = ({ text, delay = 0 }) => {
+  const TypewriterText = ({ text, delay = 0, Component = 'span' }) => {
     return (
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.1, delay }}
-      >
+      <Component delay={delay}>
         {text.split('').map((char, index) => (
           <motion.span
             key={index}
@@ -62,6 +58,37 @@ const HomePage = () => {
             {char}
           </motion.span>
         ))}
+      </Component>
+    )
+  }
+
+  // Enhanced AnimatedHighlight that works with TypewriterText
+  const AnimatedHighlight = ({ children, delay = 0 }) => {
+    return (
+      <motion.span
+        className="relative inline-block"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.1, delay: delay + 0.5 }}
+      >
+        <motion.span
+          className="absolute inset-0 bg-gradient-to-r from-primary-400 to-accent-400 -skew-x-12 -z-10"
+          initial={{ scaleX: 0, originX: 0 }}
+          animate={{ 
+            scaleX: [0, 1, 1, 0],
+            originX: [0, 0, 1, 1]
+          }}
+          transition={{ 
+            duration: 3,
+            repeat: Infinity,
+            repeatDelay: 2,
+            ease: "easeInOut",
+            delay: delay + 1
+          }}
+        />
+        <span className="relative z-10 font-bold text-neutral-900 px-2">
+          {children}
+        </span>
       </motion.span>
     )
   }
@@ -229,9 +256,11 @@ const HomePage = () => {
                   text="Your academic life just got an upgrade. Schedule courses, calculate GPAs, and navigate co-op like a pro. "
                   delay={1.6}
                 />
-                <AnimatedHighlight delay={3.5}>
-                  Because adulting is hard enough.
-                </AnimatedHighlight>
+                <TypewriterText 
+                  text="Because adulting is hard enough."
+                  delay={3.5}
+                  Component={AnimatedHighlight}
+                />
               </motion.p>
             </div>
 

@@ -58,9 +58,28 @@ const Navbar = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: '#456882' }}>
-                  <GraduationCap className="w-6 h-6 text-white" />
-                </div>
+                <motion.div 
+                  className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg relative overflow-hidden"
+                  style={{ backgroundColor: '#456882' }}
+                  whileHover={{ 
+                    scale: 1.1,
+                    boxShadow: "0 0 20px rgba(69, 104, 130, 0.4)"
+                  }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-br from-primary-400 to-accent-500 opacity-0"
+                    whileHover={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                  <motion.div
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.6 }}
+                    className="relative z-10"
+                  >
+                    <GraduationCap className="w-6 h-6 text-white" />
+                  </motion.div>
+                </motion.div>
                 <span className="font-display font-bold text-2xl text-neutral-800">
                   SmartGryph
                 </span>
@@ -108,13 +127,12 @@ const Navbar = () => {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-48 bg-white/90 backdrop-blur-md border border-white/30 rounded-xl shadow-2xl py-2 z-[100]"
+                      className="absolute right-0 mt-2 w-48 bg-white/90 backdrop-blur-md border border-white/30 rounded-xl shadow-2xl py-2"
                       style={{ 
                         boxShadow: "0px 10px 25px rgba(0, 0, 0, 0.1)",
                         maxHeight: "calc(100vh - 200px)",
                         overflowY: "auto",
-                        transform: "translateZ(0)", /* Creates a new stacking context */
-                        willChange: "transform" /* Optimizes for positioning */
+                        zIndex: 9999
                       }}
                     >
                       {miscNavItems.map((item) => (
@@ -164,6 +182,7 @@ const Navbar = () => {
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
                         className="absolute right-0 mt-2 w-48 bg-white/90 backdrop-blur-md border border-white/30 rounded-xl shadow-2xl py-2"
+                        style={{ zIndex: 9999 }}
                       >
                         <div className="px-4 py-2 border-b border-neutral-200/50">
                           <p className="text-sm font-medium text-neutral-800">{user.username}</p>
@@ -278,7 +297,8 @@ const Navbar = () => {
       {/* Click outside handler remains the same */}
       {(isUserMenuOpen || isMiscMenuOpen) && (
         <div
-          className="fixed inset-0 z-30"
+          className="fixed inset-0"
+          style={{ zIndex: 9998 }}
           onClick={() => {
             setIsUserMenuOpen(false)
             setIsMiscMenuOpen(false)
