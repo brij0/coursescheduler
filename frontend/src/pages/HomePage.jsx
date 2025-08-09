@@ -13,9 +13,11 @@ import {
   Brain,
   Sparkles
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 
 const HomePage = () => {
+  const navigate = useNavigate()
   const containerRef = useRef(null)
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -25,6 +27,57 @@ const HomePage = () => {
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"])
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
 
+  const handleStartJourney = () => {
+    navigate('/auth')
+  }
+
+  // Animated text component for the highlight effect
+  const AnimatedHighlight = ({ children, delay = 0 }) => {
+    return (
+      <motion.span
+        className="relative inline-block"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, delay }}
+      >
+        <motion.span
+          className="absolute inset-0 bg-gradient-to-r from-primary-200/60 to-accent-200/60 rounded-lg -skew-x-12"
+          initial={{ scaleX: 0, originX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.8, delay: delay + 0.3, ease: "easeOut" }}
+        />
+        <span className="relative z-10 px-2 font-bold text-primary-800">
+          {children}
+        </span>
+      </motion.span>
+    )
+  }
+
+  // Typewriter effect component
+  const TypewriterText = ({ text, delay = 0 }) => {
+    return (
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.1, delay }}
+      >
+        {text.split('').map((char, index) => (
+          <motion.span
+            key={index}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ 
+              duration: 0.05, 
+              delay: delay + (index * 0.03),
+              ease: "easeOut"
+            }}
+          >
+            {char}
+          </motion.span>
+        ))}
+      </motion.span>
+    )
+  }
   const features = [
     {
       icon: <GraduationCap className="w-8 h-8" />,
@@ -155,41 +208,75 @@ const HomePage = () => {
               <span className="text-sm font-medium text-neutral-700">Your Academic Success Starts Here</span>
             </motion.div>
 
-            <h1 className="text-5xl md:text-7xl font-display font-black mb-6">
-              <span className="text-primary-600">Smart</span>
-              <span className="text-neutral-800">Gryph</span>
-            </h1>
-            
-            <motion.p 
-              className="text-xl md:text-2xl text-neutral-600 mb-8 max-w-3xl mx-auto leading-relaxed"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.5 }}
-            >
-              Your academic life just got an upgrade. Schedule courses, calculate GPAs, 
-              and navigate co-op like a pro. <span className="font-semibold text-primary-700">Because adulting is hard enough.</span>
-            </motion.p>
-
-            <motion.div
-              className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            <motion.h1 
+              className="text-5xl md:text-7xl font-display font-black mb-6"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.8 }}
+              transition={{ duration: 0.8, delay: 0.7 }}
+            >
+              <motion.span 
+                className="text-primary-600"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 1 }}
+              >
+                Smart
+              </motion.span>
+              <motion.span 
+                className="text-neutral-800"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 1.2 }}
+              >
+                Gryph
+              </motion.span>
+            </motion.h1>
+            
+            <div className="text-xl md:text-2xl text-neutral-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.8, delay: 1.4 }}
+              >
+                <TypewriterText 
+                  text="Your academic life just got an upgrade. Schedule courses, calculate GPAs, and navigate co-op like a pro. "
+                  delay={1.6}
+                />
+                <AnimatedHighlight delay={3.5}>
+                  Because adulting is hard enough.
+                </AnimatedHighlight>
+              </motion.p>
+            </div>
+
+            <motion.div
+              className="flex justify-center items-center"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 4.2 }}
             >
               <motion.button
-                className="bg-primary-500 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-xl hover:bg-primary-600 hover:shadow-2xl transition-all duration-300"
+                onClick={handleStartJourney}
+                className="bg-primary-500 text-white px-10 py-5 rounded-xl font-bold text-xl shadow-xl hover:bg-primary-600 hover:shadow-2xl transition-all duration-300 relative overflow-hidden group"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                Start Your Journey
-              </motion.button>
-              
-              <motion.button
-                className="border-2 border-primary-300 text-primary-700 px-8 py-4 rounded-xl font-semibold text-lg hover:border-primary-500 hover:text-primary-800 hover:bg-primary-50 transition-all duration-300"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Watch Demo
+                {/* Button shine effect */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
+                  initial={{ x: '-100%' }}
+                  whileHover={{ x: '200%' }}
+                  transition={{ duration: 0.6 }}
+                />
+                <span className="relative z-10 flex items-center space-x-2">
+                  <Sparkles className="w-5 h-5" />
+                  <span>Start Your Journey</span>
+                  <motion.span
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    →
+                  </motion.span>
+                </span>
               </motion.button>
             </motion.div>
           </motion.div>
@@ -233,10 +320,19 @@ const HomePage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 viewport={{ once: true }}
+                whileHover={{ y: -5 }}
               >
-                <div className="inline-flex p-4 rounded-xl bg-primary-500 text-white mb-6 transition-transform duration-300 shadow-lg">
+                <motion.div 
+                  className="inline-flex p-4 rounded-xl bg-primary-500 text-white mb-6 transition-transform duration-300 shadow-lg"
+                  whileHover={{ 
+                    scale: 1.1,
+                    rotate: [0, -5, 5, 0],
+                    boxShadow: "0 10px 25px rgba(69, 104, 130, 0.3)"
+                  }}
+                  transition={{ duration: 0.3 }}
+                >
                   {feature.icon}
-                </div>
+                </motion.div>
                 
                 <h3 className="text-2xl font-bold mb-4 text-neutral-800 font-display">
                   {feature.title}
@@ -245,6 +341,12 @@ const HomePage = () => {
                 <p className="text-neutral-600 leading-relaxed">
                   {feature.description}
                 </p>
+                
+                {/* Hover effect overlay */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-accent-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  initial={false}
+                />
               </motion.div>
             ))}
           </div>
@@ -273,10 +375,21 @@ const HomePage = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 viewport={{ once: true }}
+                whileHover={{ 
+                  scale: 1.05,
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.1)"
+                }}
               >
-                <div className="text-primary-600 mb-4">
+                <motion.div 
+                  className="text-primary-600 mb-4"
+                  whileHover={{ 
+                    scale: 1.2,
+                    rotate: [0, -10, 10, 0]
+                  }}
+                  transition={{ duration: 0.3 }}
+                >
                   {React.cloneElement(fact.icon, { size: 48 })}
-                </div>
+                </motion.div>
                 <p className="text-neutral-700 font-medium text-center">
                   {fact.text}
                 </p>
@@ -304,11 +417,28 @@ const HomePage = () => {
             </p>
             
             <motion.button
-              className="bg-white text-primary-700 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
+              onClick={handleStartJourney}
+              className="bg-white text-primary-700 px-10 py-5 rounded-xl font-bold text-xl shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden group"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              Get Started Free
+              {/* Button shine effect */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-200/30 to-transparent -skew-x-12"
+                initial={{ x: '-100%' }}
+                whileHover={{ x: '200%' }}
+                transition={{ duration: 0.6 }}
+              />
+              <span className="relative z-10 flex items-center space-x-2">
+                <GraduationCap className="w-5 h-5" />
+                <span>Get Started Free</span>
+                <motion.span
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  →
+                </motion.span>
+              </span>
             </motion.button>
           </motion.div>
         </div>
