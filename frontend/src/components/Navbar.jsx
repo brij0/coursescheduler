@@ -118,40 +118,6 @@ const Navbar = () => {
                   <span>More</span>
                   <ChevronDown size={12} className={`transition-transform duration-200 ${isMiscMenuOpen ? 'rotate-180' : ''}`} />
                 </motion.button>
-
-                {/* Misc Dropdown Menu */}
-                <AnimatePresence>
-                  {isMiscMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-48 bg-white/90 backdrop-blur-md border border-white/30 rounded-xl shadow-2xl py-2"
-                      style={{ 
-                        boxShadow: "0px 10px 25px rgba(0, 0, 0, 0.1)",
-                        maxHeight: "calc(100vh - 200px)",
-                        overflowY: "auto",
-                        zIndex: 9999
-                      }}
-                    >
-                      {miscNavItems.map((item) => (
-                        <Link
-                          key={item.name}
-                          to={item.path}
-                          className={`block px-4 py-3 text-sm font-medium transition-colors ${
-                            location.pathname === item.path
-                              ? 'text-primary-600 bg-primary-50/50'
-                              : 'text-neutral-700 hover:text-primary-600 hover:bg-white/50'
-                          }`}
-                          onClick={() => setIsMiscMenuOpen(false)}
-                        >
-                          {item.name}
-                        </Link>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
             </div>
 
@@ -295,16 +261,59 @@ const Navbar = () => {
       </motion.nav>
       
       {/* Click outside handler remains the same */}
-      {(isUserMenuOpen || isMiscMenuOpen) && (
+      {isUserMenuOpen && (
         <div
           className="fixed inset-0"
           style={{ zIndex: 9998 }}
           onClick={() => {
             setIsUserMenuOpen(false)
-            setIsMiscMenuOpen(false)
           }}
         />
       )}
+      
+      {/* Separate portal for More dropdown to ensure it's above everything */}
+      <AnimatePresence>
+        {isMiscMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0"
+              style={{ zIndex: 99998 }}
+              onClick={() => setIsMiscMenuOpen(false)}
+            />
+            
+            {/* Dropdown positioned absolutely on the page */}
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="fixed bg-white/95 backdrop-blur-lg border border-white/40 rounded-xl shadow-2xl py-2 w-48"
+              style={{ 
+                top: '80px',
+                right: '2rem',
+                zIndex: 99999,
+                boxShadow: "0px 10px 25px rgba(0, 0, 0, 0.15)"
+              }}
+            >
+              {miscNavItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  className={`block px-4 py-3 text-sm font-medium transition-colors ${
+                    location.pathname === item.path
+                      ? 'text-primary-600 bg-primary-50/50'
+                      : 'text-neutral-700 hover:text-primary-600 hover:bg-white/50'
+                  }`}
+                  onClick={() => setIsMiscMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
