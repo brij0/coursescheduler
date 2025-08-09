@@ -11,7 +11,8 @@ import {
   Heart,
   MessageCircle,
   Send,
-  Sparkles
+  Sparkles,
+  Database
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 
@@ -331,6 +332,179 @@ const AboutPage = () => {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Tech Stack Section */}
+      <section className="py-20 px-4 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-4xl font-display font-bold mb-6 text-neutral-800">
+              Built with <span className="text-primary-600">Modern Tech</span>
+            </h2>
+            <p className="text-xl text-neutral-600">
+              We use cutting-edge technologies to deliver a fast, reliable, and beautiful experience.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-12">
+            {/* Frontend Stack */}
+            <motion.div
+              className="elegant-card rounded-2xl p-8"
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              viewport={{ once: true }}
+            >
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-4">
+                  <Code className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-neutral-800 font-display">Frontend</h3>
+              </div>
+              
+              <p className="text-neutral-600 mb-6 leading-relaxed">
+                Modern React application with smooth animations, responsive design, and intuitive user experience.
+              </p>
+              
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { name: 'React 18', color: 'bg-blue-100 text-blue-700' },
+                    { name: 'Vite', color: 'bg-purple-100 text-purple-700' },
+                    { name: 'Tailwind CSS', color: 'bg-cyan-100 text-cyan-700' },
+                    { name: 'Framer Motion', color: 'bg-pink-100 text-pink-700' }
+                  ].map((tech, index) => (
+                    <motion.span
+                      key={index}
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${tech.color}`}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      viewport={{ once: true }}
+                      whileHover={{ scale: 1.05 }}
+                    >
+                      {tech.name}
+                    </motion.span>
+                  ))}
+                </div>
+                
+                <div className="pt-4 border-t border-neutral-200">
+                  <h4 className="font-semibold text-neutral-800 mb-2">Key Features:</h4>
+                  <ul className="text-sm text-neutral-600 space-y-1">
+                    <li>• Responsive design for all devices</li>
+                    <li>• Smooth animations and micro-interactions</li>
+                    <li>• Modern component architecture</li>
+                    <li>• Optimized performance and caching</li>
+                  </ul>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Backend Stack */}
+            <motion.div
+              className="elegant-card rounded-2xl p-8"
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              viewport={{ once: true }}
+            >
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mr-4">
+                  <Database className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-neutral-800 font-display">Backend</h3>
+              </div>
+              
+              <p className="text-neutral-600 mb-6 leading-relaxed">
+                Robust Django backend with efficient APIs, smart caching, and comprehensive data management.
+              </p>
+              
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { name: 'Django 5.2', color: 'bg-green-100 text-green-700' },
+                    { name: 'MySQL', color: 'bg-orange-100 text-orange-700' },
+                    { name: 'REST APIs', color: 'bg-indigo-100 text-indigo-700' },
+                    { name: 'Celery', color: 'bg-red-100 text-red-700' }
+                  ].map((tech, index) => (
+                    <motion.span
+                      key={index}
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${tech.color}`}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      viewport={{ once: true }}
+                      whileHover={{ scale: 1.05 }}
+                    >
+                      {tech.name}
+                    </motion.span>
+                  ))}
+                </div>
+                
+                <div className="pt-4 border-t border-neutral-200">
+                  <h4 className="font-semibold text-neutral-800 mb-2">Key Features:</h4>
+                  <ul className="text-sm text-neutral-600 space-y-1">
+                    <li>• RESTful API architecture</li>
+                    <li>• Advanced conflict detection algorithms</li>
+                    <li>• Secure authentication system</li>
+                    <li>• Performance monitoring and analytics</li>
+                  </ul>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Additional Tech Details */}
+          <motion.div
+            className="mt-16 elegant-card rounded-2xl p-8"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            viewport={{ once: true }}
+          >
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-bold text-neutral-800 mb-4 font-display">
+                Why These Technologies?
+              </h3>
+              <p className="text-neutral-600 max-w-3xl mx-auto leading-relaxed">
+                Every technology choice was made with student needs in mind: fast loading times, 
+                reliable performance, and a smooth user experience that works on any device.
+              </p>
+            </div>
+            
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="text-center p-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Lightbulb className="w-8 h-8 text-white" />
+                </div>
+                <h4 className="font-semibold text-neutral-800 mb-2">Performance First</h4>
+                <p className="text-sm text-neutral-600">Lightning-fast load times and smooth interactions, even on slower connections.</p>
+              </div>
+              
+              <div className="text-center p-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Heart className="w-8 h-8 text-white" />
+                </div>
+                <h4 className="font-semibold text-neutral-800 mb-2">Student-Centered</h4>
+                <p className="text-sm text-neutral-600">Built specifically for university workflows and academic scheduling needs.</p>
+              </div>
+              
+              <div className="text-center p-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Coffee className="w-8 h-8 text-white" />
+                </div>
+                <h4 className="font-semibold text-neutral-800 mb-2">Future-Ready</h4>
+                <p className="text-sm text-neutral-600">Modern architecture that scales and adapts as your academic journey evolves.</p>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
