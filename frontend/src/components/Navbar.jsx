@@ -8,7 +8,6 @@ import { useAuth } from '../contexts/AuthContext'
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  const [isMiscMenuOpen, setIsMiscMenuOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
   const { user, isLoading, logout } = useAuth()
@@ -33,9 +32,6 @@ const Navbar = () => {
     { name: 'Co-op Forum', path: '/coop-forum' },
     { name: 'Scheduler', path: '/scheduler' },
     { name: 'Dashboard', path: '/dashboard' },
-  ]
-
-  const miscNavItems = [
     { name: 'About', path: '/about' },
     { name: 'Privacy', path: '/privacy' },
   ]
@@ -101,24 +97,6 @@ const Navbar = () => {
                   {item.name}
                 </Link>
               ))}
-              
-              {/* More Menu */}
-              <div className="relative">
-                <motion.button
-                  onClick={() => setIsMiscMenuOpen(!isMiscMenuOpen)}
-                  className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 rounded-full flex items-center space-x-1 ${
-                    miscNavItems.some(item => location.pathname === item.path)
-                      ? 'text-white bg-primary-500 shadow-lg'
-                      : 'text-neutral-700 hover:text-primary-600 hover:bg-white/30'
-                  }`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <MoreHorizontal size={16} />
-                  <span>More</span>
-                  <ChevronDown size={12} className={`transition-transform duration-200 ${isMiscMenuOpen ? 'rotate-180' : ''}`} />
-                </motion.button>
-              </div>
             </div>
 
             {/* User Authentication Section */}
@@ -203,7 +181,7 @@ const Navbar = () => {
               transition={{ duration: 0.3 }}
             >
               <div className="flex flex-col space-y-2">
-                {[...mainNavItems, ...miscNavItems].map((item) => (
+                {mainNavItems.map((item) => (
                   <Link
                     key={item.name}
                     to={item.path}
@@ -270,50 +248,6 @@ const Navbar = () => {
           }}
         />
       )}
-      
-      {/* Separate portal for More dropdown to ensure it's above everything */}
-      <AnimatePresence>
-        {isMiscMenuOpen && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0"
-              style={{ zIndex: 99998 }}
-              onClick={() => setIsMiscMenuOpen(false)}
-            />
-            
-            {/* Dropdown positioned absolutely on the page */}
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="fixed bg-white/95 backdrop-blur-lg border border-white/40 rounded-xl shadow-2xl py-2 w-48"
-              style={{ 
-                top: '80px',
-                right: '2rem',
-                zIndex: 99999,
-                boxShadow: "0px 10px 25px rgba(0, 0, 0, 0.15)"
-              }}
-            >
-              {miscNavItems.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.path}
-                  className={`block px-4 py-3 text-sm font-medium transition-colors ${
-                    location.pathname === item.path
-                      ? 'text-primary-600 bg-primary-50/50'
-                      : 'text-neutral-700 hover:text-primary-600 hover:bg-white/50'
-                  }`}
-                  onClick={() => setIsMiscMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   )
 }
