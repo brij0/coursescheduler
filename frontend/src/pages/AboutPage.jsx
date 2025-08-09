@@ -37,7 +37,7 @@ const AboutPage = () => {
       github: "https://github.com/brij0",
       linkedin: "https://www.linkedin.com/in/brijeshthakrar/",
       portfolio: "https://backend-wizard.dev",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face&auto=format&q=80",
+      avatar: "/images/backend-dev.jpeg",
       funFact: "Speaks fluent SQL and dreams in JSON"
     }
   ]
@@ -273,7 +273,7 @@ const AboutPage = () => {
                 </p>
 
                 <div className="mb-6">
-                  <h4 className="font-semibold text-neutral-800 mb-3">Tech Stack:</h4>
+                  <h4 className="font-semibold text-neutral-800 mb-3">Skills:</h4>
                   <div className="flex flex-wrap gap-2">
                     {dev.skills.map((skill, skillIndex) => (
                       <span
