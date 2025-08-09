@@ -23,6 +23,9 @@ frontend/node_modules/
 # Ignore SSL certificates
 *.github
 *.json
+*.ttf
+*.jpeg
+*.jpg
 
 # But don't ignore these specific files
 !package.json
