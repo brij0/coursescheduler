@@ -274,22 +274,8 @@ const Dashboard = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="container mx-auto p-6">
-          <div className="flex items-center justify-between mb-6">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-9 w-24" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-28" />
-            ))}
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Skeleton className="h-[340px]" />
-            <Skeleton className="h-[340px]" />
-            <Skeleton className="h-[340px]" />
-            <Skeleton className="h-[340px]" />
-          </div>
+        <div className="container mx-auto pt-32 p-6">
+          {/* ...loading content... */}
         </div>
       </div>
     );
@@ -299,7 +285,7 @@ const Dashboard = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="container mx-auto p-6">
+        <div className="container mx-auto pt-32 p-6">
           <Card
             title="Dashboard Error"
             subtitle="We couldn’t load metrics. Please try again."
@@ -324,7 +310,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto pt-32 p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">Metrics Dashboard</h1>

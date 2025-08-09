@@ -32,32 +32,11 @@ const HomePage = () => {
   }
 
   // Animated text component for the highlight effect
-  const AnimatedHighlight = ({ children, delay = 0 }) => {
+  const AnimatedHighlight = ({ children }) => {
     return (
-      <motion.span
-        className="relative inline-block"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8, delay }}
-      >
-        <motion.span
-          className="absolute inset-0 bg-gradient-to-r from-primary-200/60 to-accent-200/60 rounded-lg -skew-x-12"
-          animate={{ 
-            scaleX: [0, 1, 1, 0],
-            originX: [0, 0, 1, 1]
-          }}
-          transition={{ 
-            duration: 3,
-            delay: delay + 0.3,
-            repeat: Infinity,
-            repeatDelay: 2,
-            ease: "easeInOut"
-          }}
-        />
-        <span className="relative z-10 px-2 font-bold text-primary-800">
-          {children}
-        </span>
-      </motion.span>
+      <span className="font-bold text-neutral-900">
+        {children}
+      </span>
     )
   }
 
@@ -335,7 +314,7 @@ const HomePage = () => {
                   whileHover={{ 
                     scale: 1.1,
                     rotate: [0, -5, 5, 0],
-                    boxShadow: "0 10px 25px rgba(69, 104, 130, 0.3)"
+                    boxShadow: "0 10px 25px rgba(69,104,130,0.3)"
                   }}
                   transition={{ duration: 0.3 }}
                 >

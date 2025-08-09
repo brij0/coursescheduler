@@ -42,32 +42,38 @@ const Navbar = () => {
   return (
     <div className="fixed top-6 left-0 right-0 z-40 flex justify-center px-4">
       <motion.nav
-        className="w-full max-w-4xl"
+        className="w-full max-w-7xl"
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-full shadow-2xl px-6 py-3">
-          <div className="flex justify-between items-center">
+        {/* Enhanced Glass Effect Container */}
+        <div className="bg-white/30 backdrop-blur-lg border border-white/40 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.2)] px-8 py-4 relative overflow-hidden">
+          {/* Internal refraction effect */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent opacity-70 pointer-events-none"></div>
+          <div className="absolute -inset-[1px] bg-gradient-to-br from-white/50 to-white/5 pointer-events-none rounded-full"></div>
+          
+          {/* Content */}
+          <div className="relative z-10 flex justify-between items-center">
             {/* Logo */}
             <Link to="/" className="flex items-center">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#456882' }}>
-                  <GraduationCap className="w-5 h-5 text-white" />
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: '#456882' }}>
+                  <GraduationCap className="w-6 h-6 text-white" />
                 </div>
-                <span className="font-display font-bold text-xl" style={{ color: '#456882' }}>
+                <span className="font-display font-bold text-2xl text-neutral-800">
                   SmartGryph
                 </span>
               </div>
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-1">
+            <div className="hidden md:flex items-center space-x-4">
               {mainNavItems.map((item) => (
                 <Link
                   key={item.name}
                   to={item.path}
-                  className={`relative px-4 py-2 text-sm font-medium transition-all duration-200 rounded-full ${
+                  className={`relative px-5 py-2.5 text-sm font-medium transition-all duration-200 rounded-full ${
                     location.pathname === item.path
                       ? 'text-white bg-primary-500 shadow-lg'
                       : 'text-neutral-700 hover:text-primary-600 hover:bg-white/30'
@@ -102,13 +108,20 @@ const Navbar = () => {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-40 bg-white/90 backdrop-blur-md border border-white/30 rounded-xl shadow-2xl py-2"
+                      className="absolute right-0 mt-2 w-48 bg-white/90 backdrop-blur-md border border-white/30 rounded-xl shadow-2xl py-2 z-[100]"
+                      style={{ 
+                        boxShadow: "0px 10px 25px rgba(0, 0, 0, 0.1)",
+                        maxHeight: "calc(100vh - 200px)",
+                        overflowY: "auto",
+                        transform: "translateZ(0)", /* Creates a new stacking context */
+                        willChange: "transform" /* Optimizes for positioning */
+                      }}
                     >
                       {miscNavItems.map((item) => (
                         <Link
                           key={item.name}
                           to={item.path}
-                          className={`block px-4 py-2 text-sm font-medium transition-colors ${
+                          className={`block px-4 py-3 text-sm font-medium transition-colors ${
                             location.pathname === item.path
                               ? 'text-primary-600 bg-primary-50/50'
                               : 'text-neutral-700 hover:text-primary-600 hover:bg-white/50'
@@ -261,8 +274,8 @@ const Navbar = () => {
           )}
         </div>
       </motion.nav>
-
-      {/* Click outside to close user menu */}
+      
+      {/* Click outside handler remains the same */}
       {(isUserMenuOpen || isMiscMenuOpen) && (
         <div
           className="fixed inset-0 z-30"

@@ -3,43 +3,43 @@
   Local ID Grotesk fonts implementation
 */
 
-/* Define font faces for ID Grotesk */
+/* Define font faces for SF Pro */
 @font-face {
-  font-family: 'ID Grotesk';
-  src: url('../fonts/IDGrotesk-Regular.ttf') format('truetype');
+  font-family: 'SF Pro';
+  src: url('../fonts/SFPro-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'ID Grotesk';
-  src: url('../fonts/IDGrotesk-Medium.ttf') format('truetype');
+  font-family: 'SF Pro';
+  src: url('../fonts/SFPro-Medium.ttf') format('truetype');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'ID Grotesk';
-  src: url('../fonts/IDGrotesk-Bold.ttf') format('truetype');
+  font-family: 'SF Pro';
+  src: url('../fonts/SFPro-Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'ID Grotesk';
-  src: url('../fonts/IDGrotesk-Light.ttf') format('truetype');
+  font-family: 'SF Pro';
+  src: url('../fonts/SFPro-Light.ttf') format('truetype');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
 }
 
 :root {
-  /* Primary font - using ID Grotesk */
-  --font-primary: 'ID Grotesk', system-ui, -apple-system, sans-serif;
-  
+  /* Primary font - using SF Pro */
+  --font-primary: 'SF Pro', system-ui, -apple-system, sans-serif;
+
   /* Secondary font - keep your existing secondary font */
   --font-secondary: 'Crimson Text', Georgia, serif;
 }
@@ -48,6 +48,7 @@
 body {
   font-family: var(--font-primary);
   font-feature-settings: "rlig" 1, "calt" 1;
+  letter-spacing: -0.01em; /* Reduce spacing between characters */
 }
 
 /* Font weight utilities */
