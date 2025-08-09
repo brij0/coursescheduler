@@ -31,15 +31,6 @@ const HomePage = () => {
     navigate('/auth')
   }
 
-  // Animated text component for the highlight effect
-  const AnimatedHighlight = ({ children }) => {
-    return (
-      <span className="font-bold text-neutral-900">
-        {children}
-      </span>
-    )
-  }
-
   // Typewriter effect component
   const TypewriterText = ({ text, delay = 0, Component = 'span' }) => {
     return (
@@ -72,7 +63,7 @@ const HomePage = () => {
         transition={{ duration: 0.1, delay: delay + 0.5 }}
       >
         <motion.span
-          className="absolute inset-0 bg-gradient-to-r from-primary-400 to-accent-400 -skew-x-12 -z-10"
+          className="absolute inset-0 bg-gradient-to-r from-primary-300 to-primary-300 -skew-x-12 -z-10"
           initial={{ scaleX: 0, originX: 0 }}
           animate={{ 
             scaleX: [0, 1, 1, 0],
