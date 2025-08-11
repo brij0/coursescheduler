@@ -25,8 +25,13 @@ class EstimateUserYear(models.Model):
     year = models.IntegerField()
     school = models.CharField(max_length=100, null=True, blank=True)
 
-    class Meta:
-        unique_together = ('user', 'session_id')
-
     def __str__(self):
         return f"{self.user.username} - {self.year}: {self.school}"
+    
+class PrecomputedMetrics(models.Model):
+    name = models.CharField(max_length=255)
+    data = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.created_at})"

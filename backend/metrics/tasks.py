@@ -1,7 +1,11 @@
 from celery import shared_task
-from metrics.models import ApiTimingLog, EstimateUserYear
+from metrics.models import ApiTimingLog, EstimateUserYear, PrecomputedMetrics
 import json
 from collections import Counter
+from django.db.models import Count, Q
+from django.db.models.functions import Cast
+from django.db import models
+from django.db.models import FloatField, ExpressionWrapper
 
 @shared_task(bind=True, serializer='json')
 def log_api_metrics(self, data):
@@ -61,3 +65,31 @@ def estimate_user_year(self, request_data):
         
     except Exception as e:
         return {"status": "error", "detail": str(e)}
+
+@shared_task(bind=True)
+def calculate_and_store_metrics(self):
+    try:
+        # Example metrics calculations
+        error_rates = list(ApiTimingLog.objects.values('path').annotate(
+            total_requests=Count('id'),
+            error_count=Count('id', filter=models.Q(status_code__gte=400)),
+            error_rate=ExpressionWrapper(
+                Count('id', filter=models.Q(status_code__gte=400)) * 100.0 / Count('id'),
+                output_field=FloatField()
+            )
+        ))
+
+        p95_latency = ApiTimingLog.objects.order_by('duration').values_list('duration', flat=True)
+        total_count = len(p95_latency)
+        p95 = p95_latency[int(total_count * 0.95)] if total_count > 0 else None
+
+        # Create a new entry for metrics in the database
+        PrecomputedMetrics.objects.create(
+            name='dashboard_metrics',
+            data={
+                'error_rates': error_rates,
+                'p95_latency': p95,
+            }
+        )
+    except Exception as e:
+        self.retry(exc=e, countdown=60, max_retries=3)

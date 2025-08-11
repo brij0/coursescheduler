@@ -273,7 +273,7 @@ const CoopForumPage = () => {
   // Loading check for user authentication
   if (!user) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: '#E5E0D8' }}>
+      <div className="min-h-screen" style={{ backgroundColor: '#F3F9FF' }}>
         <Navbar />
         <div className="pt-32 pb-12 px-4 max-w-4xl mx-auto">
           <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 text-center">
@@ -288,7 +288,7 @@ const CoopForumPage = () => {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#E5E0D8' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#F3F9FF' }}>
       <Navbar />
       <section className="pt-32 pb-12 px-4">
         <div className="max-w-4xl mx-auto">

@@ -1,4 +1,4 @@
-from .models import ApiTimingLog, EstimateUserYear
+from .models import ApiTimingLog, EstimateUserYear, PrecomputedMetrics
 from django.db import models
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render
@@ -9,6 +9,7 @@ from django.utils import timezone
 import datetime
 import re
 from django.db.models.functions import TruncHour
+from django.contrib.auth.models import User
 
 def normalize_endpoint(path):
     """
@@ -221,3 +222,39 @@ def mau_dau(request):
     dau = ApiTimingLog.objects.filter(timestamp__date=yesterday).values('user').distinct().count()
 
     return JsonResponse({'MAU': mau, 'DAU': dau})
+
+@csrf_exempt
+def average_session_per_user(request):
+    """
+    Average number of sessions per user.
+    """
+    # Get all distinct users
+    all_users = User.objects.all()
+    total_users = all_users.count()
+
+    if total_users == 0:
+        return JsonResponse({'average_sessions_per_user': 0})
+
+    total_sessions = 0
+    for user in all_users:
+        # Get all session IDs for the current user
+        sessions = ApiTimingLog.objects.filter(user=user).values('session_id').distinct().count()
+        total_sessions += sessions
+
+    average_sessions = total_sessions / total_users
+
+    return JsonResponse({'average_sessions_per_user': average_sessions})
+
+@csrf_exempt
+def get_latest_precomputed_metrics(request):
+    """
+    Fetch the most recent precomputed metrics from the database.
+    """
+    try:
+        latest_metrics = PrecomputedMetrics.objects.filter(name='dashboard_metrics').order_by('-created_at').first()
+        if latest_metrics:
+            return JsonResponse(latest_metrics.data, safe=False)
+        else:
+            return JsonResponse({'error': 'No metrics available'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
