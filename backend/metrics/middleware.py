@@ -1,10 +1,12 @@
 import time
 import json
-from metrics.tasks import log_api_metrics, estimate_user_year
+from metrics.tasks import log_api_metrics, estimate_user_year, calculate_and_store_metrics
 
 # Import Prometheus metrics objects
 from metrics.prometheus import request_count, request_duration
+import logging
 
+logger = logging.getLogger(__name__)
 class HybridMetricsMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -42,6 +44,7 @@ class HybridMetricsMiddleware:
                     "api_name": endpoint,
                     "query_params": dict(request.GET),
                 })
+                # calculate_and_store_metrics.delay()  # Update precomputed metrics asynchronously
             except Exception as e:
                 pass  # Don't break requests for metrics
 
@@ -71,7 +74,8 @@ class ApiYearEstimateMiddleware:
                     estimate_user_year.delay(json.dumps(task_data))
                     
             except Exception as e:
-                print(f"Error in ApiYearEstimateMiddleware: {e}")
+                logger.error(f"Error in ApiYearEstimateMiddleware: {e}")
+                pass
 
         response = self.get_response(request)
         return response

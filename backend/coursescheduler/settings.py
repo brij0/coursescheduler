@@ -57,7 +57,11 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
 ]
-
+# Added Argon2 as the primary hasher for better speed and security
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.Argon2PasswordHasher',  # Now primary
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',  # Keep for existing passwords
+]
 ROOT_URLCONF = "coursescheduler.urls"
 
 TEMPLATES = [

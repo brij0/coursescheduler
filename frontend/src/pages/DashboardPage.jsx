@@ -10,10 +10,12 @@ import {
   Title,
   Tooltip,
   Legend,
+  Filler,
 } from 'chart.js';
 import { Bar, Line, Doughnut } from 'react-chartjs-2';
 import {
   TrendingUp,
+  TrendingDown,
   AlertTriangle,
   Users,
   Clock,
@@ -21,6 +23,13 @@ import {
   Database,
   Network,
   RefreshCw,
+  Activity,
+  Zap,
+  AlertCircle,
+  CheckCircle,
+  Server,
+  Globe,
+  Timer,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 
@@ -33,155 +42,192 @@ ChartJS.register(
   ArcElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
-// Set professional-looking Chart.js defaults
-ChartJS.defaults.font.family =
-  "'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-ChartJS.defaults.color = '#475569'; // slate-600
+// Enhanced Chart.js defaults
+ChartJS.defaults.font.family = "'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+ChartJS.defaults.color = '#475569';
 ChartJS.defaults.plugins.legend.labels.boxWidth = 12;
 ChartJS.defaults.plugins.legend.labels.boxHeight = 12;
 
 const BACKEND_API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
-// Reusable UI primitives
-const Card = ({ title, subtitle, icon: Icon, actions, children }) => (
-  <div className="bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+// Enhanced Card component with status indicators
+const Card = ({ title, subtitle, icon: Icon, actions, children, status, trend }) => (
+  <div className="bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
     {(title || actions) && (
-      <div className="flex items-start justify-between p-5 border-b border-gray-100">
-        <div>
-          <div className="flex items-center gap-2">
-            {Icon ? (
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 text-gray-700">
+      <div className="flex items-start justify-between p-5 border-b border-gray-50">
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            {Icon && (
+              <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${
+                status === 'error' ? 'bg-red-50 text-red-600' :
+                status === 'warning' ? 'bg-amber-50 text-amber-600' :
+                status === 'success' ? 'bg-green-50 text-green-600' :
+                'bg-gray-50 text-gray-700'
+              }`}>
                 <Icon size={18} />
               </span>
-            ) : null}
-            <h3 className="text-base font-semibold text-gray-800">{title}</h3>
+            )}
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+                {trend && (
+                  <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
+                    trend > 0 ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'
+                  }`}>
+                    {trend > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                    {Math.abs(trend)}%
+                  </span>
+                )}
+              </div>
+              {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
+            </div>
           </div>
-          {subtitle ? (
-            <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
-          ) : null}
         </div>
-        {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+        {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
     )}
     <div className="p-5">{children}</div>
   </div>
 );
 
+// Status Badge component
+const StatusBadge = ({ status, children }) => {
+  const styles = {
+    success: 'bg-green-50 text-green-700 border-green-200',
+    warning: 'bg-amber-50 text-amber-700 border-amber-200',
+    error: 'bg-red-50 text-red-700 border-red-200',
+    info: 'bg-blue-50 text-blue-700 border-blue-200',
+  };
+  
+  return (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${styles[status]}`}>
+      {children}
+    </span>
+  );
+};
+
+// Metric Card component for KPIs
+const MetricCard = ({ title, value, subtitle, icon: Icon, trend, status = 'info', format = 'number' }) => {
+  const formatValue = (val) => {
+    if (val == null) return 'N/A';
+    switch (format) {
+      case 'percentage': return `${val.toFixed(1)}%`;
+      case 'ms': return `${Math.round(val)}ms`;
+      case 'seconds': return `${val.toFixed(2)}s`;
+      case 'number': return new Intl.NumberFormat('en-US').format(val);
+      default: return val;
+    }
+  };
+
+  return (
+    <Card icon={Icon} status={status}>
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-sm font-medium text-gray-600 mb-2">{title}</p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-gray-900">{formatValue(value)}</span>
+            {trend && (
+              <span className={`flex items-center text-sm font-medium ${
+                trend > 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {trend > 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                {Math.abs(trend)}%
+              </span>
+            )}
+          </div>
+          {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
+        </div>
+      </div>
+    </Card>
+  );
+};
+
 const Skeleton = ({ className = '' }) => (
   <div className={`animate-pulse bg-gray-200/80 rounded-md ${className}`} />
 );
 
-const numberFmt = new Intl.NumberFormat('en-US');
-const pctFmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
-const msFmt = (ms) => (ms == null ? 'N/A' : `${Math.round(ms)}ms`);
-const sFmt = (s) => (s == null ? 'N/A' : `${s.toFixed(2)}s`);
+// Enhanced chart options
+const getChartOptions = (type = 'default') => {
+  const baseOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { intersect: false, mode: 'index' },
+    elements: {
+      bar: { borderRadius: 8, borderSkipped: false },
+      point: { radius: 3, hoverRadius: 6, borderWidth: 2 },
+      line: { tension: 0.4, borderWidth: 3 },
+    },
+    plugins: {
+      legend: { 
+        position: 'top', 
+        labels: { 
+          usePointStyle: true, 
+          padding: 20,
+          font: { size: 12, weight: '500' }
+        } 
+      },
+      tooltip: {
+        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+        titleColor: '#fff',
+        bodyColor: '#e5e7eb',
+        padding: 16,
+        cornerRadius: 12,
+        displayColors: true,
+        borderColor: 'rgba(156, 163, 175, 0.2)',
+        borderWidth: 1,
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: '#64748b', font: { size: 11 } },
+        border: { display: false },
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: 'rgba(148, 163, 184, 0.1)' },
+        ticks: { color: '#64748b', font: { size: 11 } },
+        border: { display: false },
+      },
+    },
+  };
 
-const commonChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  interaction: { intersect: false, mode: 'index' },
-  elements: {
-    bar: { borderRadius: 6, borderSkipped: false },
-    point: { radius: 2, hoverRadius: 4 },
-    line: { tension: 0.35, borderWidth: 2 },
-  },
-  plugins: {
-    legend: { position: 'top', labels: { usePointStyle: true } },
-    tooltip: {
-      backgroundColor: '#111827',
-      titleColor: '#fff',
-      bodyColor: '#e5e7eb',
-      padding: 12,
-      cornerRadius: 8,
-    },
-  },
-  scales: {
-    x: {
-      grid: { display: false },
-      ticks: { color: '#64748b' },
-    },
-    y: {
-      beginAtZero: true,
-      grid: { color: 'rgba(148, 163, 184, 0.15)' },
-      ticks: { color: '#64748b' },
-    },
-  },
+  if (type === 'area') {
+    return {
+      ...baseOptions,
+      elements: {
+        ...baseOptions.elements,
+        line: { ...baseOptions.elements.line, fill: true },
+      },
+    };
+  }
+
+  return baseOptions;
 };
 
 const Dashboard = () => {
-  // State variables for different metrics
-  const [errorRates, setErrorRates] = useState([]);
-  const [p95Latency, setP95Latency] = useState(null);
-  const [requestVolume, setRequestVolume] = useState([]);
-  const [apiUsage, setApiUsage] = useState([]);
-  const [averageEndpointTime, setAverageEndpointTime] = useState([]);
-  const [userStats, setUserStats] = useState({});
-  const [mauDau, setMauDau] = useState({});
-
+  const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
-  // Fetch data
-  const fetchData = useCallback(async () => {
+  // Fetch consolidated metrics from your new precomputed endpoint
+  const fetchMetrics = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [
-        errorRatesResponse,
-        p95LatencyResponse,
-        requestVolumeResponse,
-        apiUsageResponse,
-        averageEndpointTimeResponse,
-        userStatsResponse,
-        mauDauResponse,
-      ] = await Promise.all([
-        fetch(`${BACKEND_API_URL}/api/metrics/error_rates/`),
-        fetch(`${BACKEND_API_URL}/api/metrics/latency/p95_p99/`),
-        fetch(`${BACKEND_API_URL}/api/metrics/request_volume/`),
-        fetch(`${BACKEND_API_URL}/api/metrics/api_usage_patterns/`),
-        fetch(`${BACKEND_API_URL}/api/metrics/average_time_per_endpoint/`),
-        fetch(`${BACKEND_API_URL}/api/metrics/estimate_user_year_stats/`),
-        fetch(`${BACKEND_API_URL}/api/metrics/mau_dau/`),
-      ]);
-
-      if (!errorRatesResponse.ok) throw new Error(`Error rates: ${errorRatesResponse.status}`);
-      if (!p95LatencyResponse.ok) throw new Error(`Latency: ${p95LatencyResponse.status}`);
-      if (!requestVolumeResponse.ok) throw new Error(`Request volume: ${requestVolumeResponse.status}`);
-      if (!apiUsageResponse.ok) throw new Error(`API usage: ${apiUsageResponse.status}`);
-      if (!averageEndpointTimeResponse.ok) throw new Error(`Avg time: ${averageEndpointTimeResponse.status}`);
-      if (!userStatsResponse.ok) throw new Error(`User stats: ${userStatsResponse.status}`);
-      if (!mauDauResponse.ok) throw new Error(`MAU/DAU: ${mauDauResponse.status}`);
-
-      const [
-        errorRatesData,
-        p95LatencyData,
-        requestVolumeData,
-        apiUsageData,
-        averageEndpointTimeData,
-        userStatsData,
-        mauDauData,
-      ] = await Promise.all([
-        errorRatesResponse.json(),
-        p95LatencyResponse.json(),
-        requestVolumeResponse.json(),
-        apiUsageResponse.json(),
-        averageEndpointTimeResponse.json(),
-        userStatsResponse.json(),
-        mauDauResponse.json(),
-      ]);
-
-      setErrorRates(errorRatesData || []);
-      setP95Latency(p95LatencyData || null);
-      setRequestVolume(requestVolumeData || []);
-      setApiUsage(apiUsageData || []);
-      setAverageEndpointTime(averageEndpointTimeData || []);
-      setUserStats(userStatsData || {});
-      setMauDau(mauDauData || {});
+      const response = await fetch(`${BACKEND_API_URL}/api/metrics/`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      const data = await response.json();
+      setMetrics(data.data);
+      setLastUpdated(new Date(data.created_at)); // Use created_at from the API response
     } catch (err) {
-      console.error('Error fetching dashboard data:', err);
+      console.error('Error fetching metrics:', err);
       setError(err);
     } finally {
       setLoading(false);
@@ -189,93 +235,50 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchMetrics();
+    const interval = setInterval(fetchMetrics, 30000); // Auto-refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, [fetchMetrics]);
 
-  // Chart data
-  const errorRatesChartData = {
-    labels: errorRates.map((item) => (item.path || '').replace('/api/', '')),
-    datasets: [
-      {
-        label: 'Error Rate (%)',
-        data: errorRates.map((item) => item.error_rate),
-        backgroundColor: 'rgba(239, 68, 68, 0.85)',
-        borderColor: 'rgba(239, 68, 68, 1)',
-      },
-    ],
+  // Helper functions for data processing
+  const getSystemHealth = () => {
+    if (!metrics) return 'unknown';
+    const successRate = metrics.success_rate || 0;
+    const avgResponseTime = (metrics.avg_response_time || 0) * 1000;
+    
+    if (successRate >= 99 && avgResponseTime < 200) return 'excellent';
+    if (successRate >= 97 && avgResponseTime < 500) return 'good';
+    if (successRate >= 95 && avgResponseTime < 1000) return 'warning';
+    return 'critical';
   };
 
-  const requestVolumeChartData = {
-    labels: requestVolume.map((item) =>
-      item.hour ? new Date(item.hour).toLocaleTimeString([], { hour: '2-digit' }) : ''
-    ),
-    datasets: [
-      {
-        label: 'Requests per Hour',
-        data: requestVolume.map((item) => item.request_count),
-        fill: true,
-        borderColor: 'rgba(34, 197, 94, 1)',
-        backgroundColor: 'rgba(34, 197, 94, 0.15)',
-      },
-    ],
+  const getTopSlowAPIs = () => {
+    if (!metrics?.slowest_apis) return [];
+    return Object.entries(metrics.slowest_apis)
+      .sort((a, b) => b[1].avg_duration - a[1].avg_duration)
+      .slice(0, 6);
   };
 
-  const apiUsageChartData = {
-    labels: apiUsage.slice(0, 8).map((item) => (item.api_name || '').replace('/api/', '')),
-    datasets: [
-      {
-        label: 'Request Count',
-        data: apiUsage.slice(0, 8).map((item) => item.request_count),
-        backgroundColor: [
-          'rgba(59, 130, 246, 0.85)',
-          'rgba(16, 185, 129, 0.85)',
-          'rgba(245, 101, 101, 0.85)',
-          'rgba(251, 191, 36, 0.85)',
-          'rgba(139, 92, 246, 0.85)',
-          'rgba(236, 72, 153, 0.85)',
-          'rgba(6, 182, 212, 0.85)',
-          'rgba(132, 204, 22, 0.85)',
-        ],
-      },
-    ],
+  const getTopErrorAPIs = () => {
+    if (!metrics?.error_rates) return [];
+    return Object.entries(metrics.error_rates)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
   };
-
-  const averageTimeChartData = {
-    labels: averageEndpointTime.slice(0, 6).map((item) => (item.path || '').replace('/api/', '')),
-    datasets: [
-      {
-        label: 'Avg Response Time (s)',
-        data: averageEndpointTime.slice(0, 6).map((item) => item.average_duration),
-        backgroundColor: 'rgba(168, 85, 247, 0.85)',
-        borderColor: 'rgba(168, 85, 247, 1)',
-      },
-    ],
-  };
-
-  const schoolDistributionChartData = userStats.school_counts
-    ? {
-        labels: userStats.school_counts.map((s) => s.school || 'Unknown'),
-        datasets: [
-          {
-            data: userStats.school_counts.map((s) => s.count),
-            backgroundColor: [
-              'rgba(59, 130, 246, 0.85)',
-              'rgba(16, 185, 129, 0.85)',
-              'rgba(245, 101, 101, 0.85)',
-              'rgba(251, 191, 36, 0.85)',
-              'rgba(139, 92, 246, 0.85)',
-            ],
-          },
-        ],
-      }
-    : null;
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="container mx-auto pt-32 p-6">
-          {/* ...loading content... */}
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-gray-200 rounded w-64"></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-200 rounded-xl"></div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -288,202 +291,244 @@ const Dashboard = () => {
         <div className="container mx-auto pt-32 p-6">
           <Card
             title="Dashboard Error"
-            subtitle="We couldn’t load metrics. Please try again."
+            subtitle="Unable to load metrics data"
             icon={AlertTriangle}
+            status="error"
             actions={
               <button
-                onClick={fetchData}
-                className="inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white px-3 py-2 text-sm hover:bg-black"
+                onClick={fetchMetrics}
+                className="inline-flex items-center gap-2 rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-medium hover:bg-red-700 transition-colors"
               >
                 <RefreshCw size={16} />
                 Retry
               </button>
             }
           >
-            <div className="text-sm text-red-600">{String(error.message || error)}</div>
+            <div className="text-sm text-red-600 font-medium">{error.message}</div>
           </Card>
         </div>
       </div>
     );
   }
 
+  const systemHealth = getSystemHealth();
+  const topSlowAPIs = getTopSlowAPIs();
+  const topErrorAPIs = getTopErrorAPIs();
+
+  // Chart data preparation
+  const requestVolumeData = {
+    labels: (metrics?.hourly_volume || []).map(item => 
+      new Date(item.hour).toLocaleTimeString([], { hour: 'numeric', hour12: true })
+    ),
+    datasets: [{
+      label: 'Requests',
+      data: (metrics?.hourly_volume || []).map(item => item.request_count),
+      borderColor: 'rgba(59, 130, 246, 1)',
+      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+      fill: true,
+    }],
+  };
+
+  const apiPerformanceData = {
+    labels: topSlowAPIs.map(([name]) => name.split(':').pop() || name),
+    datasets: [{
+      label: 'Avg Response Time (s)',
+      data: topSlowAPIs.map(([, data]) => data.avg_duration),
+      backgroundColor: topSlowAPIs.map((_, i) => 
+        `hsla(${220 - i * 20}, 70%, 60%, 0.8)`
+      ),
+    }],
+  };
+
+  const errorDistributionData = {
+    labels: Object.keys(metrics?.error_distribution || {}),
+    datasets: [{
+      data: Object.values(metrics?.error_distribution || {}),
+      backgroundColor: [
+        'rgba(239, 68, 68, 0.8)',
+        'rgba(245, 101, 101, 0.8)',
+        'rgba(248, 113, 113, 0.8)',
+        'rgba(252, 165, 165, 0.8)',
+      ],
+    }],
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="container mx-auto pt-32 p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="container mx-auto pt-32 p-6 max-w-7xl">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">Metrics Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              System health, usage, and performance at a glance.
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">System Dashboard</h1>
+            <div className="flex items-center gap-4 text-sm text-gray-500">
+              <span>Real-time system metrics and performance insights</span>
+              {lastUpdated && (
+                <span className="flex items-center gap-1">
+                  <Activity size={14} />
+                  Updated {lastUpdated.toLocaleTimeString()}
+                </span>
+              )}
+            </div>
           </div>
-          <button
-            onClick={fetchData}
-            className="inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white px-3 py-2 text-sm hover:bg-black"
-            title="Refresh data"
-          >
-            <RefreshCw size={16} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-3 mt-4 lg:mt-0">
+            <StatusBadge status={
+              systemHealth === 'excellent' ? 'success' :
+              systemHealth === 'good' ? 'success' :
+              systemHealth === 'warning' ? 'warning' : 'error'
+            }>
+              {systemHealth === 'excellent' && <CheckCircle size={14} />}
+              {systemHealth === 'good' && <CheckCircle size={14} />}
+              {systemHealth === 'warning' && <AlertCircle size={14} />}
+              {systemHealth === 'critical' && <AlertTriangle size={14} />}
+              System {systemHealth}
+            </StatusBadge>
+            <button
+              onClick={fetchMetrics}
+              className="inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-medium hover:bg-black transition-colors"
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </button>
+          </div>
         </div>
 
-        {/* Key Metrics */}
+        {/* Key Performance Indicators */}
         <section className="mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card title="Monthly Active Users" icon={Users}>
-              <div className="text-3xl font-bold text-gray-900">{numberFmt.format(mauDau.MAU || 0)}</div>
-              <p className="text-xs text-gray-500 mt-1">Unique users in current month</p>
-            </Card>
-            <Card title="Daily Active Users" icon={Users}>
-              <div className="text-3xl font-bold text-gray-900">{numberFmt.format(mauDau.DAU || 0)}</div>
-              <p className="text-xs text-gray-500 mt-1">Unique users yesterday</p>
-            </Card>
-            <Card title="P95 Latency" icon={Clock}>
-              <div className="text-3xl font-bold text-gray-900">
-                {msFmt((p95Latency?.p95_latency || 0) * 1000)}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">95th percentile across all endpoints</p>
-            </Card>
-            <Card title="Total Users" icon={TrendingUp}>
-              <div className="text-3xl font-bold text-gray-900">
-                {numberFmt.format(userStats.overall_stats?.total_users || 0)}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">From EstimateUserYear</p>
-            </Card>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Key Performance Indicators</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <MetricCard
+              title="Success Rate"
+              value={metrics?.success_rate}
+              subtitle="Percentage of successful requests"
+              icon={CheckCircle}
+              format="percentage"
+              status={metrics?.success_rate >= 99 ? 'success' : metrics?.success_rate >= 95 ? 'warning' : 'error'}
+            />
+            <MetricCard
+              title="Avg Response Time"
+              value={metrics?.avg_response_time * 1000}
+              subtitle="Average across all endpoints"
+              icon={Timer}
+              format="ms"
+              status={metrics?.avg_response_time < 0.2 ? 'success' : metrics?.avg_response_time < 0.5 ? 'warning' : 'error'}
+            />
+            <MetricCard
+              title="P95 Latency"
+              value={metrics?.p95_latency * 1000}
+              subtitle="95th percentile response time"
+              icon={Clock}
+              format="ms"
+              status={metrics?.p95_latency < 0.3 ? 'success' : metrics?.p95_latency < 0.5 ? 'warning' : 'error'}
+            />
+            <MetricCard
+              title="Total Requests (24h)"
+              value={metrics?.total_requests_24h}
+              subtitle="Requests in last 24 hours"
+              icon={Activity}
+              format="number"
+            />
           </div>
         </section>
 
-        {/* Core Performance & Reliability */}
+                {/* User Metrics */}
+                <section className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">User Engagement</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <MetricCard
+              title="Daily Active Sessions"
+              value={metrics?.das}
+              subtitle="Sessions active today"
+              icon={Clock}
+              format="number"
+            />
+                        <MetricCard
+              title="Daily Active Users"
+              value={metrics?.dau}
+              subtitle="Unique users today"
+              icon={Users}
+              format="number"
+            />
+
+            <MetricCard
+              title="Weekly Active Users"
+              value={metrics?.wau}
+              subtitle="Unique users this week"
+              icon={Users}
+              format="number"
+            />
+            <MetricCard
+              title="Monthly Active Users"
+              value={metrics?.mau}
+              subtitle="Unique users this month"
+              icon={Users}
+              format="number"
+            />
+            <MetricCard
+              title="Avg Sessions/User"
+              value={metrics?.average_sessions_per_user}
+              subtitle="Average sessions per user"
+              icon={Globe}
+              format="number"
+            />
+
+          </div>
+        </section>
+
+        {/* Traffic and Performance Analysis */}
         <section className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Traffic & Performance Analysis</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card
-              title="Error Rates by API Endpoint"
-              subtitle="Endpoints with the highest error percentage"
-              icon={AlertTriangle}
-            >
-              <div style={{ height: 320 }}>
-                {errorRates.length ? (
-                  <Bar
-                    data={errorRatesChartData}
-                    options={{
-                      ...commonChartOptions,
-                      scales: {
-                        ...commonChartOptions.scales,
-                        y: {
-                          ...commonChartOptions.scales.y,
-                          title: { display: true, text: 'Error Rate (%)' },
-                          ticks: {
-                            ...commonChartOptions.scales.y.ticks,
-                            callback: (v) => `${v}%`,
-                          },
-                        },
-                      },
-                      plugins: {
-                        ...commonChartOptions.plugins,
-                        tooltip: {
-                          ...commonChartOptions.plugins.tooltip,
-                          callbacks: {
-                            label: (ctx) => ` ${pctFmt.format(ctx.parsed.y)}%`,
-                          },
-                        },
-                      },
-                    }}
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-gray-500">
-                    No error data available
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            <Card
-              title="Request Volume (Last 24h)"
-              subtitle="Requests aggregated by hour"
+              title="Request Volume Trend"
+              subtitle="Hourly request volume over the last 24 hours"
               icon={TrendingUp}
             >
-              <div style={{ height: 320 }}>
-                {requestVolume.length ? (
-                  <Line
-                    data={requestVolumeChartData}
-                    options={{
-                      ...commonChartOptions,
-                      scales: {
-                        ...commonChartOptions.scales,
-                        y: {
-                          ...commonChartOptions.scales.y,
-                          title: { display: true, text: 'Requests per Hour' },
-                        },
+              <div style={{ height: 300 }}>
+                <Line
+                  data={requestVolumeData}
+                  options={{
+                    ...getChartOptions('area'),
+                    scales: {
+                      ...getChartOptions().scales,
+                      y: {
+                        ...getChartOptions().scales.y,
+                        title: { display: true, text: 'Requests per Hour' },
                       },
-                    }}
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-gray-500">
-                    No request volume data available
-                  </div>
-                )}
+                    },
+                  }}
+                />
               </div>
             </Card>
-          </div>
-        </section>
 
-        {/* API Performance */}
-        <section className="mb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card
-              title="API Usage Patterns (Top 8)"
-              subtitle="Most frequently used endpoints"
-              icon={Network}
+              title="API Performance"
+              subtitle="Average response time for slowest endpoints"
+              icon={Zap}
             >
-              <div style={{ height: 320 }}>
-                {apiUsage.length ? (
+              <div style={{ height: 300 }}>
+                {topSlowAPIs.length > 0 ? (
                   <Bar
-                    data={apiUsageChartData}
+                    data={apiPerformanceData}
                     options={{
-                      ...commonChartOptions,
+                      ...getChartOptions(),
                       indexAxis: 'y',
                       scales: {
                         x: {
-                          ...commonChartOptions.scales.x,
-                          title: { display: true, text: 'Request Count' },
-                        },
-                        y: { ...commonChartOptions.scales.y, grid: { display: false } },
-                      },
-                    }}
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-gray-500">
-                    No API usage data available
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            <Card
-              title="Average Response Time per Endpoint"
-              subtitle="Top endpoints by average latency"
-              icon={Clock}
-            >
-              <div style={{ height: 320 }}>
-                {averageEndpointTime.length ? (
-                  <Bar
-                    data={averageTimeChartData}
-                    options={{
-                      ...commonChartOptions,
-                      scales: {
-                        ...commonChartOptions.scales,
-                        y: {
-                          ...commonChartOptions.scales.y,
+                          ...getChartOptions().scales.x,
                           title: { display: true, text: 'Response Time (seconds)' },
+                        },
+                        y: { 
+                          ...getChartOptions().scales.y, 
+                          grid: { display: false },
                         },
                       },
                       plugins: {
-                        ...commonChartOptions.plugins,
+                        ...getChartOptions().plugins,
                         tooltip: {
-                          ...commonChartOptions.plugins.tooltip,
+                          ...getChartOptions().plugins.tooltip,
                           callbacks: {
-                            label: (ctx) => ` ${sFmt(ctx.parsed.y)}`,
+                            label: (ctx) => ` ${ctx.parsed.x.toFixed(3)}s`,
                           },
                         },
                       },
@@ -491,7 +536,7 @@ const Dashboard = () => {
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center text-gray-500">
-                    No response time data available
+                    No performance data available
                   </div>
                 )}
               </div>
@@ -499,77 +544,152 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* User Behavior & Demographics */}
+        {/* Error Analysis and System Health */}
         <section className="mb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Error Analysis & System Health</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card
-              title="School Distribution"
-              subtitle="User distribution by school"
-              icon={Users}
+              title="Error Distribution"
+              subtitle="Breakdown of error types"
+              icon={AlertTriangle}
             >
-              <div style={{ height: 320 }}>
-                {schoolDistributionChartData ? (
+              <div style={{ height: 250 }}>
+                {Object.keys(metrics?.error_distribution || {}).length > 0 ? (
                   <Doughnut
-                    data={schoolDistributionChartData}
+                    data={errorDistributionData}
                     options={{
-                      ...commonChartOptions,
-                      cutout: '62%',
+                      ...getChartOptions(),
+                      cutout: '60%',
                       plugins: {
-                        ...commonChartOptions.plugins,
-                        legend: { position: 'right' },
+                        ...getChartOptions().plugins,
+                        legend: { position: 'bottom' },
                       },
                     }}
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center text-gray-500">
-                    No school distribution data available
+                    No errors detected
                   </div>
                 )}
               </div>
             </Card>
 
-            <Card title="Performance Summary" subtitle="Key latency and usage insights" icon={Clock}>
+            <Card
+              title="Top Error Endpoints"
+              subtitle="Endpoints with highest error counts"
+              icon={AlertCircle}
+            >
+              <div className="space-y-3">
+                {topErrorAPIs.length > 0 ? topErrorAPIs.map(([endpoint, count], i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+                    <span className="text-sm font-medium text-red-900 truncate">
+                      {endpoint.split(' - ')[0].split(':').pop()}
+                    </span>
+                    <StatusBadge status="error">{count} errors</StatusBadge>
+                  </div>
+                )) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <CheckCircle className="mx-auto mb-2" size={24} />
+                    No errors detected
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            <Card
+              title="Peak Traffic Hours"
+              subtitle="Highest traffic periods"
+              icon={Activity}
+            >
+              <div className="space-y-3">
+                {(metrics?.peak_hours || []).map((peak, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
+                    <div>
+                      <div className="text-sm font-medium text-blue-900">
+                        {new Date(peak.hour).toLocaleString([], { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          hour: 'numeric',
+                          hour12: true 
+                        })}
+                      </div>
+                    </div>
+                    <StatusBadge status="info">{peak.request_count} requests</StatusBadge>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        </section>
+
+        {/* System Overview */}
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">System Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card title="Infrastructure Status" subtitle="Current system status" icon={Server}>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Active Endpoints</span>
+                  <StatusBadge status="success">{metrics?.total_endpoints || 0}</StatusBadge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Total Users</span>
+                  <StatusBadge status="info">{metrics?.total_users || 0}</StatusBadge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Success Rate</span>
+                  <StatusBadge status={metrics?.success_rate >= 95 ? 'success' : 'warning'}>
+                    {(metrics?.success_rate || 0).toFixed(1)}%
+                  </StatusBadge>
+                </div>
+              </div>
+            </Card>
+
+            <Card title="Performance Insights" subtitle="System performance summary" icon={Zap}>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">P95 Latency</span>
-                  <span className="font-semibold">
-                    {msFmt((p95Latency?.p95_latency || 0) * 1000)}
+                  <span className="text-gray-600">Fastest API</span>
+                  <span className="font-semibold text-green-600">
+                    {Object.entries(metrics?.api_performance || {})
+                      .sort((a, b) => a[1].avg_duration - b[1].avg_duration)[0]?.[0]?.split(':').pop() || 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Slowest API</span>
+                  <span className="font-semibold text-red-600">
+                    {topSlowAPIs[0]?.[0]?.split(':').pop() || 'N/A'}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">P99 Latency</span>
                   <span className="font-semibold">
-                    {msFmt((p95Latency?.p99_latency || 0) * 1000)}
+                    {Math.round((metrics?.p99_latency || 0) * 1000)}ms
                   </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Average Year</span>
-                  <span className="font-semibold">
-                    {userStats.overall_stats?.average_year
-                      ? Number(userStats.overall_stats.average_year).toFixed(1)
-                      : 'N/A'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tracked Endpoints</span>
-                  <span className="font-semibold">{averageEndpointTime.length}</span>
                 </div>
               </div>
             </Card>
-          </div>
-        </section>
 
-        {/* Infrastructure Metrics (Placeholder) */}
-        <section className="mb-2">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card title="CPU Utilization" subtitle="Data from external monitoring system" icon={Cpu}>
-              <p className="text-sm text-gray-500">Integrate with Prometheus/Grafana.</p>
-            </Card>
-            <Card title="Database Performance" subtitle="Data from external monitoring system" icon={Database}>
-              <p className="text-sm text-gray-500">Add slow query rate, connections, locks.</p>
-            </Card>
-            <Card title="Network Traffic" subtitle="Data from external monitoring system" icon={Network}>
-              <p className="text-sm text-gray-500">Ingress/egress, error rate by gateway.</p>
+            <Card title="Traffic Summary" subtitle="Request volume insights" icon={Network}>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">24h Requests</span>
+                  <span className="font-semibold">
+                    {new Intl.NumberFormat('en-US').format(metrics?.total_requests_24h || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">7d Requests</span>
+                  <span className="font-semibold">
+                    {new Intl.NumberFormat('en-US').format(metrics?.total_requests_7d || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">30d Requests</span>
+                  <span className="font-semibold">
+                    {new Intl.NumberFormat('en-US').format(metrics?.total_requests_30d || 0)}
+                  </span>
+                </div>
+              </div>
             </Card>
           </div>
         </section>

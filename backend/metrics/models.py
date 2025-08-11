@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-from django.conf import settings
-
+import re
 
 User = get_user_model()
 
@@ -18,9 +17,37 @@ class ApiTimingLog(models.Model):
 
     def __str__(self):
         return f"{self.method} {self.path} ({self.status_code}) - {self.duration:.3f}s"
+    
+    def get_normalized_api_name(self):
+        """
+        Normalize API names by removing IDs and page numbers
+        Examples:
+        /api/users/123 -> /api/users/{id}
+        /api/posts/456/comments -> /api/posts/{id}/comments
+        /api/search?page=2 -> /api/search
+        """
+        if not self.api_name and not self.path:
+            return "unknown"
+            
+        url = self.api_name or self.path
+        
+        # Remove query parameters
+        url = url.split('?')[0]
+        
+        # Replace numeric IDs with placeholder
+        # This regex finds numbers that are path segments (surrounded by /)
+        url = re.sub(r'/\d+(?=/|$)', '/{id}', url)
+        
+        # Replace UUID-like patterns
+        url = re.sub(r'/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?=/|$)', '/{uuid}', url)
+        
+        # Replace other common ID patterns (alphanumeric strings longer than 10 chars)
+        url = re.sub(r'/[a-zA-Z0-9]{10,}(?=/|$)', '/{id}', url)
+        
+        return url
 
 class EstimateUserYear(models.Model):
-    user = models.ForeignKey(User, null= True, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
     session_id = models.CharField(max_length=100, null=True, blank=True)
     year = models.IntegerField()
     school = models.CharField(max_length=100, null=True, blank=True)

@@ -26,6 +26,9 @@ frontend/node_modules/
 *.ttf
 *.jpeg
 *.jpg
+*.bak
+*.dat
+*.dir
 
 # But don't ignore these specific files
 !package.json
