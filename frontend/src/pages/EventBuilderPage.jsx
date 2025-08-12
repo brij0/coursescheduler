@@ -21,9 +21,8 @@ import {
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../contexts/API';
 
-const BACKEND_API_URL =
-  import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
 // New Component for Monthly Calendar Grid (no changes needed here from previous iteration)
 const MonthlyCalendarGrid = ({ courseEvents, courseColors }) => {
@@ -237,19 +236,7 @@ const EventBuilderPage = () => {
 
   const fetchOfferedTerms = async () => {
     try {
-      const response = await fetch(
-        `${BACKEND_API_URL}/api/scheduler/offered_terms/`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken() || '',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ has_events: true }),
-        },
-      );
-      const data = await response.json();
+      const data = await api.fetchOfferedTerms(true);
       setOfferedTerms(data);
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to fetch offered terms' });
@@ -258,22 +245,7 @@ const EventBuilderPage = () => {
 
   const fetchCourseTypes = async () => {
     try {
-      const response = await fetch(
-        `${BACKEND_API_URL}/api/scheduler/course_types/`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken() || '',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            offered_term: selectedTerm,
-            has_events: true,
-          }),
-        },
-      );
-      const data = await response.json();
+      const data = await api.fetchCourseTypes(selectedTerm, true);
       setCourseTypes(data);
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to fetch course types' });
@@ -282,23 +254,7 @@ const EventBuilderPage = () => {
 
   const fetchCourseCodes = async (courseType) => {
     try {
-      const response = await fetch(
-        `${BACKEND_API_URL}/api/scheduler/course_codes/`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken() || '',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            offered_term: selectedTerm,
-            course_type: courseType,
-            has_events: true,
-          }),
-        },
-      );
-      const data = await response.json();
+      const data = await api.fetchCourseCodes(selectedTerm, courseType, true);
       if (!availableCourses[courseType]) {
         setAvailableCourses((prev) => ({ ...prev, [courseType]: data }));
       }
@@ -311,24 +267,7 @@ const EventBuilderPage = () => {
 
   const fetchSectionNumbers = async (courseType, courseCode) => {
     try {
-      const response = await fetch(
-        `${BACKEND_API_URL}/api/scheduler/section_numbers/`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken() || '',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            offered_term: selectedTerm,
-            course_type: courseType,
-            course_code: courseCode,
-            has_events: true,
-          }),
-        },
-      );
-      const data = await response.json();
+      const data = await api.fetchSectionNumbers(selectedTerm, courseType, courseCode, true);
       const sectionKey = `${courseType}_${courseCode}`;
       setAvailableSections((prev) => ({ ...prev, [sectionKey]: data }));
       return data;
@@ -397,23 +336,13 @@ const EventBuilderPage = () => {
     setCourseColors({});
 
     try {
-      const response = await fetch(
-        `${BACKEND_API_URL}/api/scheduler/course_events_schedule/`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken() || '',
-          },
-          body: JSON.stringify({
-            sections: selectedCourses.map((course) => ({
-              course_type: course.course_type,
-              course_code: course.course_code,
-              section_number: course.course_section,
-              offered_term: selectedTerm,
-            })),
-          }),
-        },
+      const response = await api.fetchCourseEvents(
+        selectedCourses.map((course) => ({
+          course_type: course.course_type,
+          course_code: course.course_code,
+          section_number: course.course_section,
+          offered_term: selectedTerm,
+        })),
       );
 
       if (!response.ok) {
@@ -487,17 +416,7 @@ const EventBuilderPage = () => {
 
     try {
       setIsLoading(true);
-      const response = await fetch(
-        `${BACKEND_API_URL}/api/scheduler/export_events/`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken() || '',
-          },
-          body: JSON.stringify(courseEvents),
-        },
-      );
+      const response = await api.exportEvents(courseEvents);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -530,54 +449,24 @@ const EventBuilderPage = () => {
     }
   };
 
-
-  const getCsrfToken = () => {
-    const name = 'csrftoken=';
-    const decodedCookie = decodeURIComponent(document.cookie);
-    const cookieArray = decodedCookie.split(';');
-
-    for (let i = 0; i < cookieArray.length; i++) {
-      let cookie = cookieArray[i].trim();
-      if (cookie.indexOf(name) === 0) {
-        return cookie.substring(name.length, cookie.length);
-      }
-    }
-    return null;
-  };
-
-  const formatTime = (timeStr) => {
-    return timeStr.replace('?', '-');
-  };
-
   const submitSuggestion = async () => {
     if (!suggestion.trim()) return;
 
     try {
-      const response = await fetch(
-        `${BACKEND_API_URL}/api/scheduler/submit_suggestion/`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken() || '',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ suggestion: suggestion.trim() }),
-        },
-      );
-
-      const data = await response.json();
-      if (response.ok) {
-        setMessage({ type: 'success', text: data.message });
-        setSuggestion('');
-        setShowSuggestionForm(false);
-      } else {
-        setMessage({ type: 'error', text: data.error });
-      }
+        const response = await api.submitSuggestion({ suggestion: suggestion.trim() });
+        if (response.ok) {
+            const data = await response.json();
+            setMessage({ type: 'success', text: data.message || 'Suggestion submitted successfully' });
+            setSuggestion('');
+            setShowSuggestionForm(false);
+        } else {
+            const errorData = await response.json();
+            setMessage({ type: 'error', text: errorData.error || 'Failed to submit suggestion' });
+        }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to submit suggestion' });
+        setMessage({ type: 'error', text: 'Failed to submit suggestion' });
     }
-  };
+};
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F3F9FF' }}>
@@ -1049,62 +938,6 @@ const EventBuilderPage = () => {
               </motion.div>
             </motion.div>
           )}
-
-          {/* Suggestion Form */}
-          <motion.div
-            className="mt-12 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 border border-white/30"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1.0 }}
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h3
-                className="text-xl font-bold"
-                style={{ color: '#456882' }}
-              >
-                Feedback & Suggestions
-              </h3>
-              <button
-                onClick={() => setShowSuggestionForm(!showSuggestionForm)}
-                className="text-sm text-neutral-600 hover:text-neutral-800 transition-colors"
-              >
-                {showSuggestionForm ? 'Hide' : 'Show'} Form
-              </button>
-            </div>
-
-            <AnimatePresence>
-              {showSuggestionForm && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-4"
-                >
-                  <textarea
-                    value={suggestion}
-                    onChange={(e) => setSuggestion(e.target.value)}
-                    placeholder="Share your feedback or suggest improvements..."
-                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all resize-none"
-                    style={{ '--tw-ring-color': '#456882' }}
-                    rows={4}
-                  />
-                  <div className="text-right">
-                    <motion.button
-                      onClick={submitSuggestion}
-                      disabled={!suggestion.trim()}
-                      className="flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold text-white hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ backgroundColor: '#456882' }}
-                      whileHover={{ scale: suggestion.trim() ? 1.02 : 1 }}
-                      whileTap={{ scale: suggestion.trim() ? 0.98 : 1 }}
-                    >
-                      <Send className="w-4 h-4" />
-                      <span>Submit Feedback</span>
-                    </motion.button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
         </div>
       </section>
     </div>

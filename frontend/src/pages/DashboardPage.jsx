@@ -32,6 +32,7 @@ import {
   Timer,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
+import api from "../contexts/API";
 
 ChartJS.register(
   CategoryScale,
@@ -52,9 +53,6 @@ ChartJS.defaults.font.family =
 ChartJS.defaults.color = "#475569";
 ChartJS.defaults.plugins.legend.labels.boxWidth = 12;
 ChartJS.defaults.plugins.legend.labels.boxHeight = 12;
-
-const BACKEND_API_URL =
-  import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
 // Enhanced Card component with status indicators
 const Card = ({
@@ -270,10 +268,7 @@ const Dashboard = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${BACKEND_API_URL}/api/metrics/`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const data = await response.json();
+      const data = await api.fetchMetrics();
       setMetrics(data.data);
       setLastUpdated(new Date(data.created_at)); // Use created_at from the API response
     } catch (err) {

@@ -542,7 +542,7 @@ const PostPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: '#E5E0D8' }}>
+      <div className="min-h-screen" style={{ backgroundColor: '#F3F9FF' }}>
         <Navbar />
         <div className="pt-32 pb-12 px-4 flex justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
@@ -553,7 +553,7 @@ const PostPage = () => {
 
   if (error || !post) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: '#E5E0D8' }}>
+      <div className="min-h-screen" style={{ backgroundColor: '#F3F9FF' }}>
         <Navbar />
         <div className="pt-32 pb-12 px-4 max-w-4xl mx-auto">
           <div className="bg-red-50 p-6 rounded-lg border border-red-200 text-center">
@@ -568,7 +568,7 @@ const PostPage = () => {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#E5E0D8' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#F3F9FF' }}>
       <Navbar />
       <section className="pt-32 pb-12 px-4">
         <div className="max-w-4xl mx-auto">

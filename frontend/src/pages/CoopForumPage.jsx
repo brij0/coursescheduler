@@ -4,8 +4,7 @@ import { ArrowUp, ArrowDown, MessageCircle, Send, User, Plus, Loader2, Users, Se
 import { useNavigate, Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { useAuth } from '../contexts/AuthContext'
-
-const BACKEND_API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+import api from '../contexts/API'
 
 const CoopForumPage = () => {
   const navigate = useNavigate()
@@ -38,8 +37,7 @@ const CoopForumPage = () => {
   const fetchPosts = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${BACKEND_API_URL}/api/coopforum/posts/`, { credentials: 'include' })
-      const data = await res.json()
+      const data = await api.fetchPosts()
       console.log("Posts data received:", data)
       
       // Process posts to include user vote information
@@ -53,13 +51,6 @@ const CoopForumPage = () => {
     }
   }
 
-  // Get CSRF token from cookies
-  const getCookie = (name) => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-  }
-
   // Voting with optimistic updates
   const handleVote = async (e, postId, value) => {
     e.stopPropagation() // Prevent navigation when voting
@@ -70,38 +61,17 @@ const CoopForumPage = () => {
     }
 
     try {
-      const response = await fetch(`${BACKEND_API_URL}/api/coopforum/posts/${postId}/vote/`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({ value })
-      })
-
-      if (!response.ok) {
-        throw new Error('Vote failed')
-      }
-
-      // Get the updated post data from backend
-      const postResponse = await fetch(`${BACKEND_API_URL}/api/coopforum/posts/${postId}/`, {
-        credentials: 'include'
-      })
+      const updatedPost = await api.voteOnPost(postId, value)
       
-      if (postResponse.ok) {
-        const updatedPost = await postResponse.json()
-        
-        // Update the post in the appropriate array
-        const updatePostInArray = (posts) => posts.map(post => 
-          post.id === postId ? updatedPost : post
-        )
+      // Update the post in the appropriate array
+      const updatePostInArray = (posts) => posts.map(post => 
+        post.id === postId ? updatedPost : post
+      )
 
-        if (isSearchMode) {
-          setSearchResults(updatePostInArray)
-        } else {
-          setPosts(updatePostInArray)
-        }
+      if (isSearchMode) {
+        setSearchResults(updatePostInArray)
+      } else {
+        setPosts(updatePostInArray)
       }
 
     } catch (err) {
@@ -124,16 +94,7 @@ const CoopForumPage = () => {
     }
     setLoading(true)
     try {
-      const response = await fetch(`${BACKEND_API_URL}/api/coopforum/posts/`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify(newPost)
-      })
-      const data = await response.json()
+      const data = await api.createPost(newPost)
       
       setShowPostForm(false)
       setNewPost({ title: '', content: '', job_title: '', organization: '', job_term: '', job_location: '' })
@@ -162,10 +123,7 @@ const CoopForumPage = () => {
     
     setIsSearching(true)
     try {
-      const res = await fetch(`${BACKEND_API_URL}/api/coopforum/posts/search/?q=${encodeURIComponent(query)}`, {
-        credentials: 'include'
-      })
-      const data = await res.json()
+      const data = await api.searchPosts(query)
       setSearchResults(data.results || [])
       setIsSearchMode(true)
     } catch (err) {

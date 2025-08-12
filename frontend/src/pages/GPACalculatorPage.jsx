@@ -18,8 +18,7 @@ import {
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import { useAuth } from '../contexts/AuthContext'
-
-const BACKEND_API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+import api from '../contexts/API'
 
 const GPACalculatorPage = () => {
   const { user } = useAuth()
@@ -62,10 +61,7 @@ const GPACalculatorPage = () => {
     }
 
     try {
-      const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/offered_terms/`, {
-        credentials: 'include'
-      })
-      const data = await response.json()
+      const data = await api.fetchOfferedTerms(true)
       setOfferedTerms(data)
       if (data.length > 0) {
         setSelectedTerm(data[0])
@@ -84,19 +80,15 @@ const GPACalculatorPage = () => {
     if (!user) return // Only load for authenticated users
     
     try {
-      const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/user_progress/`, {
-        credentials: 'include'
-      })
-      if (response.ok) {
-        const data = await response.json()
-        if (data.courses && data.courses.length > 0) {
-          restoreProgressData(data)
-        }
+      const data = await api.fetchUserProgress()
+      if (data.courses && data.courses.length > 0) {
+        restoreProgressData(data)
       }
     } catch (error) {
       console.error('Failed to load progress:', error)
     }
   }
+
 
   const restoreProgressData = async (data) => {
     if (data.offered_term) {
@@ -176,13 +168,7 @@ const GPACalculatorPage = () => {
       return apiCache.courseTypes[cacheKey]
     }
 
-    const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/course_types/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ offered_term: offeredTerm })
-    })
-    const data = await response.json()
+    const data = await api.fetchCourseTypes(offeredTerm, true)
     
     setApiCache(prev => ({
       ...prev,
@@ -198,13 +184,7 @@ const GPACalculatorPage = () => {
       return apiCache.courseCodes[cacheKey]
     }
 
-    const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/course_codes/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ offered_term: offeredTerm, course_type: courseType })
-    })
-    const data = await response.json()
+    const data = await api.fetchCourseCodes(offeredTerm, courseType, true)
     
     setApiCache(prev => ({
       ...prev,
@@ -220,13 +200,7 @@ const GPACalculatorPage = () => {
       return apiCache.sectionNumbers[cacheKey]
     }
 
-    const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/section_numbers/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ offered_term: offeredTerm, course_type: courseType, course_code: courseCode })
-    })
-    const data = await response.json()
+    const data = await api.fetchSectionNumbers(offeredTerm, courseType, courseCode, true)
     
     setApiCache(prev => ({
       ...prev,
@@ -242,13 +216,7 @@ const GPACalculatorPage = () => {
       return apiCache.courseEvents[cacheKey]
     }
 
-    const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/course_events/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ offered_term: offeredTerm, course_type: courseType, course_code: courseCode, section_number: sectionNumber })
-    })
-    const data = await response.json()
+    const data = await api.fetchGpaCourseEvents(offeredTerm, courseType, courseCode, sectionNumber)
     
     setApiCache(prev => ({
       ...prev,
@@ -300,21 +268,7 @@ const GPACalculatorPage = () => {
         : course
     ))
   }
-
-  const getCsrfToken = () => {
-    const name = 'csrftoken='
-    const decodedCookie = decodeURIComponent(document.cookie)
-    const cookieArray = decodedCookie.split(';')
-    
-    for (let i = 0; i < cookieArray.length; i++) {
-      let cookie = cookieArray[i].trim()
-      if (cookie.indexOf(name) === 0) {
-        return cookie.substring(name.length, cookie.length)
-      }
-    }
-    return null
-  }
-
+  
   const fetchCourseTypes = async (courseId) => {
     if (!selectedTerm) return
     
@@ -331,20 +285,7 @@ const GPACalculatorPage = () => {
     
     try {
       setIsLoading(true)
-      const csrfToken = getCsrfToken()
-      
-      const headers = { 'Content-Type': 'application/json' }
-      if (csrfToken) {
-        headers['X-CSRFToken'] = csrfToken
-      }
-      
-      const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/course_types/`, {
-        method: 'POST',
-        headers: headers,
-        credentials: 'include',
-        body: JSON.stringify({ offered_term: selectedTerm })
-      })
-      const data = await response.json()
+      const data = await api.fetchCourseTypes(selectedTerm, true)
       
       // Cache the response
       setApiCache(prev => ({
@@ -380,23 +321,7 @@ const GPACalculatorPage = () => {
     
     try {
       setIsLoading(true)
-      const csrfToken = getCsrfToken()
-      
-      const headers = { 'Content-Type': 'application/json' }
-      if (csrfToken) {
-        headers['X-CSRFToken'] = csrfToken
-      }
-      
-      const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/course_codes/`, {
-        method: 'POST',
-        headers: headers,
-        credentials: 'include',
-        body: JSON.stringify({ 
-          offered_term: selectedTerm,
-          course_type: courseType 
-        })
-      })
-      const data = await response.json()
+      const data = await api.fetchCourseCodes(selectedTerm, courseType, true)
       
       // Cache the response
       setApiCache(prev => ({
@@ -432,24 +357,7 @@ const GPACalculatorPage = () => {
     
     try {
       setIsLoading(true)
-      const csrfToken = getCsrfToken()
-      
-      const headers = { 'Content-Type': 'application/json' }
-      if (csrfToken) {
-        headers['X-CSRFToken'] = csrfToken
-      }
-      
-      const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/section_numbers/`, {
-        method: 'POST',
-        headers: headers,
-        credentials: 'include',
-        body: JSON.stringify({ 
-          offered_term: selectedTerm,
-          course_type: courseType,
-          course_code: courseCode
-        })
-      })
-      const data = await response.json()
+      const data = await api.fetchSectionNumbers(selectedTerm, courseType, courseCode, true)
       
       // Cache the response
       setApiCache(prev => ({
@@ -493,25 +401,7 @@ const GPACalculatorPage = () => {
     
     try {
       setIsLoading(true)
-      const csrfToken = getCsrfToken()
-      
-      const headers = { 'Content-Type': 'application/json' }
-      if (csrfToken) {
-        headers['X-CSRFToken'] = csrfToken
-      }
-      
-      const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/course_events/`, {
-        method: 'POST',
-        headers: headers,
-        credentials: 'include',
-        body: JSON.stringify({ 
-          offered_term: selectedTerm,
-          course_type: courseType,
-          course_code: courseCode,
-          section_number: sectionNumber
-        })
-      })
-      const data = await response.json()
+      const data = await api.fetchGpaCourseEvents(selectedTerm, courseType, courseCode, sectionNumber, true)
       
       // Cache the response
       setApiCache(prev => ({
@@ -571,8 +461,6 @@ const GPACalculatorPage = () => {
     setMessage({ type: '', text: '' })
 
     try {
-      const csrfToken = getCsrfToken()
-      
       const payload = {
         offered_term: selectedTerm,
         courses: courses.map(course => ({
@@ -591,36 +479,17 @@ const GPACalculatorPage = () => {
         }))
       }
 
-      const headers = { 
-        'Content-Type': 'application/json',
-      }
+      const data = await api.calculateGpa(payload)
       
-      if (csrfToken) {
-        headers['X-CSRFToken'] = csrfToken
-      }
-
-      const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/calculate/`, {
-        method: 'POST',
-        headers: headers,
-        credentials: 'include',
-        body: JSON.stringify(payload)
-      })
+      setResults(data)
+      setMessage({ type: 'success', text: 'GPA calculated successfully!' })
       
-      const data = await response.json()
-      
-      if (response.ok) {
-        setResults(data)
-        setMessage({ type: 'success', text: 'GPA calculated successfully!' })
-        
-        // Scroll to results after a short delay
-        setTimeout(() => {
-          if (resultsRef.current) {
-            resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
-        }, 100)
-      } else {
-        setMessage({ type: 'error', text: data.error || 'Calculation failed' })
-      }
+      // Scroll to results after a short delay
+      setTimeout(() => {
+        if (resultsRef.current) {
+          resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 100)
     } catch (error) {
       console.error('API Error:', error)
       setMessage({ type: 'error', text: `Network error: ${error.message}. Please check that the backend server is running.` })
@@ -631,32 +500,17 @@ const GPACalculatorPage = () => {
 
   const exportToExcel = async () => {
     try {
-      const csrfToken = getCsrfToken()
+      const blob = await api.exportGpaToExcel()
       
-      const headers = {}
-      if (csrfToken) {
-        headers['X-CSRFToken'] = csrfToken
-      }
-      
-      const response = await fetch(`${BACKEND_API_URL}/api/gpacalc/progress_export_excel/`, {
-        credentials: 'include',
-        headers: headers
-      })
-      
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'gpa_calculation.xlsx'
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-        setMessage({ type: 'success', text: 'Excel file downloaded successfully!' })
-      } else {
-        setMessage({ type: 'error', text: 'Export failed' })
-      }
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'gpa_calculation.xlsx'
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      setMessage({ type: 'success', text: 'Excel file downloaded successfully!' })
     } catch (error) {
       setMessage({ type: 'error', text: 'Export failed' })
     }

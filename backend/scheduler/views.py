@@ -439,7 +439,7 @@ def submit_suggestion(request):
     """
     try:
         data = json.loads(request.body)
-        suggestion_text = data.get("suggestion", "").strip()
+        suggestion_text = data.get("suggestion", "")
         
         if not suggestion_text:
             return JsonResponse({"error": "Suggestion text is required"}, status=400)
