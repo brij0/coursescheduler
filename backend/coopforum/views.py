@@ -109,10 +109,9 @@ def user_view(request):
             }
         })
     else:
-        print(f"Inside else statement for user_view, session key: {request.session.session_key}")
         if not request.session.session_key:
             request.session.create()
-        logger.debug("User info requested for unauthenticated user - session created for anonymous user {request.session.session_key}")
+        logger.debug(f"User info requested for unauthenticated user - session created for anonymous user {request.session.session_key}")
         return JsonResponse({'error': 'Not authenticated'}, status=401)
 
 @require_http_methods(["GET","POST"])
