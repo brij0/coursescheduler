@@ -21,7 +21,10 @@ import {
 import Navbar from "../components/Navbar";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../contexts/API";
-
+import TermSelector from '../components/TermSelector';
+import CourseSelector from '../components/CourseSelector';
+import SelectedCoursesList from '../components/SelectedCoursesList';
+import MessageDisplay from '../components/MessageDisplay';
 const ConflictFreeSchedulePage = () => {
   const { user } = useAuth();
   const [offeredTerms, setOfferedTerms] = useState([]);
@@ -35,8 +38,6 @@ const ConflictFreeSchedulePage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [viewMode, setViewMode] = useState("calendar"); // 'calendar' or 'list'
-  const [showSuggestionForm, setShowSuggestionForm] = useState(false);
-  const [suggestion, setSuggestion] = useState("");
   const [pagination, setPagination] = useState({
     offset: 0,
     limit: 50,
@@ -803,199 +804,40 @@ const ConflictFreeSchedulePage = () => {
       <section className="pb-20 px-4">
         <div className="max-w-6xl mx-auto">
           {/* Messages */}
-          <AnimatePresence>
-            {message.text && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className={`mb-6 p-4 rounded-lg flex items-center justify-between ${
-                  message.type === "success"
-                    ? "bg-green-50 border border-green-200 text-green-800"
-                    : "bg-red-50 border border-red-200 text-red-800"
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  {message.type === "success" ? (
-                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  )}
-                  <p className="text-sm">{message.text}</p>
-                </div>
-                <button
-                  onClick={() => setMessage({ type: "", text: "" })}
-                  className="text-current hover:opacity-70"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <MessageDisplay message={message} setMessage={setMessage} />
 
           {/* Term Selection */}
-          <motion.div
-            className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 mb-8 border border-white/30"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-          >
-            <h2
-              className="text-2xl font-bold mb-6"
-              style={{ color: "#456882" }}
-            >
-              Select Term
-            </h2>
-
-            <select
-              value={selectedTerm}
-              onChange={(e) => setSelectedTerm(e.target.value)}
-              className="w-full md:w-auto px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all"
-              style={{ "--tw-ring-color": "#456882" }}
-            >
-              <option value="">Select Term</option>
-              {offeredTerms.map((term) => (
-                <option key={term} value={term}>
-                  {term}
-                </option>
-              ))}
-            </select>
-          </motion.div>
+          <TermSelector
+            selectedTerm={selectedTerm}
+            setSelectedTerm={setSelectedTerm}
+            offeredTerms={offeredTerms}
+            title="Select Term"
+          />
 
           {/* Course Selection */}
-          <motion.div
-            className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 mb-8 border border-white/30"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-          >
-            <h2
-              className="text-2xl font-bold mb-6"
-              style={{ color: "#456882" }}
-            >
-              Add Courses
-            </h2>
+          <CourseSelector
+            title="Add Courses"
+            newCourse={newCourse}
+            setNewCourse={setNewCourse}
+            courseTypes={courseTypes}
+            availableCourses={availableCourses}
+            availableSections={availableSections}
+            selectedTerm={selectedTerm}
+            onAddCourse={addCourse}
+            requiresSection={false}
+            sectionLabel="Any Section"
+            disabled={false}
+          />
 
-            {/* Course Addition Form */}
-            <div className="grid md:grid-cols-5 gap-4 mb-6">
-              <select
-                value={newCourse.course_type}
-                onChange={(e) =>
-                  setNewCourse((prev) => ({
-                    ...prev,
-                    course_type: e.target.value,
-                    course_code: "",
-                    course_section: "",
-                  }))
-                }
-                disabled={!selectedTerm}
-                className="px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all disabled:opacity-50"
-                style={{ "--tw-ring-color": "#456882" }}
-              >
-                <option value="">Course Type</option>
-                {courseTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={newCourse.course_code}
-                onChange={(e) =>
-                  setNewCourse((prev) => ({
-                    ...prev,
-                    course_code: e.target.value,
-                    course_section: "",
-                  }))
-                }
-                disabled={!newCourse.course_type}
-                className="px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all disabled:opacity-50"
-                style={{ "--tw-ring-color": "#456882" }}
-              >
-                <option value="">Course Code</option>
-                {availableCourses[newCourse.course_type]?.map((code) => (
-                  <option key={code} value={code}>
-                    {code}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={newCourse.course_section}
-                onChange={(e) =>
-                  setNewCourse((prev) => ({
-                    ...prev,
-                    course_section: e.target.value,
-                  }))
-                }
-                disabled={!newCourse.course_code}
-                className="px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all disabled:opacity-50"
-                style={{ "--tw-ring-color": "#456882" }}
-              >
-                <option value="">Any Section</option>
-                {availableSections[
-                  `${newCourse.course_type}_${newCourse.course_code}`
-                ]?.map((section) => (
-                  <option key={section} value={section}>
-                    {section}
-                  </option>
-                ))}
-              </select>
-
-              <motion.button
-                onClick={addCourse}
-                disabled={!newCourse.course_type || !newCourse.course_code}
-                className="flex items-center justify-center space-x-2 px-4 py-3 rounded-lg font-semibold text-white hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: "#456882" }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Plus className="w-5 h-5" />
-                <span>Add Course</span>
-              </motion.button>
-            </div>
-
-            {/* Selected Courses */}
-            {selectedCourses.length > 0 && (
-              <div>
-                <h3
-                  className="text-lg font-semibold mb-4"
-                  style={{ color: "#456882" }}
-                >
-                  Selected Courses ({selectedCourses.length})
-                </h3>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {selectedCourses.map((course, index) => (
-                    <motion.div
-                      key={index}
-                      className="flex items-center justify-between p-4 bg-white rounded-lg border border-neutral-200"
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <div>
-                        <span className="font-medium">
-                          {course.course_type} {course.course_code}
-                        </span>
-                        {course.course_section && (
-                          <div className="text-sm text-neutral-600">
-                            Section: {course.course_section}
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => removeCourse(index)}
-                        className="text-red-500 hover:text-red-700 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </motion.div>
+          {/* Selected Courses */}
+          <SelectedCoursesList
+            courses={selectedCourses}
+            onRemoveCourse={removeCourse}
+            showSections={true}
+            title="Selected Courses"
+            emptyMessage="No courses added yet."
+            emptySubMessage="Add courses above to get started with schedule generation."
+          />
 
           {/* Generate Schedules Button */}
           {selectedCourses.length > 0 && (

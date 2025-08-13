@@ -281,8 +281,6 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 30000); // Auto-refresh every 30 seconds
-    return () => clearInterval(interval);
   }, [fetchMetrics]);
 
   // Helper functions for data processing

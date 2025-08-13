@@ -1,32 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Calendar,
-  Clock,
-  MapPin,
-  Plus,
-  Trash2,
   Info,
-  CheckCircle,
-  AlertCircle,
-  X,
-  Search,
-  Grid,
-  List,
-  Eye,
   Download,
-  Users,
   Hash,
-  Send,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../contexts/API';
+import TermSelector from '../components/TermSelector';
+import CourseSelector from '../components/CourseSelector';
+import SelectedCoursesList from '../components/SelectedCoursesList';
+import MessageDisplay from '../components/MessageDisplay';
 
 
 // New Component for Monthly Calendar Grid (no changes needed here from previous iteration)
 const MonthlyCalendarGrid = ({ courseEvents, courseColors }) => {
-  const currentYear = new Date().getFullYear();
 
   const getDaysInMonth = (month, year) => {
     return new Date(year, month + 1, 0).getDate();
@@ -48,7 +38,7 @@ const MonthlyCalendarGrid = ({ courseEvents, courseColors }) => {
   const getMonthsWithEvents = () => {
     const monthsSet = new Set();
     
-    Object.entries(courseEvents).forEach(([courseKey, events]) => {
+    Object.entries(courseEvents).forEach(([, events]) => {
       events
         .filter((event) => event.event_date)
         .forEach((event) => {
@@ -202,8 +192,8 @@ const EventBuilderPage = () => {
   const [availableSections, setAvailableSections] = useState({});
   const [courseEvents, setCourseEvents] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false); // Add separate export loading state
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [showSuggestionForm, setShowSuggestionForm] = useState(false);
   const [suggestion, setSuggestion] = useState('');
   const [selectedCourses, setSelectedCourses] = useState([]);
   const [courseColors, setCourseColors] = useState({});
@@ -233,7 +223,16 @@ const EventBuilderPage = () => {
       setCourseColors({}); // Also clear colors on term change
     }
   }, [selectedTerm]);
-
+  useEffect(() => {
+    if (newCourse.course_type && selectedTerm) {
+      fetchCourseCodes(newCourse.course_type);
+    }
+  }, [newCourse.course_type, selectedTerm]);
+  useEffect(() => {
+    if (newCourse.course_type && newCourse.course_code && selectedTerm) {
+      fetchSectionNumbers(newCourse.course_type, newCourse.course_code);
+    }
+  }, [newCourse.course_type, newCourse.course_code, selectedTerm]);
   const fetchOfferedTerms = async () => {
     try {
       const data = await api.fetchOfferedTerms(true);
@@ -415,7 +414,7 @@ const EventBuilderPage = () => {
     }
 
     try {
-      setIsLoading(true);
+      setIsExporting(true);
       const response = await api.exportEvents(courseEvents);
 
       if (!response.ok) {
@@ -445,28 +444,10 @@ const EventBuilderPage = () => {
         text: 'Failed to export events. Please try again.',
       });
     } finally {
-      setIsLoading(false);
+      setIsExporting(false);
     }
   };
 
-  const submitSuggestion = async () => {
-    if (!suggestion.trim()) return;
-
-    try {
-        const response = await api.submitSuggestion({ suggestion: suggestion.trim() });
-        if (response.ok) {
-            const data = await response.json();
-            setMessage({ type: 'success', text: data.message || 'Suggestion submitted successfully' });
-            setSuggestion('');
-            setShowSuggestionForm(false);
-        } else {
-            const errorData = await response.json();
-            setMessage({ type: 'error', text: errorData.error || 'Failed to submit suggestion' });
-        }
-    } catch (error) {
-        setMessage({ type: 'error', text: 'Failed to submit suggestion' });
-    }
-};
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F3F9FF' }}>
@@ -582,219 +563,40 @@ const EventBuilderPage = () => {
       <section className="pb-20 px-4">
         <div className="max-w-6xl mx-auto">
           {/* Messages */}
-          <AnimatePresence>
-            {message.text && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className={`mb-6 p-4 rounded-lg flex items-center justify-between ${
-                  message.type === 'success'
-                    ? 'bg-green-50 border border-green-200 text-green-800'
-                    : 'bg-red-50 border border-red-200 text-red-800'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  {message.type === 'success' ? (
-                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  )}
-                  <p className="text-sm">{message.text}</p>
-                </div>
-                <button
-                  onClick={() => setMessage({ type: '', text: '' })}
-                  className="text-current hover:opacity-70"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <MessageDisplay message={message} setMessage={setMessage} />
 
           {/* Term Selection */}
-          <motion.div
-            className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 mb-8 border border-white/30"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-          >
-            <h2 className="text-2xl font-bold mb-6" style={{ color: '#456882' }}>
-              Select Term
-            </h2>
-
-            <select
-              value={selectedTerm}
-              onChange={(e) => setSelectedTerm(e.target.value)}
-              className="w-full md:w-auto px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all"
-              style={{ '--tw-ring-color': '#456882' }}
-            >
-              <option value="">Select Term</option>
-              {offeredTerms.map((term) => (
-                <option key={term} value={term}>
-                  {term}
-                </option>
-              ))}
-            </select>
-          </motion.div>
+          <TermSelector
+            selectedTerm={selectedTerm}
+            setSelectedTerm={setSelectedTerm}
+            offeredTerms={offeredTerms}
+          />
 
           {/* Course Selection */}
-          <motion.div
-            className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 mb-8 border border-white/30"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-          >
-            <h2 className="text-2xl font-bold mb-6" style={{ color: '#456882' }}>
-              Add Course Sections
-            </h2>
+          <CourseSelector
+            title="Add Course Sections"
+            newCourse={newCourse}
+            setNewCourse={setNewCourse}
+            courseTypes={courseTypes}
+            availableCourses={availableCourses}
+            availableSections={availableSections}
+            selectedTerm={selectedTerm}
+            onAddCourse={addCourse}
+            requiresSection={true}
+            sectionLabel="Select Section"
+            infoMessage="For course events, you must select specific sections as events are section-specific."
+            disabled={!selectedTerm}
+          />
 
-            {/* Course Addition Form */}
-            <div className="grid md:grid-cols-5 gap-4 mb-6">
-              <select
-                value={newCourse.course_type}
-                onChange={(e) =>
-                  setNewCourse((prev) => ({
-                    ...prev,
-                    course_type: e.target.value,
-                    course_code: '',
-                    course_section: '',
-                  }))
-                }
-                disabled={!selectedTerm}
-                className="px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all disabled:opacity-50"
-                style={{ '--tw-ring-color': '#456882' }}
-              >
-                <option value="">Course Type</option>
-                {courseTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={newCourse.course_code}
-                onChange={(e) =>
-                  setNewCourse((prev) => ({
-                    ...prev,
-                    course_code: e.target.value,
-                    course_section: '',
-                  }))
-                }
-                disabled={!newCourse.course_type}
-                className="px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all disabled:opacity-50"
-                style={{ '--tw-ring-color': '#456882' }}
-                onFocus={() => {
-                  if (
-                    newCourse.course_type &&
-                    !availableCourses[newCourse.course_type]
-                  ) {
-                    fetchCourseCodes(newCourse.course_type);
-                  }
-                }}
-              >
-                <option value="">Course Code</option>
-                {availableCourses[newCourse.course_type]?.map((code) => (
-                  <option key={code} value={code}>
-                    {code}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={newCourse.course_section}
-                onChange={(e) =>
-                  setNewCourse((prev) => ({
-                    ...prev,
-                    course_section: e.target.value,
-                  }))
-                }
-                disabled={!newCourse.course_code}
-                className="px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all disabled:opacity-50"
-                style={{ '--tw-ring-color': '#456882' }}
-                onFocus={() => {
-                  if (newCourse.course_type && newCourse.course_code) {
-                    fetchSectionNumbers(
-                      newCourse.course_type,
-                      newCourse.course_code,
-                    );
-                  }
-                }}
-              >
-                <option value="">Select Section</option>
-                {availableSections[
-                  `${newCourse.course_type}_${newCourse.course_code}`
-                ]?.map((section) => (
-                  <option key={section} value={section}>
-                    {section}
-                  </option>
-                ))}
-              </select>
-
-              <motion.button
-                onClick={addCourse}
-                disabled={
-                  !newCourse.course_type ||
-                  !newCourse.course_code ||
-                  !newCourse.course_section
-                }
-                className="flex items-center justify-center space-x-2 px-4 py-3 rounded-lg font-semibold text-white hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: '#456882' }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Plus className="w-5 h-5" />
-                <span>Add Course</span>
-              </motion.button>
-            </div>
-
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <Info className="w-4 h-4 inline mr-2" />
-                For course events, you must select specific sections as events
-                are section-specific.
-              </p>
-            </div>
-
-            {/* Selected Courses */}
-            {selectedCourses.length > 0 && (
-              <div>
-                <h3
-                  className="text-lg font-semibold mb-4"
-                  style={{ color: '#456882' }}
-                >
-                  Selected Course Sections ({selectedCourses.length})
-                </h3>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {selectedCourses.map((course, index) => (
-                    <motion.div
-                      key={index}
-                      className="flex items-center justify-between p-4 bg-white rounded-lg border border-neutral-200"
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <div>
-                        <span className="font-medium">
-                          {course.course_type} {course.course_code}
-                        </span>
-                        <div className="text-sm text-neutral-600">
-                          Section: {course.course_section}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => removeCourse(index)}
-                        className="text-red-500 hover:text-red-700 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </motion.div>
+          {/* Selected Courses List */}
+          <SelectedCoursesList
+            courses={selectedCourses}
+            onRemoveCourse={removeCourse}
+            showSections={true}
+            title="Selected Course Sections"
+            emptyMessage="No course sections added yet."
+            emptySubMessage="Use the form above to add course sections."
+          />
 
           {/* Fetch Events Button */}
           {selectedCourses.length > 0 && (
@@ -862,18 +664,18 @@ const EventBuilderPage = () => {
                   </div>
                   <motion.button
                     onClick={exportEventsToCalendar}
-                    disabled={isLoading}
+                    disabled={isExporting}
                     className="flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold text-white hover:shadow-lg transition-all duration-300 disabled:opacity-50"
                     style={{ backgroundColor: '#456882' }}
-                    whileHover={{ scale: isLoading ? 1 : 1.02 }}
-                    whileTap={{ scale: isLoading ? 1 : 0.98 }}
+                    whileHover={{ scale: isExporting ? 1 : 1.02 }}
+                    whileTap={{ scale: isExporting ? 1 : 0.98 }}
                   >
-                    {isLoading ? (
+                    {isExporting ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
                       <Download className="w-4 h-4" />
                     )}
-                    <span>{isLoading ? 'Generating file...' : 'Export Schedule to Calendar'}</span>
+                    <span>{isExporting ? 'Generating file...' : 'Export Schedule to Calendar'}</span>
                   </motion.button>
                 </div>
               </div>
@@ -898,7 +700,7 @@ const EventBuilderPage = () => {
                     return `${type}*${code}`;
                   }))).map((courseCodeIdentifier) => {
                     // Find the color assigned to this course code (from any of its sections)
-                    const colorClass = Object.entries(courseColors).find(([key, color]) => 
+                    const colorClass = Object.entries(courseColors).find(([key]) => 
                       key.startsWith(courseCodeIdentifier)
                     )?.[1] || 'bg-gray-100 border-gray-300 text-gray-800'; // Fallback
                     

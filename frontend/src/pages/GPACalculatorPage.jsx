@@ -7,10 +7,7 @@ import {
   Download, 
   BookOpen, 
   TrendingUp,
-  AlertCircle,
-  CheckCircle,
   Info,
-  X,
   ChevronDown,
   ChevronUp,
   Award,
@@ -19,6 +16,8 @@ import {
 import Navbar from '../components/Navbar'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../contexts/API'
+import MessageDisplay from '../components/MessageDisplay'
+import TermSelector from '../components/TermSelector'
 
 const GPACalculatorPage = () => {
   const { user } = useAuth()
@@ -591,59 +590,14 @@ const GPACalculatorPage = () => {
       <section className="pb-20 px-4">
         <div className="max-w-6xl mx-auto">
           {/* Message Display */}
-          <AnimatePresence>
-            {message.text && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className={`mb-6 p-4 rounded-lg flex items-center justify-between ${
-                  message.type === 'success' 
-                    ? 'bg-green-50 border border-green-200 text-green-800'
-                    : 'bg-red-50 border border-red-200 text-red-800'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  {message.type === 'success' ? (
-                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  )}
-                  <p className="text-sm">{message.text}</p>
-                </div>
-                <button
-                  onClick={() => setMessage({ type: '', text: '' })}
-                  className="text-current hover:opacity-70"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <MessageDisplay message={message} setMessage={setMessage} />
 
           {/* Term Selection */}
-          <motion.div
-            className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 mb-8 border border-white/30"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-          >
-            <h2 className="text-2xl font-bold mb-6" style={{ color: '#456882' }}>
-              Select Term
-            </h2>
-            
-            <select
-              value={selectedTerm}
-              onChange={(e) => setSelectedTerm(e.target.value)}
-              className="w-full md:w-auto px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all"
-              style={{ '--tw-ring-color': '#456882' }}
-            >
-              <option value="">Select Term</option>
-              {offeredTerms.map(term => (
-                <option key={term} value={term}>{term}</option>
-              ))}
-            </select>
-          </motion.div>
+          <TermSelector
+            selectedTerm={selectedTerm}
+            setSelectedTerm={setSelectedTerm}
+            offeredTerms={offeredTerms}
+          />
 
           {/* Courses Section */}
           <motion.div

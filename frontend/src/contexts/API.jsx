@@ -12,7 +12,6 @@ const api = {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-CSRFToken": getCookie("csrftoken") || "",
                 },
                 credentials: "include",
                 body: JSON.stringify({
@@ -29,7 +28,6 @@ const api = {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-CSRFToken": getCookie("csrftoken") || "",
                 },
                 credentials: "include",
                 body: JSON.stringify({
@@ -47,7 +45,6 @@ const api = {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-CSRFToken": getCookie("csrftoken") || "",
                 },
                 credentials: "include",
                 body: JSON.stringify({
@@ -66,7 +63,6 @@ const api = {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-CSRFToken": getCookie("csrftoken") || "",
                 },
                 credentials: "include",
                 body: JSON.stringify({
@@ -124,7 +120,6 @@ const api = {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-CSRFToken": getCookie("csrftoken") || "",
                 },
                 credentials: "include",
                 body: JSON.stringify({
@@ -141,7 +136,6 @@ const api = {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-CSRFToken": getCookie("csrftoken") || "",
                 },
                 credentials: "include",
                 body: JSON.stringify(events),
@@ -202,7 +196,11 @@ const api = {
             `${BACKEND_API_URL}/api/coopforum/posts/search/?q=${encodeURIComponent(
         query
       )}`, {
-                credentials: "include",
+        headers:{
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken") || "",
+        },
+        credentials: "include",
             }
         );
         return response.json();
@@ -228,6 +226,7 @@ const api = {
             method: "DELETE",
             credentials: "include",
             headers: {
+                "Content-Type": "application/json",
                 "X-CSRFToken": getCookie("csrftoken")
             },
         });
@@ -355,7 +354,10 @@ const api = {
 
     // Metrics Endpoint
     fetchMetrics: async () => {
-        const response = await fetch(`${BACKEND_API_URL}/api/metrics/`);
+        const response = await fetch(`${BACKEND_API_URL}/api/metrics/`,
+        {
+            credentials: "include",
+        });
         return response.json();
     },
 };
