@@ -172,10 +172,10 @@ def calculate_and_store_metrics(self):
         success_rate = (successful_requests / total_requests * 100) if total_requests > 0 else 0
         
         # Calculate top slowest APIs
-        slowest_apis = sorted(api_stats.items(), key=lambda x: x[1]['avg_duration'], reverse=True)[:10]
+        slowest_apis = sorted(api_stats.items(), key=lambda x: x[1]['avg_duration'], reverse=True)[:20]
         
         # Calculate most popular APIs
-        most_popular_apis = sorted(api_stats.items(), key=lambda x: x[1]['request_count'], reverse=True)[:10]
+        most_popular_apis = sorted(api_stats.items(), key=lambda x: x[1]['request_count'], reverse=True)[:20]
         
         # Calculate error distribution
         error_distribution = {}

@@ -1,6 +1,6 @@
 import time
 import json
-from metrics.tasks import log_api_metrics, estimate_user_year, calculate_and_store_metrics
+from metrics.tasks import log_api_metrics, estimate_user_year
 
 # Import Prometheus metrics objects
 from metrics.prometheus import request_count, request_duration

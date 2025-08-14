@@ -343,7 +343,7 @@ const AuthPage = () => {
                       onChange={handleInputChange}
                       className="w-full pl-10 pr-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all"
                       style={{ '--tw-ring-color': '#456882' }}
-                      placeholder="Enter your username"
+                      placeholder="Your anonymous username"
                       required
                     />
                   </div>

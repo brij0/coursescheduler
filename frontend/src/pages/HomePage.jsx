@@ -105,7 +105,7 @@ const HomePage = () => {
       icon: <GraduationCap className="w-8 h-8" />,
       title: "Course Scheduling",
       description:
-        "Never double-book again! Our AI finds the perfect schedule that fits your life.",
+        "Never double-book again! Our algorithm finds the perfect schedule that fits your life.",
       color: "from-primary-500 to-primary-600",
     },
   ];
@@ -392,7 +392,7 @@ const HomePage = () => {
                 impact: "💔 First reality check about academic organization",
               },
               {
-                year: "December 2023",
+                year: "January 2023",
                 title: "The Scheduling Nightmare",
                 icon: "BookOpen",
                 color: "text-orange-500",
@@ -403,16 +403,16 @@ const HomePage = () => {
                 impact: "📊 Realized there had to be a better way",
               },
               {
-                year: "November 2024",
+                year: "September 2024",
                 icon: "Calendar",
                 color: "text-yellow-500",
                 bgColor: "bg-yellow-50",
                 borderColor: "border-yellow-200",
                 description:
-                  "Brijesh missed another 10% assignment. While he didn't drop the course this time, he took an L and thought 'there has to be a way to fix this issue, right?' The library's paper calendars seemed logical, but reading course outlines and adding deadlines manually felt like torture for engineering students.",
+                  "Brijesh missed another 10% assignment. While he didn't drop the course this time, he took an L and thought 'there has to be a way to fix this issue, right?' The library's paper calendars seemed logical, but reading course outlines and adding deadlines manually felt like torture.",
               },
               {
-                year: "December 2024",
+                year: "November 2024",
                 icon: "Zap",
                 color: "text-purple-500",
                 bgColor: "bg-purple-50",
@@ -427,7 +427,7 @@ const HomePage = () => {
                 bgColor: "bg-blue-50",
                 borderColor: "border-blue-200",
                 description:
-                  "Before his co-op, Brijesh showed the project to Mann. Mann was still drowning in Excel calculating grades across 3 grading schemes for CIS*3110, 2 for ENGG*3410, and more. They realized they had the backend and frontend skills to tackle all of these problems in one huge project together.",
+                  "Before his co-op, Brijesh showed the LLM project to Mann. Mann was still drowning in Excel calculating grades across 3 grading schemes for CIS*3110, 2 for ENGG*3410, and more. They realized they had the backend and frontend skills to tackle all of these problems in one huge project together.",
               },
               {
                 year: "August 2025",
@@ -448,7 +448,7 @@ const HomePage = () => {
                 borderColor: "border-primary-200",
                 description:
                   "From personal academic struggles to a comprehensive student platform. SmartGryph is built by students who experienced these pain points firsthand, for students who deserve better tools than spreadsheets and paper calendars.",
-                impact: "✨ Making student life easier, one feature at a time",
+                impact: " Making student life easier, one feature at a time",
               },
             ].map((item, index) => {
               // Icon component mapping

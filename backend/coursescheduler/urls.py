@@ -2,7 +2,7 @@ from django.urls import path, include
 from django.contrib import admin
 from django.http import JsonResponse
 from rest_framework.routers import DefaultRouter
-from coopforum import views as forum_views
+from coopforum import forum_views
 from metrics.prometheus import metrics_view
 # DRF router for CoopForum API
 router = DefaultRouter()

@@ -728,8 +728,8 @@ const ConflictFreeSchedulePage = () => {
             </div>
 
             <p className="text-xl text-neutral-600 max-w-3xl mx-auto leading-relaxed">
-              Create conflict-free course schedules effortlessly. Select your
-              courses and let our AI find the perfect timetable for you.
+              Create conflict-free course schedules effortlessly. 
+              Select your courses and let our algorithm find the perfect timetable for you.
             </p>
           </motion.div>
 
@@ -870,18 +870,18 @@ const ConflictFreeSchedulePage = () => {
           )}
 
           {/* Schedule Results */}
-          {(schedules.length > 0 || allSchedules.length > 0) && (
-            <motion.div
-              ref={resultsRef}
-              className="space-y-8"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              {/* Filter Controls */}
-              {allSchedules.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
+                {(schedules.length > 0 || allSchedules.length > 0) && (
+                <motion.div
+                  ref={resultsRef}
+                  className="space-y-8"
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8 }}
+                >
+                  {/* Filter Controls */}
+                  {allSchedules.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
                     <h3
                       className="text-xl font-bold"
                       style={{ color: "#456882" }}
@@ -894,24 +894,20 @@ const ConflictFreeSchedulePage = () => {
                     >
                       {showFilters ? "Hide Filters" : "Show Filters"}
                     </button>
+                    </div>
+
+                    <div className="mb-6">
+                    <FilterControls
+                      activeFilters={activeFilters}
+                      setActiveFilters={setActiveFilters}
+                      allSchedulesCount={allSchedules.length}
+                      filteredCount={filteredSchedules.length}
+                    />
+                    </div>
                   </div>
+                  )}
 
-                  <AnimatePresence>
-                    {showFilters && (
-                      <div className="mb-6">
-                        <FilterControls
-                          activeFilters={activeFilters}
-                          setActiveFilters={setActiveFilters}
-                          allSchedulesCount={allSchedules.length}
-                          filteredCount={filteredSchedules.length}
-                        />
-                      </div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
-
-              {/* View Mode Toggle - Updated count display */}
+                  {/* View Mode Toggle - Updated count display */}
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold" style={{ color: "#456882" }}>
                   Schedule Options ({schedules.length}
