@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   Users,
-  Clock,
   AlertTriangle,
   Activity,
   Zap,
@@ -9,13 +8,19 @@ import {
   Target,
   AlertCircle,
   Eye,
-  LineChart as LineChartIcon, // Renamed to avoid conflict with Recharts LineChart
-  Timer,
+  Calculator, // <-- ADD THIS ICON for GPA Calculator
+  CalendarDays, // <-- ADD THIS ICON for Scheduler
+  MessageSquare, // <-- ADD THIS ICON for Co-op Forum
+  Globe, // <-- ADD THIS ICON for other/unknown
   ArrowUpRight,
   ArrowDownRight,
+  TrendingUp,
+  Shield,
+  CheckCircle,
+  XCircle,
+  BarChart3,
 } from "lucide-react";
-
-// Import Recharts components
+import Navbar from "../components/Navbar"; // Assuming Navbar component is robust
 import {
   ResponsiveContainer,
   LineChart,
@@ -30,18 +35,41 @@ import {
   PieChart,
   Pie,
   Cell,
+  Area,
+  AreaChart,
+  LabelList, // <-- Ensure LabelList is imported
 } from "recharts";
 
-import api from "../contexts/API"; // Assuming this is correctly configured
+import api from "../contexts/API"; // Assuming API context is robust
 
-// --- Recharts Chart Components ---
-const COLORS_PIE_ERROR = ["#EF4444", "#F59E0B", "#10B981", "#6B7280"]; // Red, Amber, Green, Gray
-const COLORS_API_HEALTH = ["#6366F1", "#A855F7", "#EC4899", "#F97316", "#FACC15", "#22C55E", "#0EA5E9"];
+// Color schemes
+const COLORS = {
+  primary: "#456882",
+  secondary: "#8EB1C7",
+  tertiary: "#BFD4DE",
+  success: "#059669",
+  warning: "#D97706",
+  danger: "#DC2626",
+  info: "#0284C7",
+  gray: "#6B7280",
+};
+const ERROR_COLORS = ["#DC2626", "#D97706", "#456882", "#6B7280", "#8EB1C7"]; // Added one more color
 
+// Define specific colors for common error types for consistent display
+// Re-emphasizing specific colors for status codes
+const SPECIFIC_ERROR_COLORS_PIE = {
+  "5xx": "#DC2626", // Critical Red
+  403: "#D97706", // Warning Amber
+  404: "#456882", // Primary Blue for Not Found
+  401: "#8EB1C7", // A lighter blue for other 401s if they appear (not the ignored one)
+  default: "#6B7280", // Gray for any other unexpected codes
+};
+
+// Custom tooltip for charts - MODIFIED to show multiple values
 const CustomTooltip = ({ active, payload, label, unit = "" }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white p-3 border border-gray-200 rounded-md shadow-lg text-sm">
+      <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg text-sm">
         <p className="font-semibold text-gray-800 mb-1">{label}</p>
         {payload.map((entry, index) => (
           <p key={`item-${index}`} style={{ color: entry.color }}>
@@ -57,285 +85,220 @@ const CustomTooltip = ({ active, payload, label, unit = "" }) => {
   }
   return null;
 };
-
-const RenderLineChart = ({ title, data, dataKey, valueKey, className, yAxisUnit = "" }) => {
-  // Check if data is empty or invalid
-  if (!data || data.length === 0 || !data.some(d => d[valueKey] !== undefined && d[valueKey] !== null)) {
-    return (
-      <div className={`bg-gray-50 p-4 rounded-lg shadow-inner ${className} h-56 flex items-center justify-center text-gray-400 border border-dashed border-gray-300`}>
-        No data for {title} chart.
-      </div>
-    );
-  }
-
-  // Determine tick interval for XAxis if data set is large
-  const interval = data.length > 8 ? 'preserveStartEnd' : 0;
-
+const AppActivityCard = ({ title, requests, icon: Icon, color }) => {
   return (
-    <div className={`bg-white p-4 rounded-lg shadow-md border border-gray-100 ${className}`}>
-      <h4 className="text-lg font-semibold text-gray-800 mb-4">{title}</h4>
-      <ResponsiveContainer width="100%" height={200}>
-        <LineChart
-          data={data}
-          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-          <XAxis
-            dataKey={dataKey}
-            tickFormatter={(value) => {
-              if (dataKey === "hour" && typeof value === "string" && value.includes("T")) {
-                return new Date(value).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-              }
-              return value;
-            }}
-            interval={interval}
-            angle={-30}
-            textAnchor="end"
-            height={50}
-            tick={{ fill: "#6B7280", fontSize: 12 }}
-          />
-          <YAxis
-            tickFormatter={(value) => `${value}${yAxisUnit}`}
-            tick={{ fill: "#6B7280", fontSize: 12 }}
-          />
-          <Tooltip content={<CustomTooltip unit={yAxisUnit} />} />
-          <Line
-            type="monotone"
-            dataKey={valueKey}
-            stroke="#6366F1"
-            strokeWidth={2}
-            dot={{ r: 4 }}
-            activeDot={{ r: 6 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+    <div
+      className={`bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center transition-all duration-200 hover:shadow-xl`}
+    >
+      <div className={`p-3 rounded-full inline-flex mb-3 ${color}`}>
+        <Icon size={28} className="text-white" />
+      </div>
+      <div className="text-xl font-bold text-gray-900 mb-1">
+        {new Intl.NumberFormat("en-US").format(requests)}
+      </div>
+      <div className="text-sm text-gray-600">{title}</div>
     </div>
   );
 };
-
-const RenderBarChart = ({ title, data, dataKey, valueKey, className, yAxisUnit = "" }) => {
-  // Check if data is empty or invalid
-  if (!data || data.length === 0 || !data.some(d => d[valueKey] !== undefined && d[valueKey] !== null)) {
-    return (
-      <div className={`bg-gray-50 p-4 rounded-lg shadow-inner ${className} h-56 flex items-center justify-center text-gray-400 border border-dashed border-gray-300`}>
-        No data for {title} chart.
-      </div>
-    );
-  }
-
-  return (
-    <div className={`bg-white p-4 rounded-lg shadow-md border border-gray-100 ${className}`}>
-      <h4 className="text-lg font-semibold text-gray-800 mb-4">{title}</h4>
-      <ResponsiveContainer width="100%" height={200}>
-        <BarChart
-          data={data}
-          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-          layout="vertical" // Use vertical layout for API names
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" horizontal={false} />
-          <YAxis
-            dataKey={dataKey}
-            type="category" // For names like API endpoints
-            tick={{ fill: "#6B7280", fontSize: 12 }}
-            width={100} // Adjust width to prevent labels from being cut off
-          />
-          <XAxis
-            type="number"
-            tickFormatter={(value) => `${value}${yAxisUnit}`}
-            tick={{ fill: "#6B7280", fontSize: 12 }}
-          />
-          <Tooltip content={<CustomTooltip unit={yAxisUnit} />} />
-          <Bar dataKey={valueKey} fill="#8884d8" name={title}>
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS_API_HEALTH[index % COLORS_API_HEALTH.length]} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
-
-
-const RenderPieChart = ({ title, data, className }) => {
-  // Check if data is empty or invalid
-  if (!data || data.length === 0 || !data.some(d => d.value > 0)) {
-    return (
-      <div className={`bg-gray-50 p-4 rounded-lg shadow-inner ${className} h-56 flex items-center justify-center text-gray-400 border border-dashed border-gray-300`}>
-        No data for {title} chart.
-      </div>
-    );
-  }
-
-  return (
-    <div className={`bg-white p-4 rounded-lg shadow-md border border-gray-100 ${className}`}>
-      <h4 className="text-lg font-semibold text-gray-800 mb-4">{title}</h4>
-      <ResponsiveContainer width="100%" height={200}>
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            outerRadius={80}
-            fill="#8884d8"
-            dataKey="value"
-            nameKey="name"
-          >
-            {data.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={COLORS_PIE_ERROR[index % COLORS_PIE_ERROR.length]}
-              />
-            ))}
-          </Pie>
-          <Tooltip content={<CustomTooltip />} />
-          <Legend
-            layout="vertical"
-            verticalAlign="middle"
-            align="right"
-            wrapperStyle={{ fontSize: "12px", marginLeft: "10px" }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
-// --- End Recharts Chart Components ---
-
-const Card = ({ title, children, className = "", icon: Icon }) => (
-  <div
-    className={`bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden transform transition-all duration-300 hover:shadow-xl ${className}`}
-  >
-    {title && (
-      <div className="px-6 py-4 border-b border-gray-50 bg-gray-50 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {Icon && (
-            <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
-              <Icon size={20} />
-            </div>
-          )}
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-        </div>
-      </div>
-    )}
-    <div className="p-6">{children}</div>
-  </div>
-);
-
-const MetricCard = ({
+//  Summary Card
+const SummaryCard = ({
   title,
   value,
   subtitle,
   icon: Icon,
+  trend,
   status = "neutral",
-  format = "number",
+  unit = "",
 }) => {
   const formatValue = (val) => {
+    if (val == null || isNaN(val)) return "N/A";  // This line is fine
+    if (typeof val === "number" && val > 1000) {   // This is the problem!
+      return new Intl.NumberFormat("en-US").format(val) + unit;
+    }
+    return val + unit;  // Success rates will hit this line
+  };
+
+  const statusColors = {
+    excellent: "border-green-200 bg-gradient-to-br from-green-50 to-green-100",
+    good: "border-green-200 bg-gradient-to-br from-green-50 to-green-100",
+    warning: "border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100",
+    critical: "border-red-200 bg-gradient-to-br from-red-50 to-red-100",
+    neutral: "border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100",
+  };
+
+  const iconColors = {
+    excellent: "text-green-600",
+    good: "text-green-600",
+    warning: "text-amber-600",
+    critical: "text-red-600",
+    neutral: "text-gray-600",
+  };
+
+  return (
+    <div
+      className={`rounded-xl p-6 border-2 ${statusColors[status]} transition-all duration-200 hover:shadow-lg`}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-3">
+            <div
+              className={`p-2 rounded-lg bg-white shadow-sm ${iconColors[status]}`}
+            >
+              <Icon size={24} />
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+                {title}
+              </h3>
+              {trend && (
+                <div className="flex items-center gap-1 mt-1">
+                  {trend > 0 ? (
+                    <ArrowUpRight size={14} className="text-green-600" />
+                  ) : (
+                    <ArrowDownRight size={14} className="text-red-600" />
+                  )}
+                  <span
+                    className={`text-xs font-medium ${
+                      trend > 0 ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {Math.abs(trend)}%
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="mb-2">
+            <span className="text-3xl font-bold text-gray-900">
+              {formatValue(value)}
+            </span>
+          </div>
+          {subtitle && <p className="text-sm text-gray-600">{subtitle}</p>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Performance metric card
+const PerformanceCard = ({ title, value, format, status, subtitle }) => {
+  const formatValue = (val, fmt) => {
     if (val == null || isNaN(val)) return "N/A";
-    switch (format) {
+    switch (fmt) {
       case "percentage":
         return `${val.toFixed(1)}%`;
       case "ms":
         return `${Math.round(val)}ms`;
       case "seconds":
         return `${val.toFixed(2)}s`;
-      case "number":
-        return new Intl.NumberFormat("en-US").format(val);
-      case "requestsPerHour":
-        return `${new Intl.NumberFormat("en-US").format(Math.round(val))}/hr`;
       default:
-        return val;
+        return new Intl.NumberFormat("en-US").format(val);
     }
   };
 
-  const statusColors = {
-    critical: "border-red-300 bg-red-50 text-red-700",
-    warning: "border-amber-300 bg-amber-50 text-amber-700",
-    good: "border-green-300 bg-green-50 text-green-700",
-    neutral: "border-gray-200 bg-white text-gray-700",
+  const statusConfig = {
+    excellent: { bg: "bg-blue-500", text: "text-white" },
+    good: { bg: "bg-green-500", text: "text-white" },
+    warning: { bg: "bg-amber-500", text: "text-white" },
+    critical: { bg: "bg-red-500", text: "text-white" },
+    neutral: { bg: "bg-gray-500", text: "text-white" },
   };
-
-  const iconColors = {
-    critical: "text-red-600",
-    warning: "text-amber-600",
-    good: "text-green-600",
-    neutral: "text-gray-600",
-  };
+  const config = statusConfig[status] || statusConfig.neutral;
 
   return (
-    <div
-      className={`rounded-xl p-6 shadow-md transition-all duration-200 ${statusColors[status]}`}
-    >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Icon size={20} className={`${iconColors[status]}`} />
-            <span className="text-sm font-medium text-gray-600">{title}</span>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-gray-900">
-              {formatValue(value)}
-            </span>
-            {/* Removed trend icon as we don't have historical data for it in the payload */}
-          </div>
-          {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+    <div className={`${config.bg} ${config.text} rounded-xl p-6 shadow-lg`}>
+      <div className="text-center">
+        <h3 className="text-sm font-medium opacity-90 mb-2">{title}</h3>
+        <div className="text-4xl font-bold mb-2">
+          {formatValue(value, format)}
         </div>
+        {subtitle && <p className="text-sm opacity-75">{subtitle}</p>}
       </div>
     </div>
   );
 };
 
-const ApiHealthList = ({ apis }) => {
-  if (!apis || Object.keys(apis).length === 0) {
-    return <div className="text-gray-500 py-4">No API data available</div>;
+// Chart component with proper error handling
+const ChartContainer = ({ title, children, className = "" }) => {
+  return (
+    <div
+      className={`bg-white rounded-xl shadow-lg border border-gray-200 p-6 ${className}`}
+    >
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+      {children}
+    </div>
+  );
+};
+
+// API Health component
+const ApiHealthGrid = ({ apis = {} }) => {
+  // Sort by request count descending, then slice to top 8
+  const sortedApis = Object.entries(apis)
+    .sort(([, a], [, b]) => b.request_count - a.request_count)
+    .slice(0, 8);
+
+  if (sortedApis.length === 0) {
+    return (
+      <div className="text-gray-500 text-center py-8">
+        No API data available
+      </div>
+    );
   }
 
-  const normalizedApis = groupApisByEndpoint(apis);
-
-  const sortedApis = Object.entries(normalizedApis)
-    .sort(([, a], [, b]) => b.request_count - a.request_count) // Sort by request count for 'most popular' list
-    .slice(0, 7); // Show top 7 for brevity
-
   return (
-    <div className="space-y-3">
-      {sortedApis.map(([endpoint, data], index) => {
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {sortedApis.map(([apiName, data]) => {
         const responseTime = data.avg_duration * 1000;
         const status =
-          responseTime < 200 ? "good" : responseTime < 500 ? "warning" : "critical";
+          responseTime < 200
+            ? "good"
+            : responseTime < 500
+            ? "warning"
+            : "critical";
 
-        const statusColor = {
-          good: "bg-green-100 text-green-700",
-          warning: "bg-amber-100 text-amber-700",
-          critical: "bg-red-100 text-red-700",
+        const statusColors = {
+          good: "border-green-200 bg-green-50",
+          warning: "border-amber-200 bg-amber-50",
+          critical: "border-red-200 bg-red-50",
         };
 
-        const dotColor = {
+        const dotColors = {
           good: "bg-green-500",
           warning: "bg-amber-500",
           critical: "bg-red-500",
         };
 
+        // Improved display name extraction
+        const displayName = apiName.includes(":")
+          ? apiName.split(":")[1]
+          : apiName;
+
         return (
           <div
-            key={endpoint} // Use endpoint as key
-            className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            key={apiName}
+            className={`p-4 rounded-lg border ${statusColors[status]} hover:shadow-md transition-shadow`}
           >
-            <div className="flex-1 mr-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className={`w-2.5 h-2.5 rounded-full ${dotColor[status]}`} />
-                <span className="text-sm font-medium text-gray-800 truncate">
-                  {endpoint}
-                </span>
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <div
+                    className={`w-2 h-2 rounded-full ${dotColors[status]}`}
+                  />
+                  <span className="font-medium text-gray-900 text-sm truncate">
+                    {displayName}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-600">
+                  {new Intl.NumberFormat("en-US").format(data.request_count)}{" "}
+                  requests
+                </div>
               </div>
-              <div className="text-xs text-gray-500 ml-4">
-                {data.modules?.join(", ")} • {data.request_count} requests
+              <div className="text-right">
+                <div className="font-bold text-gray-900">
+                  {Math.round(responseTime)}ms
+                </div>
+                <div className="text-xs text-gray-600">avg</div>
               </div>
-            </div>
-            <div
-              className={`px-3 py-1 rounded-full text-sm font-semibold ${statusColor[status]}`}
-            >
-              {Math.round(responseTime)}ms
             </div>
           </div>
         );
@@ -344,228 +307,23 @@ const ApiHealthList = ({ apis }) => {
   );
 };
 
-const normalizeApiName = (apiName) => {
-  if (!apiName) return "";
-  const parts = apiName.split(":");
-  return parts.length > 1 ? parts[1] : apiName;
-};
-
-const groupApisByEndpoint = (apis) => {
-  const groupedApis = {};
-
-  Object.entries(apis || {}).forEach(([apiName, data]) => {
-    const endpoint = normalizeApiName(apiName);
-
-    if (!groupedApis[endpoint]) {
-      groupedApis[endpoint] = {
-        ...data,
-        modules: [apiName.split(":")[0]],
-        apiName, // Keep original apiName for reference if needed
-      };
-    } else {
-      // Calculate new average duration
-      const currentTotalDuration =
-        groupedApis[endpoint].avg_duration * groupedApis[endpoint].request_count;
-      const newTotalDuration = data.avg_duration * data.request_count;
-
-      groupedApis[endpoint].request_count += data.request_count;
-      groupedApis[endpoint].avg_duration =
-        (currentTotalDuration + newTotalDuration) / groupedApis[endpoint].request_count;
-
-      if (!groupedApis[endpoint].modules.includes(apiName.split(":")[0])) {
-        groupedApis[endpoint].modules.push(apiName.split(":")[0]);
-      }
-    }
-  });
-
-  return groupedApis;
-};
-
-const filterNonAuthErrors = (errorRates) => {
-  if (!errorRates) return {};
-  return Object.entries(errorRates)
-    .filter(([key]) => !key.includes("auth") && !key.includes("401") && !key.includes("403"))
-    .reduce((obj, [key, value]) => {
-      obj[key] = value;
-      return obj;
-    }, {});
-};
-
-const ErrorAnalysis = ({ errorRates, errorDistribution, totalRequests }) => {
-  if (!errorRates || !errorDistribution || !totalRequests) {
-    return <div className="text-gray-500 py-4">No error data available</div>;
-  }
-
-  // Calculate success and error counts
-  const totalErrors = Object.values(errorDistribution).reduce((sum, count) => sum + count, 0);
-  const successCount = totalRequests - totalErrors;
-
-  // Data for main pie chart (success vs errors)
-  const successErrorData = [
-    { name: "Success", value: successCount },
-    { name: "Errors", value: totalErrors }
-  ];
-
-  // Data for error breakdown (by status code)
-  const errorBreakdownData = Object.entries(errorDistribution)
-    .filter(([code]) => !["401", "403"].includes(code)) // Exclude auth errors
-    .map(([code, count]) => ({
-      name: `HTTP ${code}`,
-      value: count,
-      percentage: totalErrors > 0 ? ((count / totalErrors) * 100).toFixed(1) : 0
-    }))
-    .sort((a, b) => b.value - a.value) // Sort descending
-    .slice(0, 4); // Limit to top 4
-
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Main Success/Error Pie Chart */}
-        <div className="bg-white p-4 rounded-lg shadow-md border border-gray-100">
-          <h4 className="text-lg font-semibold text-gray-800 mb-4">Request Status</h4>
-          <div className="flex flex-col md:flex-row items-center">
-            <div className="w-48 h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={successErrorData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {successErrorData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS_PIE_ERROR[index]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    content={<CustomTooltip />}
-                    formatter={(value) => [
-                      new Intl.NumberFormat("en-US").format(value),
-                      totalRequests > 0 
-                        ? `${((value / totalRequests) * 100).toFixed(1)}%` 
-                        : "0%"
-                    ]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            
-            <div className="mt-4 md:mt-0 md:ml-6">
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                  <span className="text-sm font-medium">Successful Requests</span>
-                  <span className="ml-auto font-semibold">
-                    {new Intl.NumberFormat("en-US").format(successCount)}
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                  <span className="text-sm font-medium">Error Requests</span>
-                  <span className="ml-auto font-semibold">
-                    {new Intl.NumberFormat("en-US").format(totalErrors)}
-                  </span>
-                </div>
-                <div className="pt-3 border-t border-gray-200">
-                  <div className="text-sm text-gray-600">Total Requests</div>
-                  <div className="text-xl font-bold">
-                    {new Intl.NumberFormat("en-US").format(totalRequests)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Error Breakdown Bar Chart */}
-        <div className="bg-white p-4 rounded-lg shadow-md border border-gray-100">
-          <h4 className="text-lg font-semibold text-gray-800 mb-4">Error Breakdown</h4>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart
-              data={errorBreakdownData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-              layout="vertical"
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" horizontal={false} />
-              <XAxis type="number" />
-              <YAxis 
-                dataKey="name" 
-                type="category" 
-                width={80}
-                tick={{ fontSize: 12 }}
-              />
-              <Tooltip 
-                formatter={(value) => [
-                  new Intl.NumberFormat("en-US").format(value),
-                  `${((value / totalErrors) * 100).toFixed(1)}% of errors`
-                ]}
-              />
-              <Bar dataKey="value" name="Errors">
-                {errorBreakdownData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={COLORS_ERROR_BREAKDOWN[index % COLORS_ERROR_BREAKDOWN.length]} 
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Detailed Error List */}
-      <div className="mt-6">
-        <h4 className="font-semibold text-gray-900 mb-3">Top Error Sources</h4>
-        <div className="space-y-3">
-          {Object.entries(errorRates)
-            .filter(([endpoint]) => !endpoint.includes("auth") && !endpoint.includes("401") && !endpoint.includes("403"))
-            .sort(([, a], [, b]) => b - a)
-            .slice(0, 5)
-            .map(([endpoint, count], index) => {
-              const [api, code] = endpoint.split(" - ");
-              const percentage = totalErrors > 0 ? ((count / totalErrors) * 100).toFixed(1) : "0.0";
-
-              return (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 bg-red-50 border border-red-100 rounded-lg"
-                >
-                  <div>
-                    <div className="font-medium text-red-900">
-                      {api.split(":").pop() || api}
-                    </div>
-                    <div className="text-sm text-red-700">HTTP {code}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-red-900">
-                      {new Intl.NumberFormat("en-US").format(count)}
-                    </div>
-                    <div className="text-sm text-red-700">{percentage}% of errors</div>
-                  </div>
-                </div>
-              );
-            })}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
 const Dashboard = () => {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const getMetricValue = (path, defaultValue = 0) => {
+    return (
+      path.split(".").reduce((obj, key) => obj?.[key], metrics) ?? defaultValue
+    );
+  };
 
-    useEffect(() => {
+  useEffect(() => {
     const fetchMetrics = async () => {
       try {
         setLoading(true);
-        const data = await api.fetchMetrics();
-        setMetrics(data.data || data);
+        // Ensure you're accessing the 'data' key from the API response
+        const response = await api.fetchMetrics();
+        setMetrics(response.data || response); // Adjust based on your API's actual response structure
         setError(null);
       } catch (err) {
         setError(err.message || "Failed to fetch metrics");
@@ -576,7 +334,8 @@ const Dashboard = () => {
     };
 
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 300000); // Refresh every 5 minutes
+    // Refresh every 5 minutes (300000 ms)
+    const interval = setInterval(fetchMetrics, 300000);
     return () => clearInterval(interval);
   }, []);
 
@@ -584,8 +343,8 @@ const Dashboard = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard data...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading system metrics...</p>
         </div>
       </div>
     );
@@ -594,481 +353,674 @@ const Dashboard = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-8 bg-white rounded-xl shadow-lg border border-red-200">
-          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+        <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
+          <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Error Loading Dashboard
+            System Unavailable
           </h2>
-          <p className="text-gray-600 max-w-sm">{error}</p>
+          <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
           >
-            Retry
+            Retry Connection
           </button>
         </div>
       </div>
     );
   }
 
-  if (!metrics) {
+  // Handle case where metrics might be null after loading,
+  // especially if API returns an empty 'data' object or similar
+  if (!metrics || Object.keys(metrics).length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-8 bg-white rounded-xl shadow-lg border border-gray-200">
-          <p className="text-gray-600">No metrics data available to display.</p>
+        <div className="text-center p-8 bg-white rounded-xl shadow-lg">
+          <p className="text-gray-600">No system data available</p>
         </div>
       </div>
     );
   }
 
-  const getAppFromApi = (apiName) => {
-    if (!apiName) return "Other";
-    if (apiName.includes("scheduler")) return "Course Scheduler";
-    if (apiName.includes("gpacalc")) return "GPA Calculator";
-    if (apiName.includes("coopforum")) return "Forum";
-    if (apiName.includes("auth")) return "Authentication";
-    if (apiName.includes("metrics")) return "Analytics Service";
-    return "General API";
-  };
+  // Calculate "true" total errors, excluding specific "auth-api:user - 401" errors
+  let totalRequestsToday = Object.values(metrics.api_performance || {}).reduce(
+    (sum, api) => sum + (api.request_count || 0),
+    0
+  );
+  let ignoredAuthErrors = 0;
 
-  const groupApisByApp = (apis) => {
-    const apps = {};
-    Object.entries(apis || {}).forEach(([name, data]) => {
-      const appName = getAppFromApi(name);
-      if (!apps[appName]) {
-        apps[appName] = { request_count: data.request_count, apis: [name] };
+  if (metrics.error_rates && metrics.error_rates["auth-api:user - 401"]) {
+    ignoredAuthErrors = metrics.error_rates["auth-api:user - 401"];
+  }
+
+  const trueTotalErrors = Object.entries(metrics.error_rates || {}).reduce(
+    (sum, [key, count]) => {
+      if (key === "auth-api:user - 401") {
+        return sum;
+      }
+      return sum + (count || 0);
+    },
+    0
+  );
+
+  // The number of requests that are "actual" successful requests + actual errors
+  const relevantRequests = Math.max(0, totalRequestsToday - ignoredAuthErrors);
+  const successCount = Math.max(0, relevantRequests - trueTotalErrors);
+  const trueSuccessRate =
+    relevantRequests > 0 ? (successCount / relevantRequests) * 100 : 100; // If no relevant requests, assume 100% success
+  const displaySuccessRate =
+    relevantRequests > 0
+      ? Math.min(100, Math.max(0, (successCount / relevantRequests) * 100))
+      : 100;
+  // Traffic volume chart data
+  const trafficData = (metrics.hourly_volume || []).map((item) => ({
+    time: new Date(item.hour).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }),
+    requests: item.request_count,
+  }));
+
+  // Top APIs by response time - MODIFIED to use `slowest_apis` from provided JSON
+  const slowestApisData = Object.entries(metrics.slowest_apis || {})
+    .sort(([, a], [, b]) => b.avg_duration - a.avg_duration)
+    .slice(0, 6) // Display top 6 slowest APIs
+    .map(([name, data]) => ({
+      name: name.includes(":") ? name.split(":")[1] : name, // Extract meaningful part of API name
+      responseTime: Math.round(data.avg_duration * 1000), // Convert to ms and round
+      requests: data.request_count,
+    }));
+
+  // --- START OF NEW ERROR_DATA LOGIC ---
+  const errorData = (() => {
+    const aggregatedErrors = {};
+
+    Object.entries(metrics.error_rates || {}).forEach(([key, count]) => {
+      // Skip the specific auth error
+      if (key === "auth-api:user - 401") {
+        return;
+      }
+
+      // Ensure count is a valid number
+      const errorCount = Number(count) || 0;
+      if (errorCount <= 0) return;
+
+      // Extract HTTP status code with improved regex
+      const statusMatch = key.match(/\b([45]\d{2})\b/);
+      if (statusMatch) {
+        const code = statusMatch[1];
+        aggregatedErrors[code] = (aggregatedErrors[code] || 0) + errorCount;
       } else {
-        apps[appName].request_count += data.request_count;
-        apps[appName].apis.push(name);
+        // Handle edge cases
+        if (key.toLowerCase().includes("404")) {
+          aggregatedErrors["404"] = (aggregatedErrors["404"] || 0) + errorCount;
+        } else if (key.toLowerCase().includes("403")) {
+          aggregatedErrors["403"] = (aggregatedErrors["403"] || 0) + errorCount;
+        } else if (key.toLowerCase().includes("500")) {
+          aggregatedErrors["500"] = (aggregatedErrors["500"] || 0) + errorCount;
+        } else {
+          // Group other errors as "Other"
+          aggregatedErrors["Other"] =
+            (aggregatedErrors["Other"] || 0) + errorCount;
+        }
       }
     });
 
-    return Object.entries(apps)
-      .sort((a, b) => b[1].request_count - a[1].request_count)
-      .slice(0, 6); // Top 6 apps
+    // Convert to chart format
+    const chartData = Object.entries(aggregatedErrors)
+      .map(([code, count]) => {
+        let color;
+        if (code.startsWith("5")) {
+          color = SPECIFIC_ERROR_COLORS_PIE["5xx"];
+        } else if (code === "403") {
+          color = SPECIFIC_ERROR_COLORS_PIE["403"];
+        } else if (code === "404") {
+          color = SPECIFIC_ERROR_COLORS_PIE["404"];
+        } else if (code === "401") {
+          color = SPECIFIC_ERROR_COLORS_PIE["401"];
+        } else {
+          color = SPECIFIC_ERROR_COLORS_PIE.default;
+        }
+
+        return {
+          name: code === "Other" ? "Other" : `HTTP ${code}`,
+          value: count,
+          color: color,
+        };
+      })
+      .filter((entry) => entry.value > 0)
+      .sort((a, b) => b.value - a.value);
+
+    return chartData;
+  })();
+  // --- END OF NEW ERROR_DATA LOGIC ---
+
+  // System health status (now uses `trueSuccessRate`)
+  const avgResponseMs = (metrics.avg_response_time || 0) * 1000;
+  const systemHealth =
+    trueSuccessRate >= 99
+      ? "excellent"
+      : trueSuccessRate >= 95
+      ? "good"
+      : trueSuccessRate >= 90
+      ? "warning"
+      : "critical";
+
+  const responseHealth =
+    avgResponseMs < 150
+      ? "excellent"
+      : avgResponseMs < 300
+      ? "good"
+      : avgResponseMs < 500
+      ? "warning"
+      : "critical";
+
+  const getMostPopularApps = (apiPerformanceData) => {
+    const appRequests = {
+      "GPA Calculator": { count: 0, icon: Calculator, color: "bg-indigo-500" },
+      "Scheduler App": { count: 0, icon: CalendarDays, color: "bg-teal-500" },
+      "Co-op Forum App": {
+        count: 0,
+        icon: MessageSquare,
+        color: "bg-pink-500",
+      },
+      "Auth System": { count: 0, icon: Shield, color: "bg-blue-500" },
+      "Metrics API": { count: 0, icon: BarChart3, color: "bg-orange-500" },
+      "Other/Unknown": { count: 0, icon: Globe, color: "bg-gray-500" }, // Catch-all for other APIs
+    };
+
+    if (!apiPerformanceData) {
+      return Object.values(appRequests); // Return default with 0 counts
+    }
+
+    Object.entries(apiPerformanceData).forEach(([apiName, data]) => {
+      const requestCount = data.request_count || 0;
+      if (apiName.includes("gpacalc-api")) {
+        appRequests["GPA Calculator"].count += requestCount;
+      } else if (apiName.includes("scheduler-api")) {
+        appRequests["Scheduler App"].count += requestCount;
+      } else if (apiName.includes("coopforum-api")) {
+        appRequests["Co-op Forum App"].count += requestCount;
+      } else if (apiName.includes("auth-api")) {
+        appRequests["Auth System"].count += requestCount;
+      } else if (apiName.includes("metrics-api")) {
+        appRequests["Metrics API"].count += requestCount;
+      } else {
+        appRequests["Other/Unknown"].count += requestCount;
+      }
+    });
+
+    // Sort the apps by request count in descending order
+    return Object.entries(appRequests)
+      .map(([name, data]) => ({
+        name,
+        requests: data.count,
+        icon: data.icon,
+        color: data.color,
+      }))
+      .sort((a, b) => b.requests - a.requests)
+      .filter((app) => app.requests > 0); // Only show apps with activity
   };
-
-  const filteredErrorRates = filterNonAuthErrors(metrics.error_rates);
-
-  // Data for "Top API Response Times" Bar Chart
-  const topApiPerformanceData = Object.entries(
-    groupApisByEndpoint(metrics.most_popular_apis || {})
-  )
-    .sort(([, a], [, b]) => b.avg_duration - a.avg_duration) // Sort by average duration (slowest first)
-    .slice(0, 7) // Take top 7
-    .map(([endpoint, data]) => ({
-      name: endpoint,
-      "Avg. Response Time": Math.round(data.avg_duration * 1000), // Convert to ms
-    }));
-
+  const popularAppsData = getMostPopularApps(metrics.api_performance);
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 font-sans">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
+      <Navbar />
+      <div className="max-w-7xl mx-auto p-6 pt-28 space-y-8">
         {/* Header */}
-        <div className="py-4 border-b border-gray-200">
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
-            System Overview Dashboard
-          </h1>
-          <p className="text-lg text-gray-700">
-            Real-time insights into performance, reliability, and user engagement.
+        <div className="text-center py-4">
+          {" "}
+          {/* Reduced vertical padding */}
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Dashboard</h1>
+          <p className="text-lg text-gray-600">
+            System Performance & Business Intelligence
           </p>
+          <div className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500">
+            <CheckCircle size={16} className="text-green-500" />
+            <span>Last updated: {new Date().toLocaleTimeString()}</span>
+          </div>
         </div>
 
-        {/* Key Performance Indicators */}
+        {/*  KPIs */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-5">
-            Key Performance Indicators
-          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <MetricCard
-              title="Daily Active Users"
+            <SummaryCard
+              title="Active Users Today"
               value={metrics.dau || 0}
+              subtitle="Daily active users"
               icon={Users}
-              subtitle="Unique users in last 24h"
+              status="good"
             />
-            <MetricCard
-              title="Total Requests"
-              value={metrics.total_requests_24h || 0}
+            <SummaryCard
+  title="System Uptime"
+  value={trueSuccessRate.toFixed(1)} // Remove the % and toFixed for proper formatting
+  unit="%" // Add the unit here instead
+  subtitle="Request success rate"
+  icon={CheckCircle}
+  status={systemHealth}
+/>
+            <SummaryCard
+              title="Response Performance"
+              value={Math.round(avgResponseMs)} // Pass as a number
+              unit="ms" // Add a unit prop
+              subtitle="Average response time"
+              icon={Zap}
+              status={responseHealth}
+            />
+            <SummaryCard
+              title="Request Volume"
+              value={totalRequestsToday} // This still reflects all requests
+              subtitle="Total requests"
               icon={Activity}
-              subtitle="All requests in last 24h"
-              format="number"
-            />
-            <MetricCard
-              title="Avg Response Time"
-              value={metrics.avg_response_time * 1000 || 0} // Convert to MS here
-              format="ms"
-              icon={Timer}
-              status={
-                metrics.avg_response_time < 0.2
-                  ? "good"
-                  : metrics.avg_response_time < 0.5
-                  ? "warning"
-                  : "critical"
-              }
-              subtitle="System-wide average"
-            />
-            <MetricCard
-              title="Success Rate"
-              value={metrics.success_rate || 0}
-              format="percentage"
-              icon={LineChartIcon}
-              status={
-                (metrics.success_rate || 0) >= 99
-                  ? "good"
-                  : (metrics.success_rate || 0) >= 95
-                  ? "warning"
-                  : "critical"
-              }
-              subtitle="Percentage of successful requests"
+              status="neutral"
             />
           </div>
         </section>
 
-        {/* API Performance & Reliability */}
+        {/* Performance Overview */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-5">
-            API Performance & Reliability
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            Performance Overview
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <PerformanceCard
+              title="P95 Latency"
+              value={(metrics.p95_latency || 0) * 1000}
+              format="ms"
+              status={
+                (metrics.p95_latency || 0) * 1000 < 300
+                  ? "good"
+                  : (metrics.p95_latency || 0) * 1000 < 500
+                  ? "warning"
+                  : "critical"
+              }
+              subtitle="95th percentile"
+            />
+            <PerformanceCard
+              title="P99 Latency"
+              value={(metrics.p99_latency || 0) * 1000}
+              format="ms"
+              status={
+                (metrics.p99_latency || 0) * 1000 < 500
+                  ? "good"
+                  : (metrics.p99_latency || 0) * 1000 < 1000
+                  ? "warning"
+                  : "critical"
+              }
+              subtitle="99th percentile"
+            />
+            <PerformanceCard
+              title="Error Rate"
+              value={100 - trueSuccessRate} // Use trueSuccessRate
+              format="percentage"
+              status={
+                100 - trueSuccessRate < 1
+                  ? "good"
+                  : 100 - trueSuccessRate < 5
+                  ? "warning"
+                  : "critical"
+              }
+              subtitle="Total failed requests"
+            />
+            <PerformanceCard
+              title="Endpoints"
+              value={metrics.total_endpoints || 0}
+              status="neutral"
+              subtitle="Active API endpoints"
+            />
+          </div>
+        </section>
+
+        {/* Traffic & Performance Analysis */}
+        <section>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            Traffic & Performance Analysis
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Traffic Volume Chart */}
+            <ChartContainer title="Request Volume Trend">
+              {trafficData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart
+                    data={trafficData}
+                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="requestsGradient"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor="#456882"
+                          stopOpacity={0.3}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="#456882"
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="time"
+                      tick={{ fontSize: 12, fill: COLORS.gray }}
+                      axisLine={{ stroke: "#e5e7eb" }}
+                      interval="preserveStartEnd" // Adjusts tick interval for better readability
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12, fill: COLORS.gray }}
+                      axisLine={{ stroke: "#e5e7eb" }}
+                    />
+                    <Tooltip content={<CustomTooltip unit=" requests" />} />
+                    <Area
+                      type="monotone"
+                      dataKey="requests"
+                      stroke="#456882"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#requestsGradient)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-64 flex items-center justify-center text-gray-500">
+                  <div className="text-center">
+                    <Activity
+                      size={48}
+                      className="text-gray-300 mx-auto mb-2"
+                    />
+                    <p>No traffic data available yet</p>
+                  </div>
+                </div>
+              )}
+            </ChartContainer>
+
+            {/* Slowest API Endpoints - MODIFIED TOOLTIP AND LEGEND */}
+            <ChartContainer title="Slowest API Endpoints">
+              {slowestApisData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart
+                    data={slowestApisData}
+                    layout="vertical" // Changed to vertical layout for API names
+                    margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      type="number"
+                      tick={{ fontSize: 12, fill: COLORS.gray }}
+                      axisLine={{ stroke: "#e5e7eb" }}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      tick={{ fontSize: 12, fill: COLORS.gray }}
+                      axisLine={{ stroke: "#e5e7eb" }}
+                      width={130} // Increased width for longer labels
+                      tickFormatter={(value) =>
+                        value.length > 25
+                          ? `${value.substring(0, 22)}...`
+                          : value
+                      }
+                    />
+                    <Tooltip
+                      // Custom Tooltip for Bar Chart - MODIFIED to show both responseTime and requests
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const apiName = label;
+                          const responseTime = payload[0].value;
+                          const requests = slowestApisData.find(
+                            (api) => api.name === apiName
+                          )?.requests;
+                          return (
+                            <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg text-sm">
+                              <p className="font-semibold text-gray-800 mb-1">
+                                {apiName}
+                              </p>
+                              <p style={{ color: COLORS.primary }}>
+                                Response Time:{" "}
+                                <span className="font-bold">
+                                  {responseTime}ms
+                                </span>
+                              </p>
+                              {requests != null && (
+                                <p style={{ color: COLORS.gray }}>
+                                  Requests:{" "}
+                                  <span className="font-bold">
+                                    {new Intl.NumberFormat("en-US").format(
+                                      requests
+                                    )}
+                                  </span>
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Legend />
+                    <Bar
+                      dataKey="responseTime"
+                      name="Avg. Response Time (ms)"
+                      // Disable the default active color on hover
+                      activeBar={false} // Prevents default hover effect on the bar itself
+                    >
+                      {slowestApisData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={
+                            entry.responseTime > 500
+                              ? ERROR_COLORS[0] // Critical: Red
+                              : entry.responseTime > 200
+                              ? ERROR_COLORS[1] // Warning: Amber
+                              : COLORS.primary // Good: Primary blue
+                          }
+                        />
+                      ))}
+                      {/* ADD LabelList to display values on bars */}
+                      <LabelList
+                        dataKey="responseTime"
+                        position="right" // Position the label to the right of the bar
+                        formatter={(value) => `${value}ms`} // Format the label text
+                        fill="#000" // Color of the label text
+                        fontSize={12}
+                        offset={5} // Offset from the end of the bar
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-64 flex items-center justify-center text-gray-500">
+                  <div className="text-center">
+                    <Activity
+                      size={48}
+                      className="text-gray-300 mx-auto mb-2"
+                    />
+                    <p>No performance data available yet</p>
+                  </div>
+                </div>
+              )}
+            </ChartContainer>
+          </div>
+        </section>
+
+        {/* API Health & Errors */}
+        <section>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            API Health & Error Analysis
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card title="Top API Health" icon={Server} className="lg:col-span-2">
-              <p className="text-gray-600 text-sm mb-4">
-                Overview of the most popular API endpoints by request count and their average
-                response times.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <ApiHealthList apis={metrics.most_popular_apis || {}} />
-                <RenderBarChart
-                  title="Average Response Times of Top APIs"
-                  data={topApiPerformanceData}
-                  dataKey="name"
-                  valueKey="Avg. Response Time"
-                  yAxisUnit="ms"
-                  className="h-full"
-                />
-              </div>
-            </Card>
+            {/* API Health Status */}
+            <div className="lg:col-span-2">
+              <ChartContainer title="API Endpoint Health">
+                {/* Ensure `metrics.api_performance` is used for the grid, as `most_popular_apis` might be sorted differently. */}
+                <ApiHealthGrid apis={metrics.api_performance || {}} />
+              </ChartContainer>
+            </div>
 
-            <Card title="Error Analytics" icon={AlertTriangle}>
-              <p className="text-gray-600 text-sm mb-4">
-                Detailed breakdown of system errors, excluding authentication failures.
-              </p>
-              <ErrorAnalysis
-                errorRates={filteredErrorRates}
-                errorDistribution={filteredErrorRates.error_distribution || {}}
-                totalRequests={filteredErrorRates.total_requests_24h}
-              />
-            </Card>
-          </div>
-        </section>
-
-        {/* Latency & Throughput */}
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-5">
-            Latency & Throughput
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <MetricCard
-              title="P95 Latency"
-              value={metrics.p95_latency * 1000 || 0}
-              format="ms"
-              icon={Clock}
-              status={
-                (metrics.p95_latency || 0) < 0.3
-                  ? "good"
-                  : (metrics.p95_latency || 0) < 0.5
-                  ? "warning"
-                  : "critical"
-              }
-              subtitle="95% of requests complete within this time"
-            />
-            <MetricCard
-              title="P99 Latency"
-              value={metrics.p99_latency * 1000 || 0}
-              format="ms"
-              icon={Timer}
-              status={
-                (metrics.p99_latency || 0) < 0.5
-                  ? "good"
-                  : (metrics.p99_latency || 0) < 1.0
-                  ? "warning"
-                  : "critical"
-              }
-              subtitle="99% of requests complete within this time"
-            />
-            <MetricCard
-              title="Average Throughput"
-              value={(metrics.total_requests_24h || 0) / 24}
-              format="requestsPerHour"
-              icon={Activity}
-              subtitle="Requests per hour (24h average)"
-            />
-          </div>
-        </section>
-
-        {/* Deep Dive & Trends */}
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-5">
-            Performance Deep Dive
-          </h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card title="Slowest APIs Analysis" icon={Zap}>
-              <p className="text-sm text-gray-600 mb-4">
-                Identify API endpoints with the highest response times for optimization.
-              </p>
-              <div className="space-y-4">
-                {Object.entries(metrics.slowest_apis || {})
-                  .sort(([, a], [, b]) => b.avg_duration - a.avg_duration)
-                  .slice(0, 5) // Limit to top 5 slowest
-                  .map(([name, data]) => (
-                    <div
-                      key={name}
-                      className="p-4 border border-gray-200 rounded-lg bg-gray-50 shadow-sm"
+            {/* Error Distribution */}
+            <ChartContainer title="Error Distribution">
+              {errorData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={errorData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={2}
+                      dataKey="value"
+                      nameKey="name" // Ensure nameKey is set for legend
+                      // ADD LabelList to display values on slices
+                      label={({ name, value }) =>
+                        `${name}: ${new Intl.NumberFormat("en-US").format(
+                          value
+                        )}`
+                      } // Label format
+                      labelLine={false} // Hide the line connecting label to slice
                     >
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="font-medium text-gray-900">
-                          {name.split(":").pop() || name}
-                        </div>
-                        <div
-                          className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                            data.avg_duration < 0.2
-                              ? "bg-green-100 text-green-800"
-                              : data.avg_duration < 0.5
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {data.avg_duration < 0.2
-                            ? "FAST"
-                            : data.avg_duration < 0.5
-                            ? "SLOW"
-                            : "CRITICAL"}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm mt-2">
-                        <div>
-                          <span className="text-gray-500">Avg Response:</span>
-                          <div className="font-semibold text-gray-800">
-                            {Math.round(data.avg_duration * 1000)}ms
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Total Requests:</span>
-                          <div className="font-semibold text-gray-800">
-                            {new Intl.NumberFormat("en-US").format(data.request_count)}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-3">
-                        <div className="w-full bg-gray-200 rounded-full h-2.5">
-                          <div
-                            className={`h-2.5 rounded-full ${
-                              data.avg_duration < 0.2
-                                ? "bg-green-500"
-                                : data.avg_duration < 0.5
-                                ? "bg-amber-500"
-                                : "bg-red-500"
-                            }`}
-                            style={{
-                              width: `${Math.min((data.avg_duration / 1.0) * 100, 100)}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </Card>
-
-            <Card title="Traffic Volume Trends" icon={LineChartIcon}>
-              <p className="text-sm text-gray-600 mb-4">
-                Visualize hourly request volume to identify usage patterns and peak times.
-              </p>
-              <RenderLineChart
-                title="Hourly Request Volume (Last 24h)"
-                data={metrics.hourly_volume || []}
-                dataKey="hour"
-                valueKey="request_count"
-                yAxisUnit=" requests"
-              />
-            </Card>
+                      {errorData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.color} // Use the color directly from the data entry
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend
+                      verticalAlign="bottom"
+                      align="center" // Center the legend
+                      wrapperStyle={{ fontSize: "10px", paddingTop: "5px" }} // Added padding for better spacing
+                      layout="horizontal" // Ensure horizontal layout if too many items
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-64 flex items-center justify-center text-gray-500">
+                  <div className="text-center">
+                    <CheckCircle
+                      size={48}
+                      className="text-green-500 mx-auto mb-2"
+                    />
+                    <p>No errors detected</p>
+                  </div>
+                </div>
+              )}
+            </ChartContainer>
           </div>
         </section>
 
-        {/* User Engagement & Application Usage */}
+        {/* User Engagement */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-5">
-            User Engagement & App Usage
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            User Engagement Metrics
           </h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card title="Engagement Overview" icon={Users}>
-              <p className="text-sm text-gray-600 mb-4">
-                Key metrics tracking user activity and session behavior.
-              </p>
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm">
-                  <div className="text-2xl font-bold text-blue-800">
-                    {metrics.wau || 0}
-                  </div>
-                  <div className="text-sm text-blue-600">Weekly Users</div>
-                </div>
-                <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow-sm">
-                  <div className="text-2xl font-bold text-green-800">
-                    {metrics.mau || 0}
-                  </div>
-                  <div className="text-sm text-green-600">Monthly Users</div>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center">
+              <Users className="h-8 w-8 text-blue-600 mx-auto mb-3" />
+              <div className="text-2xl font-bold text-gray-900 mb-1">
+                {metrics.dau || 0}
               </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
-                  <span className="text-sm text-gray-600">Daily Active Sessions</span>
-                  <span className="font-semibold text-gray-900">
-                    {metrics.das || 0}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
-                  <span className="text-sm text-gray-600">Avg Sessions per User</span>
-                  <span className="font-semibold text-gray-900">
-                    {metrics.average_sessions_per_user?.toFixed(2) || "0.00"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
-                  <span className="text-sm text-gray-600">Daily Engagement Rate</span>
-                  <span className="font-semibold text-gray-900">
-                    {metrics.total_users > 0
-                      ? `${(((metrics.dau || 0) / metrics.total_users) * 100).toFixed(
-                          1
-                        )}%`
-                      : "0.0%"}
-                  </span>
-                </div>
+              <div className="text-sm text-gray-600">Daily Active Users</div>
+            </div>
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center">
+              <TrendingUp className="h-8 w-8 text-green-600 mx-auto mb-3" />
+              <div className="text-2xl font-bold text-gray-900 mb-1">
+                {metrics.wau || 0}
               </div>
-            </Card>
-
-            <Card title="Top Application Usage" icon={Eye}>
-              <p className="text-sm text-gray-600 mb-4">
-                Applications generating the most API requests.
-              </p>
-              <div className="space-y-3">
-                {groupApisByApp(metrics.api_performance).map(([appName, data]) => (
-                  <div
-                    key={appName}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 shadow-sm"
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-800">{appName}</div>
-                      <div className="text-sm text-gray-500">
-                        {data.apis.length} endpoints
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-gray-900">
-                        {new Intl.NumberFormat("en-US").format(data.request_count)}
-                      </div>
-                      <div className="text-sm text-gray-500">requests</div>
-                    </div>
-                  </div>
-                ))}
+              <div className="text-sm text-gray-600">Weekly Active Users</div>
+            </div>
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center">
+              <Eye className="h-8 w-8 text-purple-600 mx-auto mb-3" />
+              <div className="text-2xl font-bold text-gray-900 mb-1">
+                {metrics.mau || 0}
               </div>
-            </Card>
+              <div className="text-sm text-gray-600">Monthly Active Users</div>
+            </div>
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center">
+              <Activity className="h-8 w-8 text-orange-600 mx-auto mb-3" />
+              <div className="text-2xl font-bold text-gray-900 mb-1">
+                {metrics.average_sessions_per_user?.toFixed(1) || "0.0"}
+              </div>
+              <div className="text-sm text-gray-600">Avg Sessions per User</div>
+            </div>
           </div>
         </section>
-
-        {/* Security & Alerts */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-5">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            Most Popular Applications (24h)
+          </h2>
+          {popularAppsData.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {popularAppsData.map((app) => (
+                <AppActivityCard
+                  key={app.name}
+                  title={app.name}
+                  requests={app.requests}
+                  icon={app.icon}
+                  color={app.color}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center text-gray-500 h-40 flex items-center justify-center">
+              <div className="text-center">
+                <BarChart3 size={48} className="text-gray-300 mx-auto mb-2" />
+                <p>No application activity data available.</p>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* System Security */}
+        <section>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
             Security & Compliance
           </h2>
-          <Card title="Security Incidents Summary" icon={AlertTriangle}>
-            <p className="text-sm text-gray-600 mb-4">
-              Monitoring for unauthorized access attempts and server-side errors.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-              <MetricCard
-                title="Auth Failures (401)"
-                value={metrics.error_distribution?.["401"] || 0}
-                icon={AlertTriangle}
-                status="critical"
-                subtitle="Unauthorized attempts detected"
-              />
-              <MetricCard
-                title="Forbidden Access (403)"
-                value={metrics.error_distribution?.["403"] || 0}
-                icon={AlertCircle}
-                status="warning"
-                subtitle="Access denied requests"
-              />
-              <MetricCard
-                title="Server Errors (5xx)"
-                value={Object.entries(metrics.error_distribution || {})
-                  .filter(([code]) => parseInt(code, 10) >= 500) // Ensure comparison with number
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Added proper background and text color to match the design pattern of PerformanceCard */}
+            <div className="bg-red-500 text-white rounded-xl p-6 text-center shadow-lg">
+              <AlertTriangle className="h-8 w-8 mx-auto mb-3" />
+              <div className="text-2xl font-bold mb-1">
+                {metrics.error_rates?.["auth-api:user - 401"] || 0}
+              </div>{" "}
+              {/* This specific 401 is *not* excluded here, as it's a security/auth metric */}
+              <div className="text-sm opacity-90">Auth Failures (401)</div>
+            </div>
+            <div className="bg-amber-500 text-white rounded-xl p-6 text-center shadow-lg">
+              <Shield className="h-8 w-8 mx-auto mb-3" />
+              <div className="text-2xl font-bold mb-1">
+                {Object.entries(metrics.error_rates || {})
+                  .filter(([key]) => key.includes("403"))
                   .reduce((sum, [, count]) => sum + count, 0)}
-                icon={Server}
-                status="critical"
-                subtitle="Internal server issues"
-              />
-              <MetricCard
-                title="Not Found (404)"
-                value={metrics.error_distribution?.["404"] || 0}
-                icon={AlertCircle}
-                status="neutral"
-                subtitle="Missing API endpoints/resources"
-              />
+              </div>
+              <div className="text-sm opacity-90">Access Denied (403)</div>
             </div>
-
-            <h4 className="font-semibold text-gray-900 mt-6 mb-4">
-              Top Security-Related Events
-            </h4>
-            <div className="space-y-3">
-              {Object.entries(metrics.error_rates || {})
-                .filter(([endpoint]) => endpoint.includes("401") || endpoint.includes("403"))
-                .sort(([, a], [, b]) => b - a)
-                .slice(0, 3) // Show top 3 specific security errors
-                .map(([endpoint, count]) => {
-                  const [api, code] = endpoint.split(" - ");
-                  const severity = code === "401" ? "high" : "medium";
-
-                  return (
-                    <div
-                      key={endpoint}
-                      className={`p-3 rounded-lg border shadow-sm ${
-                        severity === "high"
-                          ? "bg-red-50 border-red-200"
-                          : "bg-amber-50 border-amber-200"
-                      }`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <div
-                            className={`font-medium ${
-                              severity === "high" ? "text-red-900" : "text-amber-900"
-                            }`}
-                          >
-                            {api.split(":").pop()}
-                          </div>
-                          <div
-                            className={`text-xs ${
-                              severity === "high" ? "text-red-600" : "text-amber-600"
-                            }`}
-                          >
-                            {code === "401" ? "Authentication Failed" : "Access Forbidden"}
-                          </div>
-                        </div>
-                        <div
-                          className={`px-2 py-1 rounded text-xs font-medium ${
-                            severity === "high"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-amber-100 text-amber-800"
-                          }`}
-                        >
-                          {count} events
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+            <div className="bg-red-600 text-white rounded-xl p-6 text-center shadow-lg">
+              <Server className="h-8 w-8 mx-auto mb-3" />
+              <div className="text-2xl font-bold mb-1">
+                {Object.entries(metrics.error_rates || {})
+                  .filter(([code]) => code.includes("500")) // Filter for '500' errors
+                  .reduce((sum, [, count]) => sum + count, 0)}
+              </div>
+              <div className="text-sm opacity-90">Server Errors (5xx)</div>
             </div>
-          </Card>
+            <div className="bg-gray-500 text-white rounded-xl p-6 text-center shadow-lg">
+              <AlertCircle className="h-8 w-8 mx-auto mb-3" />
+              <div className="text-2xl font-bold mb-1">
+                {Object.entries(metrics.error_rates || {})
+                  .filter(([key]) => key.includes("404"))
+                  .reduce((sum, [, count]) => sum + count, 0)}
+              </div>
+              <div className="text-sm opacity-90">Not Found (404)</div>
+            </div>
+          </div>
         </section>
       </div>
     </div>
