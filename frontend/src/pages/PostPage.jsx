@@ -5,7 +5,7 @@ import { ArrowUp, ArrowDown, Send, User, ArrowLeft, Loader2, MessageCircle, Repl
 import Navbar from '../components/Navbar'
 import { useAuth } from '../contexts/AuthContext'
 
-const BACKEND_API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+const BACKEND_API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001'
 
 const Comment = ({ comment, onReply, user, postId, refreshComments, updateCommentVote }) => {
   const [showReplyForm, setShowReplyForm] = useState(false)

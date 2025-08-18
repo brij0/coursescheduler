@@ -16,7 +16,7 @@ import {
 import Navbar from '../components/Navbar'
 import { useAuth } from '../contexts/AuthContext'
 
-const BACKEND_API_URL = 'http://localhost:8000';
+const BACKEND_API_URL = 'http://localhost:8001';
 
 const AuthPage = () => {
   const navigate = useNavigate()
@@ -262,7 +262,7 @@ const AuthPage = () => {
               </motion.div>
               
               <h1 className="text-3xl font-bold mb-2" style={{ color: '#456882' }}>
-                {isLogin ? 'Welcome Back' : 'Join SmartGryph'}
+                {isLogin ? 'Welcome Back' : 'Join ugflow'}
               </h1>
               <p className="text-neutral-600">
                 {isLogin 

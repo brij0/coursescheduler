@@ -194,7 +194,7 @@ const AboutPage = () => {
 
             <h1 className="text-5xl md:text-6xl font-display font-black mb-6">
               <span className="text-primary-600">About</span>
-              <span className="text-neutral-800"> SmartGryph</span>
+              <span className="text-neutral-800"> ugflow</span>
             </h1>
 
             <p className="text-xl md:text-2xl text-neutral-600 mb-8 leading-relaxed">
@@ -729,7 +729,7 @@ const AboutPage = () => {
                   </div>
                   <div>
                     <p className="font-semibold text-neutral-800">Email</p>
-                    <p className="text-neutral-600">hello@smartgryph.com</p>
+                    <p className="text-neutral-600">hello@ugflow.com</p>
                   </div>
                 </div>
 

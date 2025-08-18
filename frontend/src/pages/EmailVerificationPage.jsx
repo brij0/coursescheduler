@@ -139,7 +139,7 @@ const EmailVerificationPage = () => {
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
                 <Sparkles className="w-5 h-5" style={{ color: '#456882' }} />
-                <span className="font-bold text-xl" style={{ color: '#456882' }}>SmartGryph</span>
+                <span className="font-bold text-xl" style={{ color: '#456882' }}>ugflow</span>
                 <Sparkles className="w-5 h-5" style={{ color: '#456882' }} />
               </motion.div>
             </div>

@@ -216,7 +216,7 @@ const PrivacyPage = () => {
                 The Simple Version
               </h2>
               <p className="text-lg text-neutral-600 leading-relaxed">
-                We built SmartGryph to help students, not to harvest data. We collect only what's 
+                We built ugflow to help students, not to harvest data. We collect only what's 
                 necessary to make the app work, we protect it like it's our own, and we never sell it. 
                 Period. Most features work without even creating an account.
               </p>
@@ -331,11 +331,11 @@ const PrivacyPage = () => {
               handle your data, just reach out. We promise to give you a straight answer.
             </p>
             <motion.a
-              href="mailto:privacy@smartgryph.com"
+              href="mailto:privacy@ugflow.com"
               className="inline-flex items-center space-x-2 bg-primary-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-600 transition-all duration-300 shadow-lg"
             >
               <Mail size={20} />
-              <span>privacy@smartgryph.com</span>
+              <span>privacy@ugflow.com</span>
             </motion.a>
           </motion.div>
 
@@ -343,7 +343,7 @@ const PrivacyPage = () => {
           <div className="mt-16 pt-8 border-t border-neutral-200">
             <p className="text-sm text-neutral-500 text-center leading-relaxed">
               This privacy policy is effective as of January 15, 2025. We may update it occasionally, 
-              but we'll always notify you of significant changes. By using SmartGryph, you agree to 
+              but we'll always notify you of significant changes. By using ugflow, you agree to 
               this privacy policy.
             </p>
           </div>

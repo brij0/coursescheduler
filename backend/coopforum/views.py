@@ -152,7 +152,7 @@ def register_view(request):
         
         # Create verification token
         verification_token = EmailVerificationToken.objects.create(user=user)
-        logger.debug(f"Created verification token for user: {username} (token: {verification_token.token[:8]}...)")
+        logger.debug(f"Created verification token for user: {username} (token: {verification_token.token}...)")
         
         # Send verification email
         success = send_verification_email_gmail(user, verification_token.token)
@@ -252,7 +252,7 @@ def verify_email(request, token):
     Returns a JSON response indicating the result.
     """
     try:
-        logger.info(f"Email verification attempt with token: {token[:8]}...")
+        logger.info(f"Email verification attempt with token: {token}...")
         
         verification_token = get_object_or_404(EmailVerificationToken, token=token)
         user = verification_token.user

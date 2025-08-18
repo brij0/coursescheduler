@@ -41,3 +41,6 @@ id_rsa
 id_rsa.pub
 id_dsa
 id_dsa.pub
+
+#Ignore static files
+backend/staticfiles/

@@ -226,7 +226,7 @@ const HomePage = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 1 }}
               >
-                Smart
+                ug
               </motion.span>
               <motion.span
                 className="text-neutral-800"
@@ -234,7 +234,7 @@ const HomePage = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 1.2 }}
               >
-                Gryph
+                 flow
               </motion.span>
             </motion.h1>
 
@@ -441,13 +441,13 @@ const HomePage = () => {
               },
               {
                 year: "Today",
-                title: "SmartGryph Lives",
+                title: "ugflow Lives",
                 icon: "CheckCircle",
                 color: "text-primary-500",
                 bgColor: "bg-primary-50",
                 borderColor: "border-primary-200",
                 description:
-                  "From personal academic struggles to a comprehensive student platform. SmartGryph is built by students who experienced these pain points firsthand, for students who deserve better tools than spreadsheets and paper calendars.",
+                  "From personal academic struggles to a comprehensive student platform. ugflow is built by students who experienced these pain points firsthand, for students who deserve better tools than spreadsheets and paper calendars.",
                 impact: " Making student life easier, one feature at a time",
               },
             ].map((item, index) => {

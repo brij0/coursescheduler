@@ -158,9 +158,8 @@ const SummaryCard = ({
                     <ArrowDownRight size={14} className="text-red-600" />
                   )}
                   <span
-                    className={`text-xs font-medium ${
-                      trend > 0 ? "text-green-600" : "text-red-600"
-                    }`}
+                    className={`text-xs font-medium ${trend > 0 ? "text-green-600" : "text-red-600"
+                      }`}
                   >
                     {Math.abs(trend)}%
                   </span>
@@ -253,8 +252,8 @@ const ApiHealthGrid = ({ apis = {} }) => {
           responseTime < 200
             ? "good"
             : responseTime < 500
-            ? "warning"
-            : "critical";
+              ? "warning"
+              : "critical";
 
         const statusColors = {
           good: "border-green-200 bg-green-50",
@@ -311,6 +310,7 @@ const Dashboard = () => {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [fullResponse, setFullResponse] = useState({});
   const getMetricValue = (path, defaultValue = 0) => {
     return (
       path.split(".").reduce((obj, key) => obj?.[key], metrics) ?? defaultValue
@@ -321,9 +321,9 @@ const Dashboard = () => {
     const fetchMetrics = async () => {
       try {
         setLoading(true);
-        // Ensure you're accessing the 'data' key from the API response
         const response = await api.fetchMetrics();
-        setMetrics(response.data || response); // Adjust based on your API's actual response structure
+        setFullResponse(response); // Store the full response
+        setMetrics(response.data || {}); // Access the 'data' property for metrics
         setError(null);
       } catch (err) {
         setError(err.message || "Failed to fetch metrics");
@@ -334,9 +334,6 @@ const Dashboard = () => {
     };
 
     fetchMetrics();
-    // Refresh every 5 minutes (300000 ms)
-    const interval = setInterval(fetchMetrics, 300000);
-    return () => clearInterval(interval);
   }, []);
 
   if (loading) {
@@ -502,19 +499,19 @@ const Dashboard = () => {
     trueSuccessRate >= 99
       ? "excellent"
       : trueSuccessRate >= 95
-      ? "good"
-      : trueSuccessRate >= 90
-      ? "warning"
-      : "critical";
+        ? "good"
+        : trueSuccessRate >= 90
+          ? "warning"
+          : "critical";
 
   const responseHealth =
     avgResponseMs < 150
       ? "excellent"
       : avgResponseMs < 300
-      ? "good"
-      : avgResponseMs < 500
-      ? "warning"
-      : "critical";
+        ? "good"
+        : avgResponseMs < 500
+          ? "warning"
+          : "critical";
 
   const getMostPopularApps = (apiPerformanceData) => {
     const appRequests = {
@@ -577,7 +574,7 @@ const Dashboard = () => {
           </p>
           <div className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500">
             <CheckCircle size={16} className="text-green-500" />
-            <span>Last updated: {new Date().toLocaleTimeString()}</span>
+            <span>Last updated: {fullResponse.created_at ? new Date(fullResponse.created_at).toLocaleString() : "N/A"}</span>
           </div>
         </div>
 
@@ -592,13 +589,13 @@ const Dashboard = () => {
               status="good"
             />
             <SummaryCard
-  title="System Uptime"
-  value={trueSuccessRate.toFixed(1)} // Remove the % and toFixed for proper formatting
-  unit="%" // Add the unit here instead
-  subtitle="Request success rate"
-  icon={CheckCircle}
-  status={systemHealth}
-/>
+              title="System Uptime"
+              value={trueSuccessRate.toFixed(1)} // Remove the % and toFixed for proper formatting
+              unit="%" // Add the unit here instead
+              subtitle="Request success rate"
+              icon={CheckCircle}
+              status={systemHealth}
+            />
             <SummaryCard
               title="Response Performance"
               value={Math.round(avgResponseMs)} // Pass as a number
@@ -631,8 +628,8 @@ const Dashboard = () => {
                 (metrics.p95_latency || 0) * 1000 < 300
                   ? "good"
                   : (metrics.p95_latency || 0) * 1000 < 500
-                  ? "warning"
-                  : "critical"
+                    ? "warning"
+                    : "critical"
               }
               subtitle="95th percentile"
             />
@@ -644,8 +641,8 @@ const Dashboard = () => {
                 (metrics.p99_latency || 0) * 1000 < 500
                   ? "good"
                   : (metrics.p99_latency || 0) * 1000 < 1000
-                  ? "warning"
-                  : "critical"
+                    ? "warning"
+                    : "critical"
               }
               subtitle="99th percentile"
             />
@@ -657,8 +654,8 @@ const Dashboard = () => {
                 100 - trueSuccessRate < 1
                   ? "good"
                   : 100 - trueSuccessRate < 5
-                  ? "warning"
-                  : "critical"
+                    ? "warning"
+                    : "critical"
               }
               subtitle="Total failed requests"
             />
@@ -817,8 +814,8 @@ const Dashboard = () => {
                             entry.responseTime > 500
                               ? ERROR_COLORS[0] // Critical: Red
                               : entry.responseTime > 200
-                              ? ERROR_COLORS[1] // Warning: Amber
-                              : COLORS.primary // Good: Primary blue
+                                ? ERROR_COLORS[1] // Warning: Amber
+                                : COLORS.primary // Good: Primary blue
                           }
                         />
                       ))}
@@ -872,8 +869,8 @@ const Dashboard = () => {
                       data={errorData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
+                      innerRadius={50}
+                      outerRadius={80}
                       paddingAngle={2}
                       dataKey="value"
                       nameKey="name" // Ensure nameKey is set for legend
@@ -954,7 +951,7 @@ const Dashboard = () => {
         </section>
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Most Popular Applications (24h)
+            Most Popular Applications
           </h2>
           {popularAppsData.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

@@ -119,7 +119,7 @@ const Navbar = () => {
                   </motion.div>
                 </motion.div>
                 <span className="font-display font-bold text-2xl text-neutral-800">
-                  SmartGryph
+                  ugflow
                 </span>
               </div>
             </Link>
