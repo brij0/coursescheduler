@@ -229,7 +229,7 @@ def send_verification_email_gmail(user, token):
         This link will expire in 24 hours.
         """
         
-        send_mail(
+        email_status = send_mail(
             subject=subject,
             message=plain_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
@@ -237,9 +237,12 @@ def send_verification_email_gmail(user, token):
             html_message=html_message,
             fail_silently=False
         )
-        logger.info(f"Successfully sent verification email to: {user.email}")
-        return True
-        
+        if email_status == 1:
+            logger.info(f"Successfully sent verification email to: {user.email} - status code: {email_status}")
+            return True
+        else:
+            logger.error(f"Failed to send verification email to: {user.email} - status code: {email_status}")
+            return False
     except Exception as e:
         logger.error(f"Failed to send verification email to {user.email}: {str(e)}")
         return False

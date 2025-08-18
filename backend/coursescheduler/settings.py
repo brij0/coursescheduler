@@ -14,8 +14,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security settings
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret")
-DEBUG = os.getenv("DEBUG", "True") == "True"
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+DEBUG = False
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "ugflow.com", "www.ugflow.com", "ugflow.duckdns.org"]
 
 # Application definition
 INSTALLED_APPS = [
@@ -120,30 +120,33 @@ DATABASES = {
 }
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:5173",
+    "https://ugflow.com",
+    "https://www.ugflow.com",
+    "https://ugflow.duckdns.org",
+
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 
 # CSRF settings
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:5173",
+    "https://ugflow.com",
+    "https://www.ugflow.com",
+    "https://ugflow.duckdns.org",
 ]
-
 # Session settings
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_NAME = "sessionid"
 SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
-SESSION_COOKIE_SECURE = False  # True in production with HTTPS
-SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = True 
+
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_SAVE_EVERY_REQUEST = False  # Don't save session on every request
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
+
 # CSRF cookie settings
-CSRF_COOKIE_SECURE = False  # True in production with HTTPS
+CSRF_COOKIE_SECURE = True  
 CSRF_COOKIE_HTTPONLY = False  # Needs to be accessible from JavaScript
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_USE_SESSIONS = False
