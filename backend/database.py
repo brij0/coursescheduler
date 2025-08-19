@@ -1,4 +1,3 @@
-from httpx import get
 import mysql.connector
 import os
 from dotenv import load_dotenv
@@ -9,6 +8,9 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'coursescheduler.settings')
 from django.db import transaction
 from scheduler.models import Course, CourseEvent
 from gpacalc.models import GradingScheme, AssessmentWeightage
+from coopforum.models import Post as CoopPost
+from django.contrib.auth import authenticate
+import json
 import logging
 logger = logging.getLogger(__name__)
 def get_db_connection():
@@ -31,7 +33,7 @@ def get_db_connection():
         logger.info("Connected to the database successfully!")
         return db_connection, db_cursor
     except mysql.connector.Error as err:
-        logger._error(f"Error: {err}")
+        logger.error(f"Error: {err}")
         return None, None
     
 # Function to insert cleaned course sections from web scraping and insert their events into the database
@@ -179,7 +181,7 @@ def insert_cleaned_sections(courses_data):
         db_connection.commit()
         logger.info("Successfully inserted all sections and events")
     except Exception as e:
-        logger._error(f"An error occurred while adding data to the database: {e}")
+        logger.error(f"An error occurred while adding data to the database: {e}")
         db_connection.rollback()
     finally:
         db_cursor.close()
@@ -208,7 +210,7 @@ def batch_insert_events_with_schemes(events_list, course_id):
     try:
         course = Course.objects.get(course_id=course_id)
     except Course.DoesNotExist:
-        logger._error(f"Course with ID {course_id} does not exist")
+        logger.error(f"Course with ID {course_id} does not exist")
         raise ValueError(f"Course with ID {course_id} does not exist")
     
     # Collect all unique scheme names from all events
@@ -332,8 +334,66 @@ def get_section_details(school_code, course_code, section_number, offered_term):
 
         return section_details
     except Exception as e:
-        logger._error(f"Database error: {e}")
+        logger.error(f"Database error: {e}")
         return {'course_id': None, 'section_details': []}
     finally:
         db_cursor.close()
         db_connection.close()
+
+
+# Insert scrapped coop postings into the database
+
+def insert_coop_postings():
+
+    """
+        Insert coop postings json into the database
+    """
+    load_dotenv()
+    django_default_user, django_default_password = os.getenv("django_default_user"), os.getenv("django_default_password")
+    if not django_default_user or not django_default_password:
+        logger.error("Database credentials are not set in environment variables.")
+        return False
+    try:
+        db_connection, db_cursor = get_db_connection()
+        if not db_connection or not db_cursor:
+            logger.error("Failed to connect to the database.")
+            return False
+        else:
+            # Authenticate the user
+            django_default_user = authenticate(username=django_default_user, password=django_default_password)
+            if not django_default_user:
+                logger.error("Authentication failed. Check your username and password.")
+                return False
+            
+            # Fetch coop postings from the JSON file
+            with open('coop_applied.json', 'r') as file:
+                coop_postings = json.load(file)
+
+            # Insert each posting into the database
+            for posting in coop_postings:
+                try:
+                    # Check if a post with the same job_id already exists
+                    if CoopPost.objects.filter(job_id=posting.get('job_id')).exists():
+                        logger.warning(f"Skipping duplicate job_id: {posting.get('job_id')}")
+                        continue  # Skip to the next posting
+                    
+                    post = CoopPost(
+                        job_id=posting.get('job_id'),
+                        job_term=posting.get('job_term'),
+                        job_title=posting.get('job_title'),
+                        organization=posting.get('organization'),
+                        job_location=posting.get('job_location'),
+                        content=posting.get('content', 'Share your experience here!'),
+                        user=django_default_user
+                    )
+                    post.save()
+                except Exception as e:
+                    logger.error(f"Error inserting posting {posting.get('job_id')}: {e}")
+            
+            db_connection.commit()
+            logger.info("Successfully inserted coop postings into the database.")
+            return True
+
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return False

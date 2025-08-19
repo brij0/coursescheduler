@@ -55,6 +55,7 @@ class Post(TimeStampedModel):
         related_query_name='post'
     )
     job_id = models.CharField(
+        unique=True,
         max_length=100,
         null=True,
         blank=True,)
@@ -97,7 +98,7 @@ class Post(TimeStampedModel):
         Calculate net score from related votes.
         """
         result = self.votes.aggregate(score=Sum('value'))['score']
-        return result or 0
+        return result or 1
 
     def __str__(self):
         return f"Post(id={self.pk}, title={self.title!r}, score={self.score})"
@@ -174,7 +175,7 @@ class Comment(MPTTModel, TimeStampedModel):
         Net score from related votes.
         """
         result = self.votes.aggregate(score=Sum('value'))['score']
-        return result or 0
+        return result or 1
 
     def __str__(self):
         return f"Comment(id={self.pk}, post_id={self.post_id}, score={self.score})"

@@ -45,3 +45,4 @@ id_dsa.pub
 #Ignore static files
 backend/staticfiles/
 backend/venv/
+backend/db_backup/

@@ -46,6 +46,7 @@ class HybridMetricsMiddleware:
                 })
                 # calculate_and_store_metrics.delay()  # Update precomputed metrics asynchronously
             except Exception as e:
+                logger.error(f"Error logging API metrics: {e}")
                 pass  # Don't break requests for metrics
 
         return response
