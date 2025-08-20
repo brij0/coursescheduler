@@ -27,8 +27,8 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ['id', 'title', 'content', 'user', 'created_at', 'updated_at', 'score', 
-                 'job_id', 'job_term', 'job_title', 'organization', 'job_location', 'user_vote']
-        read_only_fields = ['user', 'created_at', 'updated_at', 'score', 'user_vote']
+                 'job_id', 'job_term', 'job_title', 'organization', 'job_location', 'user_vote', 'major']
+        read_only_fields = ['user', 'created_at', 'updated_at', 'score', 'user_vote', 'major']
 
     def get_user_vote(self, obj):
         request = self.context.get('request')

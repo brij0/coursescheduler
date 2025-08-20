@@ -54,6 +54,12 @@ class Post(TimeStampedModel):
         object_id_field='object_id',
         related_query_name='post'
     )
+    major = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text='Student major or field of study'
+    )
     job_id = models.CharField(
         unique=True,
         max_length=100,

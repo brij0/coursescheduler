@@ -131,6 +131,7 @@ class CoopScraper:
     def scrape_applications(self):
         """Main scraping function."""
         print("🔍 Starting to scrape your co-op applications...")
+        user_major = input("Please Enter your major (e.g. Computer Science, Computer Engineering, etc.): ")
         postings = []
         
         try:
@@ -226,6 +227,7 @@ class CoopScraper:
                     if len(cells) >= 10:  # Ensure we have enough cells
                         try:
                             posting = {
+                                'user_major': user_major.lower().strip(),
                                 'application_number': i + 1,
                                 'job_term': cells[1].text.strip() if len(cells) > 1 else '',
                                 'job_id': cells[2].text.strip() if len(cells) > 2 else '',

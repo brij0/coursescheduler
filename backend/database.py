@@ -378,6 +378,7 @@ def insert_coop_postings():
                         continue  # Skip to the next posting
                     
                     post = CoopPost(
+                        major= posting.get('major', 'Unknown'),
                         job_id=posting.get('job_id'),
                         job_term=posting.get('job_term'),
                         job_title=posting.get('job_title'),
