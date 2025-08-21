@@ -18,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext'
 import api from '../contexts/API'
 import MessageDisplay from '../components/MessageDisplay'
 import TermSelector from '../components/TermSelector'
+import { Helmet } from 'react-helmet-async';
 
 const GPACalculatorPage = () => {
   const { user } = useAuth()
@@ -517,6 +518,19 @@ const GPACalculatorPage = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F3F9FF' }}>
+      <Helmet>
+        <title>GPA Calculator | ugflow</title>
+        <meta name="description" content="Calculate your university GPA with precision. Track course grades across multiple grading schemes and predict your final GPA." />
+        <meta name="keywords" content="GPA calculator, university grades, academic performance, ugflow" />
+        <link rel="canonical" href="https://ugflow.com/gpa-calculator" />
+        
+        {/* Open Graph tags */}
+        <meta property="og:title" content="GPA Calculator | ugflow" />
+        <meta property="og:description" content="Calculate your university GPA with precision. Track and predict grades across multiple courses." />
+        <meta property="og:url" content="https://ugflow.com/gpa-calculator" />
+        <meta property="og:type" content="website" />
+      </Helmet>
+      
       <Navbar />
       
       {/* Header Section */}

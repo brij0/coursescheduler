@@ -14,6 +14,7 @@ import SchedulerPage from './pages/SchedulerPage'
 import ConflictFreeSchedulePage from './pages/ConflictFreeSchedulePage'
 import EventBuilderPage from './pages/EventBuilderPage'
 import DashboardPage from './pages/DashboardPage'
+import { HelmetProvider } from 'react-helmet-async'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -32,24 +33,26 @@ function App() {
   }
 
   return (
-    <AuthProvider>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
-          <Route path="/gpa-calculator" element={<GPACalculatorPage />} />
-          <Route path="/coop-forum" element={<CoopForumPage />} />
-          <Route path="/schedule" element={<EventBuilderPage/>} />
-          <Route path="/conflict-free-schedule" element={<ConflictFreeSchedulePage />} />
-          <Route path="/coop-forum/post/:id" element={<PostPage />} />
-          <Route path="/scheduler" element={<SchedulerPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-        </Routes>
-      </div>
-    </AuthProvider>
+    <HelmetProvider>
+      <AuthProvider>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
+            <Route path="/gpa-calculator" element={<GPACalculatorPage />} />
+            <Route path="/coop-forum" element={<CoopForumPage />} />
+            <Route path="/schedule" element={<EventBuilderPage/>} />
+            <Route path="/conflict-free-schedule" element={<ConflictFreeSchedulePage />} />
+            <Route path="/coop-forum/post/:id" element={<PostPage />} />
+            <Route path="/scheduler" element={<SchedulerPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+          </Routes>
+        </div>
+      </AuthProvider>
+    </HelmetProvider>
   )
 }
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowUp, ArrowDown, MessageCircle, Send, User, Plus, Loader2, Users, Search } from 'lucide-react'
 import { useNavigate, Link } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async';
 import Navbar from '../components/Navbar'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../contexts/API'
@@ -247,6 +248,19 @@ const CoopForumPage = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F3F9FF' }}>
+      <Helmet>
+        <title>Co-op Forum | ugflow</title>
+        <meta name="description" content="Access co-op job experiences, tips and advice from fellow students. Share your own insights and navigate your co-op journey confidently." />
+        <meta name="keywords" content="university co-op, job experiences, internship forum, ugflow" />
+        <link rel="canonical" href="https://ugflow.com/coop-forum" />
+        
+        {/* Open Graph tags */}
+        <meta property="og:title" content="Co-op Forum | ugflow" />
+        <meta property="og:description" content="Share and access co-op experiences and advice from fellow university students." />
+        <meta property="og:url" content="https://ugflow.com/coop-forum" />
+        <meta property="og:type" content="website" />
+      </Helmet>
+      
       <Navbar />
       <section className="pt-32 pb-12 px-4">
         <div className="max-w-4xl mx-auto">

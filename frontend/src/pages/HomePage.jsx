@@ -16,7 +16,8 @@ import {
   CheckCircle,
   MessageCircle,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useHref, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import Navbar from "../components/Navbar";
 
 const HomePage = () => {
@@ -59,12 +60,7 @@ const HomePage = () => {
   // Enhanced AnimatedHighlight that works with TypewriterText
   const AnimatedHighlight = ({ children, delay = 0 }) => {
     return (
-      <motion.span
-        className="relative inline-block"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.1, delay: delay + 0.5 }}
-      >
+      <span className="relative inline-block">
         <motion.span
           className="absolute inset-0 bg-gradient-to-r from-primary-300 to-primary-300 -skew-x-12 -z-10"
           initial={{ scaleX: 0, originX: 0 }}
@@ -83,7 +79,7 @@ const HomePage = () => {
         <span className="relative z-10 font-bold text-neutral-900 px-2">
           {children}
         </span>
-      </motion.span>
+      </span>
     );
   };
   const features = [
@@ -93,13 +89,7 @@ const HomePage = () => {
       description:
         "Track your grades and predict your GPA with scary accuracy. No more surprises!",
       color: "from-accent-500 to-accent-600",
-    },
-    {
-      icon: <Users className="w-8 h-8" />,
-      title: "Co-op Forum",
-      description:
-        "Share job experiences, tips, and survive the co-op hunt together.",
-      color: "from-primary-600 to-accent-500",
+      path: "/gpa-calculator",
     },
     {
       icon: <GraduationCap className="w-8 h-8" />,
@@ -107,6 +97,15 @@ const HomePage = () => {
       description:
         "Never double-book again! Our algorithm finds the perfect schedule that fits your life.",
       color: "from-primary-500 to-primary-600",
+      path: "/conflict-free-schedule",
+    },
+    {
+      icon: <Users className="w-8 h-8" />,
+      title: "Co-op Forum",
+      description:
+        "Share job experiences, tips, and survive the co-op hunt together.",
+      color: "from-primary-600 to-accent-500",
+      path: "/coop-forum",
     },
   ];
 
@@ -121,6 +120,19 @@ const HomePage = () => {
 
   return (
     <div ref={containerRef} className="min-h-screen">
+      <Helmet>
+        <title>ugflow | Course Scheduler & GPA Calculator for University Students</title>
+        <meta name="description" content="Schedule university courses conflict-free, calculate GPA, and access co-op resources. Built by University of Guelph students for students." />
+        <meta name="keywords" content="university course scheduler, GPA calculator, UGuelph, ugflow, academic planning, course conflicts" />
+        <link rel="canonical" href="https://ugflow.com/" />
+        
+        {/* Open Graph tags */}
+        <meta property="og:title" content="ugflow | Student Academic Tools" />
+        <meta property="og:description" content="Schedule university courses conflict-free, calculate GPA, and access co-op resources." />
+        <meta property="og:url" content="https://ugflow.com/" />
+        <meta property="og:type" content="website" />
+      </Helmet>
+      
       <Navbar />
 
       {/* Hero Section */}
@@ -249,8 +261,8 @@ const HomePage = () => {
                   delay={1.6}
                 />
                 <TypewriterText
-                  text="Because adulting is hard enough."
-                  delay={3.5}
+                  text="Because your focus belongs on learning, not logistics."
+                  delay={4.8}
                   Component={AnimatedHighlight}
                 />
               </motion.p>
@@ -323,12 +335,13 @@ const HomePage = () => {
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                className="group relative p-8 rounded-2xl elegant-card"
+                className="group relative p-8 rounded-2xl elegant-card cursor-pointer"
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 viewport={{ once: true }}
                 whileHover={{ y: -5 }}
+                onClick={() => navigate(feature.path)}
               >
                 <motion.div
                   className="inline-flex p-4 rounded-xl bg-primary-500 text-white mb-6 transition-transform duration-300 shadow-lg"

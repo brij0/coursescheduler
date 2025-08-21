@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { ArrowUp, ArrowDown, Send, User, ArrowLeft, Loader2, MessageCircle, Reply, Edit, Trash2, MoreVertical } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import { useAuth } from '../contexts/AuthContext'
+import { Helmet } from 'react-helmet-async';
 
 const BACKEND_API_URL = import.meta.env.VITE_API_URL
 
@@ -569,6 +570,21 @@ const PostPage = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F3F9FF' }}>
+      {post && (
+        <Helmet>
+          <title>{post.title} | Co-op Forum | ugflow</title>
+          <meta name="description" content={post.content.substring(0, 160)} />
+          <link rel="canonical" href={`https://ugflow.com/coop-forum/post/${post.id}`} />
+          
+          {/* Open Graph tags */}
+          <meta property="og:title" content={`${post.title} | Co-op Forum`} />
+          <meta property="og:description" content={post.content.substring(0, 160)} />
+          <meta property="og:url" content={`https://ugflow.com/coop-forum/post/${post.id}`} />
+          <meta property="og:type" content="article" />
+          {post.organization && <meta property="article:section" content={post.organization} />}
+        </Helmet>
+      )}
+      
       <Navbar />
       <section className="pt-32 pb-12 px-4">
         <div className="max-w-4xl mx-auto">

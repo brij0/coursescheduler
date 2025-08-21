@@ -6,13 +6,13 @@ const LoadingScreen = () => {
   const [progress, setProgress] = useState(0)
 
   const phrases = [
-    "Your ideas are cooking...",
-    "Crunching the latest data...",
-    "Brewing some academic magic...",
+    "Optimizing your academic possibilities...",
+    "Analyzing thousands of schedule combinations...",
+    "Building your stress-free semester...",
     "Hang tight, greatness loading...",
-    "Crafting your perfect schedule...",
+    "Unlocking your academic potential...",
     "Calculating academic excellence...",
-    "Preparing your success story..."
+    "Streamlining your university experience..."
   ]
 
   // Randomly select a phrase on component mount
@@ -130,7 +130,7 @@ const LoadingScreen = () => {
             animate={{ opacity: [0.6, 1, 0.6] }}
             transition={{ duration: 3, repeat: Infinity }}
           >
-            Preparing your academic journey...
+            Transforming academics into achievements...
           </motion.p>
         </div>
 

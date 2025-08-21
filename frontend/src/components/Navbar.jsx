@@ -66,10 +66,10 @@ const Navbar = () => {
   }
 
   const mainNavItems = [
-    { name: 'GPA Calculator', path: '/gpa-calculator' },
-    { name: 'Co-op Forum', path: '/coop-forum' },
-    { name: 'Scheduler', path: '/scheduler' },
-    { name: 'Dashboard', path: '/dashboard' },
+    { name: 'GPA Calculator', path: '/gpa-calculator', basePath: '/gpa-calculator' },
+    { name: 'Scheduler', path: '/scheduler', basePath: ['/scheduler', '/conflict-free-schedule', '/schedule'] },
+    { name: 'Co-op Forum', path: '/coop-forum', basePath: '/coop-forum' },
+    { name: 'Dashboard', path: '/dashboard', basePath: '/dashboard' },
   ]
 
   const moreNavItems = [
@@ -131,7 +131,9 @@ const Navbar = () => {
                   key={item.name}
                   to={item.path}
                   className={`relative px-5 py-2.5 text-sm font-medium transition-all duration-200 rounded-full ${
-                    location.pathname === item.path
+                    (Array.isArray(item.basePath) 
+                      ? item.basePath.some(path => location.pathname.startsWith(path))
+                      : location.pathname.startsWith(item.basePath))
                       ? 'text-white bg-primary-500 shadow-lg'
                       : 'text-neutral-700 hover:text-primary-600 hover:bg-white/30'
                   }`}
@@ -278,7 +280,9 @@ const Navbar = () => {
                       key={item.name}
                       to={item.path}
                       className={`px-4 py-3 text-sm font-medium rounded-full transition-all duration-200 ${
-                        location.pathname === item.path
+                        (Array.isArray(item.basePath) 
+                          ? item.basePath.some(path => location.pathname.startsWith(path))
+                          : location.pathname.startsWith(item.basePath))
                           ? 'text-white bg-primary-500 shadow-lg'
                           : 'text-neutral-700 hover:text-primary-600 hover:bg-white/30'
                       }`}

@@ -33,10 +33,11 @@ const AboutPage = () => {
         "The creative force responsible for the application's user interface and experience. Mann focuses on making the platform intuitive, accessible, and visually appealing.",
       skills: [
         "React",
-        "TypeScript",
+        "JavaScript",
         "Tailwind CSS",
         "Framer Motion",
         "Three.js",
+        "Vite",
       ],
       github: "https://github.com/mann-uofg",
       linkedin: "https://www.linkedin.com/in/mann-uofg/",

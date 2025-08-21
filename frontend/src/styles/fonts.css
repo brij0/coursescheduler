@@ -48,7 +48,7 @@
 body {
   font-family: var(--font-primary);
   font-feature-settings: "rlig" 1, "calt" 1;
-  letter-spacing: -0.01em; /* Reduce spacing between characters */
+  letter-spacing: -0.03em; /* Reduce spacing between characters */
 }
 
 /* Font weight utilities */

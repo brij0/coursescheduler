@@ -1116,7 +1116,7 @@ const CompactScheduleCalendarView = ({
   showSectionInfo = false,
 }) => {
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-  const timeSlots = Array.from({ length: 12 }, (_, i) => 8 + i); // 8 AM to 7 PM
+  const timeSlots = Array.from({ length: 15 }, (_, i) => 8 + i); // 8 AM to 10 PM
 
   const parseTimeToMinutes = (timeStr) => {
     try {
@@ -1172,9 +1172,9 @@ const CompactScheduleCalendarView = ({
     const endHour = Math.floor(endMinutes / 60);
     
     const slots = [];
-    for (let hour = startHour; hour <= endHour && hour >= 8 && hour <= 19; hour++) {
+    for (let hour = startHour; hour <= endHour && hour >= 8 && hour <= 22; hour++) {
       const slotIndex = hour - 8;
-      if (slotIndex >= 0 && slotIndex < 12) {
+      if (slotIndex >= 0 && slotIndex < 15) {
         slots.push({
           slotIndex,
           isStart: hour === startHour,
@@ -1392,7 +1392,7 @@ const CompactScheduleListView = ({
 const FullScheduleView = ({ schedule, getEventColor, formatTime }) => {
   const [viewMode, setViewMode] = useState("calendar");
   const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-  const timeSlots = Array.from({ length: 14 }, (_, i) => i + 8);
+  const timeSlots = Array.from({ length: 15 }, (_, i) => i + 8); // 8 AM to 10 PM
 
   const parseTimeToMinutes = (timeStr) => {
     try {
