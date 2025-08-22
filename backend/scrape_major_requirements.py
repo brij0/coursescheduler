@@ -192,6 +192,7 @@ def parse_credit_summary(credit_summary_table):
             heading_text = heading.get_text(strip=True)
             credits_text = credits.get_text(strip=True)
             credit_summary[heading_text] = credits_text
+    return credit_summary
 
 def scrape_major_requirements(url):
     with open("major_links_breakdown.json", "r") as f:
@@ -206,8 +207,7 @@ def scrape_major_requirements(url):
         with SB(browser="chrome") as sb:
             for offering_url in offerings_list:
                 try:
-                    sb.open_new_window()
-                    sb.get(offering_url)
+                    sb.open(offering_url)
                     sb.wait(1)
                     source = sb.get_page_source()
                     soup = BeautifulSoup(source, "html.parser")
