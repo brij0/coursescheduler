@@ -107,9 +107,10 @@ const Navbar = () => {
                     className="w-12 h-12 object-contain" 
                   />
                 </motion.div>
-                <span className="font-display font-bold text-3xl text-primary-700">
-                  ugflow
-                </span>
+                <div className="font-display font-bold text-3xl">
+                  <span className="text-primary-600">ug</span>
+                  <span className="text-neutral-800">flow</span>
+                </div>
               </div>
             </Link>
 
