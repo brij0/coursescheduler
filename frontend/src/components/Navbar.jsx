@@ -97,28 +97,17 @@ const Navbar = () => {
             <Link to="/" className="flex items-center">
               <div className="flex items-center space-x-3">
                 <motion.div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg relative "
-                  style={{ backgroundColor: '#456882' }}
-                  whileHover={{ 
-                    scale: 1.1,
-                    boxShadow: "0 0 20px rgba(69, 104, 130, 0.4)"
-                  }}
+                  className="flex items-center justify-center"
+                  whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-br from-primary-400 to-accent-500 opacity-0"
-                    whileHover={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
+                  <img 
+                    src="/images/logo-removed-bg.png" 
+                    alt="ugflow logo"
+                    className="w-12 h-12 object-contain" 
                   />
-                  <motion.div
-                    whileHover={{ rotate: 360 }}
-                    transition={{ duration: 0.6 }}
-                    className="relative z-10"
-                  >
-                    <GraduationCap className="w-6 h-6 text-white" />
-                  </motion.div>
                 </motion.div>
-                <span className="font-display font-bold text-2xl text-neutral-800">
+                <span className="font-display font-bold text-3xl text-primary-700">
                   ugflow
                 </span>
               </div>

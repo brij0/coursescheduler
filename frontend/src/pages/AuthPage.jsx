@@ -250,15 +250,18 @@ const AuthPage = () => {
             {/* Header */}
             <div className="text-center mb-8">
               <motion.div
-                className="inline-flex items-center space-x-2 mb-4"
+                className="mb-4"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
-                <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: '#456882' }}>
-                  <GraduationCap className="w-6 h-6 text-white" />
+                <div className="flex items-center justify-center">
+                  <img 
+                    src="/images/logo-removed-bg.png" 
+                    alt="ugflow logo"
+                    className="w-16 h-16 object-contain" 
+                  />
                 </div>
-                <Sparkles className="w-5 h-5" style={{ color: '#456882' }} />
               </motion.div>
               
               <h1 className="text-3xl font-bold mb-2" style={{ color: '#456882' }}>
@@ -343,7 +346,7 @@ const AuthPage = () => {
                       onChange={handleInputChange}
                       className="w-full pl-10 pr-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent transition-all"
                       style={{ '--tw-ring-color': '#456882' }}
-                      placeholder="Your anonymous username"
+                      placeholder="Your username"
                       required
                     />
                   </div>
