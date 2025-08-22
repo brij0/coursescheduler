@@ -9,7 +9,7 @@ import re
 from datetime import datetime
 import pdfplumber
 from numpy import add
-from scrape_course import *
+from backend.scraping_scripts.scrape_course import *
 import json
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import os

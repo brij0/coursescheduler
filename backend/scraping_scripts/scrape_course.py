@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 import time
 from seleniumbase import SB
 from bs4 import BeautifulSoup
-from database import *
+from backend.scraping_scripts.database import *
 import re
 import json
 from scheduler.models import Course

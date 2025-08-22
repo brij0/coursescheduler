@@ -45,9 +45,10 @@ def scrape_major_links_with_breakdown(url):
     """
     Scrape major requirements from the given URL.
     """
-    with open("major_links.json", "r") as f:
-        major_links = json.load(f)
-    if not major_links:
+    try:
+        with open("major_links.json", "r") as f:
+            major_links = json.load(f)
+    except FileNotFoundError:
         major_links = scrape_major_links(url)
         logger.error("No major links found.")
     with SB(browser="chrome") as sb:
@@ -78,7 +79,7 @@ def scrape_major_links_with_breakdown(url):
                 json.dump(offerings_list, f, indent=4)
         return offerings_list
     
-def find_table_by_header(soup, header_text):
+def find_table_by_header(soup, header_text, full_major_name):
     """
     Find a table that follows an h3 header containing the specified text.
     
@@ -90,18 +91,20 @@ def find_table_by_header(soup, header_text):
         The table element following the matching header, or None if not found
     """
     # Find all h3 elements
-    headers = soup.find_all("h3")
-    
-    for header in headers:
-        # Check if this header contains our target text
-        if header_text.lower() in header.get_text().lower():
-            # Find the next table after this header
-            table = header.find_next("table", class_="sc_courselist")
-            if table:
-                return table
+    try:
+        headers = soup.find_all("h3")
+        for header in headers:
+            # Check if this header contains our target text
+            if header_text.lower() in header.get_text().lower():
+                # Find the next table after this header
+                table = header.find_next("table", class_="sc_courselist")
+                if table:
+                    return table
+    except Exception as e:
+        logger.error(f"Error finding table by header '{header_text}': {e} for {full_major_name}")
     return None
 
-def find_program_sequence_table(soup):
+def find_program_sequence_table(soup, full_major_name):
     """
     Find the program sequence table by first looking for a header, 
     then checking for tables that contain semester information.
@@ -113,21 +116,24 @@ def find_program_sequence_table(soup):
         The program sequence table, or None if not found
     """
     # First try to find by header
-    table = find_table_by_header(soup, "Recommended Program Sequence")
+    table = find_table_by_header(soup, "Recommended Program Sequence", full_major_name)
     if table:
         return table
     
     # If not found, look for tables with semester information
-    tables = soup.find_all("table", class_="sc_courselist")
-    for table in tables:
-        # Look for semester headers in the table rows
-        semester_spans = table.find_all("span", class_="courselistcomment areaheader")
-        for span in semester_spans:
-            if "semester" in span.get_text().lower():
-                return table
+    try:
+        tables = soup.find_all("table", class_="sc_courselist")
+        for table in tables:
+            # Look for semester headers in the table rows
+            semester_spans = table.find_all("span", class_="courselistcomment areaheader")
+            for span in semester_spans:
+                if "semester" in span.get_text().lower():
+                    return table
+    except Exception as e:
+        logger.error(f"Error finding program sequence table: {e} for {full_major_name}")
     return None
 
-def parse_program_sequence(program_sequence_table):
+def parse_program_sequence(program_sequence_table, full_major_name):
     """
     Parse the program sequence table into a structured dictionary by semester.
     """
@@ -137,67 +143,76 @@ def parse_program_sequence(program_sequence_table):
     
     if not program_sequence_table:
         return result
-    
-    rows = program_sequence_table.find_all("tr")
-    
-    for row in rows:
-        # Check if this is a semester header row
-        header_span = row.find("span", class_="courselistcomment areaheader")
-        if header_span:
-            semester_name = header_span.get_text(strip=True)
-            
-            # Handle duplicate semester names by adding a counter
-            if semester_name in semester_counters:
-                semester_counters[semester_name] += 1
-                current_semester = f"{semester_name} ({semester_counters[semester_name]})"
-            else:
-                semester_counters[semester_name] = 1
-                current_semester = semester_name
+    try:
+        rows = program_sequence_table.find_all("tr")
+        for row in rows:
+            # Check if this is a semester header row
+            header_span = row.find("span", class_="courselistcomment areaheader")
+            if header_span:
+                semester_name = header_span.get_text(strip=True)
                 
-            result[current_semester] = []
-            continue
-        
-        # If we haven't found a semester header yet, skip
-        if not current_semester:
-            continue
-        
-        # Process course or elective row
-        course_code_cell = row.find("td", class_="codecol")
-        hours_cell = row.find("td", class_="hourscol")
-        
-        # Only process rows with credit hours
-        if hours_cell and hours_cell.get_text(strip=True):
-            credits = hours_cell.get_text(strip=True)
+                # Handle duplicate semester names by adding a counter
+                if semester_name in semester_counters:
+                    semester_counters[semester_name] += 1
+                    current_semester = f"{semester_name} ({semester_counters[semester_name]})"
+                else:
+                    semester_counters[semester_name] = 1
+                    current_semester = semester_name
+                    
+                result[current_semester] = []
+                continue
             
-            # Regular course with code
-            if course_code_cell and course_code_cell.find("a"):
-                course_code = course_code_cell.find("a").get_text(strip=True)
-                result[current_semester].append({course_code: credits})
+            # If we haven't found a semester header yet, skip
+            if not current_semester:
+                continue
             
-            # Elective or other requirement
-            else:
-                comment_span = row.find("span", class_="courselistcomment")
-                if comment_span:
-                    requirement = comment_span.get_text(strip=True)
-                    result[current_semester].append({requirement: credits})
+            # Process course or elective row
+            course_code_cell = row.find("td", class_="codecol")
+            hours_cell = row.find("td", class_="hourscol")
             
-    return result
-def parse_credit_summary(credit_summary_table):
+            # Only process rows with credit hours
+            if hours_cell and hours_cell.get_text(strip=True):
+                credits = hours_cell.get_text(strip=True)
+                
+                # Regular course with code
+                if course_code_cell and course_code_cell.find("a"):
+                    course_code = course_code_cell.find("a").get_text(strip=True)
+                    result[current_semester].append({course_code: credits})
+                
+                # Elective or other requirement
+                else:
+                    comment_span = row.find("span", class_="courselistcomment")
+                    if comment_span:
+                        requirement = comment_span.get_text(strip=True)
+                        result[current_semester].append({requirement: credits})
+        return result
+    except Exception as e:
+        logger.error(f"Error parsing program sequence table: {e} for {full_major_name}")
+    return None
+            
+    
+def parse_credit_summary(credit_summary_table, full_major_name):
     credit_summary = {}
-    rows = credit_summary_table.find_all("tr")
-    for row in rows:
-        heading = row.find("span", class_="courselistcomment")
-        credits = row.find("td", class_="hourscol")
-        if heading and credits:
-            heading_text = heading.get_text(strip=True)
-            credits_text = credits.get_text(strip=True)
-            credit_summary[heading_text] = credits_text
-    return credit_summary
+    try:
+        rows = credit_summary_table.find_all("tr")
+        for row in rows:
+            heading = row.find("span", class_="courselistcomment")
+            credits = row.find("td", class_="hourscol")
+            if heading and credits:
+                heading_text = heading.get_text(strip=True)
+                credits_text = credits.get_text(strip=True)
+                credit_summary[heading_text] = credits_text
+        return credit_summary
+    except Exception as e:
+        logger.error(f"Error parsing credit summary table: {e} for {full_major_name}")
+    return None
+    
 
 def scrape_major_requirements(url):
-    with open("major_links_breakdown.json", "r") as f:
-        offerings_list = json.load(f)
-    if not offerings_list:
+    try:
+        with open("major_links_breakdown.json", "r") as f:
+            offerings_list = json.load(f)
+    except FileNotFoundError:
         offerings_list = scrape_major_links_with_breakdown(url)
         logger.error("No offerings links found.")
     
@@ -215,9 +230,9 @@ def scrape_major_requirements(url):
                     
                     # Determine the container based on URL
                     if "coop" in offering_url.lower():
-                        requirement_div = soup.find("div", id="cooptextcontainer", class_="page_content tab_content")
+                        requirement_div = soup.find("div", id="cooptextcontainer", class_="page_content tab_content") or soup.find("div", id="majortextcontainer", class_="page_content tab_content coop")
                     else:
-                        requirement_div = soup.find("div", id="requirementstextcontainer", class_="page_content tab_content")
+                        requirement_div = soup.find("div", id="requirementstextcontainer", class_="page_content tab_content") or soup.find("div", id="majortextcontainer", class_="page_content tab_content coop")
                     
                     # Make sure we found the requirement div and it has an h2
                     if requirement_div and requirement_div.find("h2"):
@@ -226,22 +241,21 @@ def scrape_major_requirements(url):
                         full_major_name = major_name
                     
                     # Find tables by their preceding headers
-                    credit_summary_table = find_table_by_header(requirement_div, "Credit Summary")
-                    program_sequence_table = find_program_sequence_table(requirement_div)
-                    
-                    # Parse credit summary
-                    
-                    if credit_summary_table and program_sequence_table:
-                        summary_credit = parse_credit_summary(credit_summary_table)
-                        program_sequence = parse_program_sequence(program_sequence_table)
-                        # Store results
-                        all_major_requirements[full_major_name] = {
-                        "credit_summary": summary_credit,
-                        "program_sequence": program_sequence
-                    }
+                    if requirement_div is not None:
+                        credit_summary_table = find_table_by_header(requirement_div, "Credit Summary", full_major_name)
+                        program_sequence_table = find_program_sequence_table(requirement_div, full_major_name)
+                        # Parse credit summary
+                        if credit_summary_table or program_sequence_table:
+                            summary_credit = parse_credit_summary(credit_summary_table, full_major_name)
+                            program_sequence = parse_program_sequence(program_sequence_table, full_major_name)
+                            # Store results
+                            all_major_requirements[full_major_name] = {
+                            "credit_summary": summary_credit,
+                            "program_sequence": program_sequence
+                        }
                     
                     else:
-                        logger.warning(f"No credit summary table found for {full_major_name}.")
+                        logger.warning(f"Table not found for {full_major_name}.")
                         continue
                 except Exception as e:
                     logger.error(f"Failed to process offering URL {offering_url}: {e}")

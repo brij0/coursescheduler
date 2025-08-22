@@ -33,11 +33,12 @@ def scrape_course_availability_links(url):
     return course_links
 
 def scrape_course_availability(url):
-    with open ('course_availability_links.json', 'r') as f:
-        course_links = json.load(f)
-    if not course_links:
-        logger.info("No course links found in the JSON file, scraping again.")
-        course_links = scrape_course_availability_links(url)
+    try:
+        with open ('course_availability_links.json', 'r') as f:
+            course_links = json.load(f)
+    except FileNotFoundError:
+            logger.info("No course links found in the JSON file, scraping again.")
+            course_links = scrape_course_availability_links(url)
     
     with SB(browser="chrome") as sb:
         course_details_list = []

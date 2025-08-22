@@ -95,3 +95,74 @@ class ConflictFreeSchedules(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     conflict_free = models.JSONField(help_text="List of conflict-free schedules")
+
+class DegPlannerProgram(models.Model):
+    program_name = models.CharField(max_length=100, unique=True)
+    is_coop = models.BooleanField(default=False)
+    total_credits = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    credit_requirements = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        db_table = "deg_planner_programs"
+
+    def __str__(self):
+        return f"{self.program_name}"
+
+class DegPlannerCourse(models.Model):
+    course_code = models.CharField(max_length=20, unique=True)
+    course_title = models.CharField(max_length=200, null=True, blank=True)
+    credits = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+    typically_offered_fall = models.BooleanField(default=False)
+    typically_offered_winter = models.BooleanField(default=False)
+    typically_offered_summer = models.BooleanField(default=False)
+    restrictions = models.TextField(null=True, blank=True)
+    offerings = models.TextField(null=True, blank=True)
+    prerequisites_text = models.TextField(null=True, blank=True)
+
+    class Meta:
+        db_table = "deg_planner_courses"
+
+    def __str__(self):
+        return self.course_code
+
+class DegPlannerPrerequisite(models.Model):
+    course = models.ForeignKey(DegPlannerCourse, on_delete=models.CASCADE, related_name='prerequisites')
+    prerequisite = models.ForeignKey(DegPlannerCourse, on_delete=models.CASCADE, related_name='is_prerequisite_for')
+    requirement_type = models.CharField(max_length=200, default='mandatory')
+
+    class Meta:
+        db_table = "deg_planner_prerequisites"
+        unique_together = ('course', 'prerequisite')
+
+    def __str__(self):
+        return f"{self.prerequisite.course_code} is prerequisite for {self.course.course_code}"
+
+class DegPlannerProgramRequirement(models.Model):
+    program = models.ForeignKey(DegPlannerProgram, on_delete=models.CASCADE, related_name='requirements')
+    course = models.ForeignKey(DegPlannerCourse, on_delete=models.CASCADE, related_name='program_requirements')
+    requirement_type = models.CharField(max_length=50, null=True, blank=True)
+    is_required = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "deg_planner_program_requirements"
+        unique_together = ('program', 'course')
+
+    def __str__(self):
+        return f"{self.course.course_code} for {self.program.program_name}"
+
+class DegPlannerProgramSequence(models.Model):
+    program = models.ForeignKey(DegPlannerProgram, on_delete=models.CASCADE, related_name='sequences')
+    semester_name = models.CharField(max_length=500)
+    semester_order = models.IntegerField()
+    course_code = models.CharField(max_length=200)
+    credits = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    is_elective_category = models.BooleanField(default=False)
+    elective_category = models.CharField(max_length=100, null=True, blank=True)
+
+    class Meta:
+        db_table = "deg_planner_program_sequence"
+        ordering = ['semester_order']
+
+    def __str__(self):
+        return f"{self.program.program_name} - {self.semester_name} - {self.course_code}"
