@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useRef } from "react";
+import emailjs from "@emailjs/browser";
 import { motion } from "framer-motion";
 import {
   Github,
@@ -68,6 +69,40 @@ const AboutPage = () => {
         "Finds a strange sense of calm in optimizing database queries (flags over table joins) and containerizing services.",
     },
   ];
+
+  const [formStatus, setFormStatus] = useState({ type: "", message: "" });
+  const [loading, setLoading] = useState(false);
+  const formRef = useRef();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    emailjs
+      .sendForm(
+        "service_ttwnpip", // From Email.js dashboard
+        "template_4m0hvgc", // From Email.js dashboard
+        formRef.current,
+        "x1-4MA7mE7ywY1wH6" // From Email.js dashboard
+      )
+      .then(() => {
+        setFormStatus({
+          type: "success",
+          message: "Message sent! We'll get back to you soon.",
+        });
+        formRef.current.reset();
+      })
+      .catch((error) => {
+        setFormStatus({
+          type: "error",
+          message: "Something went wrong. Please try again.",
+        });
+        console.error(error);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -730,7 +765,7 @@ const AboutPage = () => {
                   </div>
                   <div>
                     <p className="font-semibold text-neutral-800">Email</p>
-                    <p className="text-neutral-600">hello@ugflow.com</p>
+                    <p className="text-neutral-600">uofgflow@gmail.com</p>
                   </div>
                 </div>
 
@@ -767,15 +802,29 @@ const AboutPage = () => {
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
             >
-              <form className="space-y-6">
+              <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+                {formStatus.message && (
+                  <div
+                    className={`p-3 rounded-lg ${
+                      formStatus.type === "success"
+                        ? "bg-green-50 text-green-800"
+                        : "bg-red-50 text-red-800"
+                    }`}
+                  >
+                    {formStatus.message}
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
                     Name
                   </label>
                   <input
                     type="text"
+                    name="user_name" // This name is important for Email.js
                     className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                     placeholder="Your awesome name"
+                    required
                   />
                 </div>
 
@@ -785,8 +834,10 @@ const AboutPage = () => {
                   </label>
                   <input
                     type="email"
+                    name="user_email" // This name is important for Email.js
                     className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                     placeholder="your.email@example.com"
+                    required
                   />
                 </div>
 
@@ -796,8 +847,10 @@ const AboutPage = () => {
                   </label>
                   <textarea
                     rows={5}
+                    name="message" // This name is important for Email.js
                     className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none"
                     placeholder="Tell us what's on your mind..."
+                    required
                   />
                 </div>
 
@@ -806,9 +859,16 @@ const AboutPage = () => {
                   className="w-full bg-primary-500 text-white py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 hover:bg-primary-600 hover:shadow-lg transition-all duration-300"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
+                  disabled={loading}
                 >
-                  <Send size={20} />
-                  <span>Send Message</span>
+                  {loading ? (
+                    <span>Sending...</span>
+                  ) : (
+                    <>
+                      <Send size={20} />
+                      <span>Send Message</span>
+                    </>
+                  )}
                 </motion.button>
               </form>
             </motion.div>
