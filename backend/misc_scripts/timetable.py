@@ -9,7 +9,7 @@ import re
 from datetime import datetime
 import pdfplumber
 from numpy import add
-from backend.scraping_scripts.scrape_course import *
+from scrape_course import *
 import json
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import os
@@ -136,7 +136,6 @@ def create_llm_prompt(course_details, student_details):
         - Lectures: {lec_details['My_Lecture_timings_are']} {lec_details['Location']} {lec_details['days']}
         - Labs: {lab_details['My_Lab_timings_are']} {lab_details['Location']} {lab_details['days']}
         - Seminar: {seminar_details['My_Seminar_timings_are']}  {seminar_details['Location']} {seminar_details['days']}
-        - Final Exam: {final_exam_details['My_Final_Exam_timings_are']} {final_exam_details['Location']} {final_exam_details['days']}
 
         REQUIRED EVENTS TO EXTRACT:
         1. All assignments/projects with explicit due dates
@@ -209,9 +208,9 @@ def create_llm_prompt(course_details, student_details):
         {course_details}
         """
 
-    # print(prompt_template.format(course_details=course_details, details = details, lec_details=lec_details, lab_details=lab_details, final_exam_details=final_exam_details))
+    print(prompt_template.format(course_details=course_details, details = details, lec_details=lec_details, lab_details=lab_details, final_exam_details=final_exam_details))
     # return None
-    return invoke_language_model(prompt_template)
+    # return invoke_language_model(prompt_template)
 
 # ---------------------------------------------------------
 # Extract details from an individual event string
@@ -342,7 +341,12 @@ def process_pdfs_to_event_list(pdf_input, student_details):
 
 if __name__ == "__main__":  
     course_listt = [
-            {"course_type": "MGMT", "course_code": "3140", "course_section": "01","offered_term":"Summer 2025"}
+            {"course_type": "ENGG", "course_code": "2400", "course_section": "0104","offered_term":"Fall 2025"},
+            {"course_type": "ENGG", "course_code": "2400", "course_section": "0106","offered_term":"Fall 2025"},
+            {"course_type": "ENGG", "course_code": "2400", "course_section": "0204","offered_term":"Fall 2025"},
+            {"course_type": "ENGG", "course_code": "2400", "course_section": "0206","offered_term":"Fall 2025"},
+            {"course_type": "ENGG", "course_code": "2400", "course_section": "0304","offered_term":"Fall 2025"},
+            {"course_type": "ENGG", "course_code": "2400", "course_section": "0306","offered_term":"Fall 2025"}
             ]
     for course in course_listt:
         course_type = course.get("course_type")
@@ -350,11 +354,13 @@ if __name__ == "__main__":
         course_section = course.get("course_section")
         offered_term = course.get("offered_term")
         student_details = get_section_details(course_type, course_code, course_section,offered_term)
-        events = process_pdfs_to_event_list(f"./course_outlines/mgmt_3140_S25.pdf", student_details)
-        event_list =[]
+        events = process_pdfs_to_event_list(f"../course_outlines/{course_type}_{course_code}_F25.pdf", student_details)
+        event_list =[
+        ]
 
         for event in events:
             event_list.append(event)
 
         print(f"Event list: {event_list}")
-        batch_insert_events_with_schemes(event_list, student_details['course_id'])
+        
+        # batch_insert_events_with_schemes(event_list, student_details['course_id'])

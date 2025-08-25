@@ -46,3 +46,5 @@ id_dsa.pub
 backend/staticfiles/
 backend/venv/
 backend/db_backup/
+backend/course_outlines/
+backend/*.txt

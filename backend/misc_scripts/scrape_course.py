@@ -1,4 +1,6 @@
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'coursescheduler.settings')
 import django
 django.setup()
@@ -7,7 +9,7 @@ logger = logging.getLogger(__name__)
 import time
 from seleniumbase import SB
 from bs4 import BeautifulSoup
-from backend.scraping_scripts.database import *
+from database import *
 import re
 import json
 from scheduler.models import Course
@@ -251,6 +253,6 @@ def scrape_courses(list_of_course_types):
     
     return True
 if __name__ == '__main__':
-    # course_types = ['PSYC','HIST','MGMT','POLS']
-    course_types = ['ENGG','MATH','BIOL','CHEM','PHYS','ECON','SOCI','ANTH','GEOG','PHIL','COMM','NUTR','FDSC','STAT','CPSC']
+    course_types = ['ENGG']
+    # course_types = ['ENGG','MATH','BIOL','CHEM','PHYS','ECON','SOCI','ANTH','GEOG','PHIL','COMM','NUTR','FDSC','STAT','CPSC']
     scraped = scrape_courses(course_types)
