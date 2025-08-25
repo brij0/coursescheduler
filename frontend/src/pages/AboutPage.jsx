@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import emailjs from "@emailjs/browser";
 import { motion } from "framer-motion";
 import {
@@ -31,42 +31,25 @@ const AboutPage = () => {
       name: "Mann Modi",
       role: "Frontend Developer & UI/UX Designer",
       description:
-        "The creative force responsible for the application's user interface and experience. Mann focuses on making the platform intuitive, accessible, and visually appealing.",
-      skills: [
-        "React",
-        "JavaScript",
-        "Tailwind CSS",
-        "Framer Motion",
-        "Three.js",
-        "Vite",
-      ],
+        "Half designer, half developer, Mann makes sure ugflow isn't just functional but actually enjoyable to use. He's the reason you're not staring at a boring form right now.",
       github: "https://github.com/mann-uofg",
       linkedin: "https://www.linkedin.com/in/mann-uofg/",
       portfolio: "https://mann-portfolio-site.vercel.app/",
       avatar: "/images/frontend-dev.jpeg",
       funFact:
-        "Believes the perfect shade of blue (#F3F9FF) can solve at least 50% of user retention problems.",
+        "Spends hours debating different shades of blue. Will die on the hill that #F3F9FF is the perfect background color.",
     },
     {
       name: "Brijesh Thakrar",
       role: "Backend Developer & System Architect",
       description:
-        "The architect behind the server-side logic, system design, APIs, and database management. Brijesh ensures the system is robust, scalable, and performs efficiently under load.",
-      skills: [
-        "System Design",
-        "Django",
-        "Python",
-        "PostgreSQL",
-        "Docker",
-        "Redis",
-        "Celery",
-      ],
+        "The wizard behind the curtain. When the site magically finds you a conflict-free schedule in milliseconds, that's Brijesh's algorithms at work. He builds the stuff you don't see but definitely appreciate.",
       github: "https://github.com/brij0",
       linkedin: "https://www.linkedin.com/in/brijeshthakrar/",
       portfolio: "https://backend-wizard.dev",
       avatar: "/images/backend-dev.jpeg",
       funFact:
-        "Finds a strange sense of calm in optimizing database queries (flags over table joins) and containerizing services.",
+        "Celebrates when he shaves milliseconds off response times. Has been known to text Mann at midnight about exciting PostgreSQL optimizations.",
     },
   ];
 
@@ -104,6 +87,129 @@ const AboutPage = () => {
       });
   };
 
+  // Add this new component for the developer card with glow effect
+  const DeveloperCard = ({ developer, index }) => {
+    const [isHovering, setIsHovering] = useState(false);
+    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+    const cardRef = useRef(null);
+    
+    const handleMouseMove = (e) => {
+      if (cardRef.current) {
+        const rect = cardRef.current.getBoundingClientRect();
+        setMousePosition({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        });
+      }
+    };
+
+    return (
+      <motion.div
+        ref={cardRef}
+        key={index}
+        className="elegant-card rounded-2xl p-8 flex flex-col relative overflow-hidden border border-transparent"
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: index * 0.2 }}
+        viewport={{ once: true }}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+        onMouseMove={handleMouseMove}
+        style={{
+          background: "rgba(255, 255, 255, 0.8)",
+          backdropFilter: "blur(8px)",
+        }}
+      >
+        {/* Border glow effect that follows cursor */}
+        {isHovering && (
+          <motion.div
+            className="absolute inset-0 pointer-events-none rounded-2xl"
+            animate={{
+              boxShadow: `0 0 15px 2px rgba(69,104,130,0.6)`,
+              background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(69,104,130,0.15) 0%, rgba(69,104,130,0) 70%)`,
+            }}
+            transition={{ duration: 0.15 }}
+          />
+        )}
+
+        <div className="relative z-10">
+          {/* Rest of card content */}
+          <div className="text-center mb-4">
+            <img
+              src={developer.avatar}
+              alt={developer.name}
+              className="w-28 h-28 rounded-full mx-auto mb-4 object-cover shadow-lg border-2 border-white"
+            />
+            <h3 className="text-2xl font-bold text-neutral-800 mb-1 font-display">
+              {developer.name}
+            </h3>
+            <p className="text-primary-600 font-semibold mb-4">{developer.role}</p>
+            
+            {/* Social links with improved readability - pill labels */}
+            <div className="flex justify-center space-x-6 mb-5">
+              <div className="flex flex-col items-center">
+                <motion.a
+                  href={developer.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-neutral-100 hover:bg-neutral-800 hover:text-white flex items-center justify-center transition-all mb-1"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  aria-label={`${developer.name}'s GitHub`}
+                >
+                  <Github size={20} />
+                </motion.a>
+                <span className="text-xs px-2 py-0.5 bg-neutral-100 rounded-full text-neutral-600">GitHub</span>
+              </div>
+
+              <div className="flex flex-col items-center">
+                <motion.a
+                  href={developer.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-neutral-100 hover:bg-[#0A66C2] hover:text-white flex items-center justify-center transition-all mb-1"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  aria-label={`${developer.name}'s LinkedIn`}
+                >
+                  <Linkedin size={20} />
+                </motion.a>
+                <span className="text-xs px-2 py-0.5 bg-neutral-100 rounded-full text-neutral-600">LinkedIn</span>
+              </div>
+
+              <div className="flex flex-col items-center">
+                <motion.a
+                  href={developer.portfolio}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-neutral-100 hover:bg-primary-600 hover:text-white flex items-center justify-center transition-all mb-1"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  aria-label={`${developer.name}'s Portfolio`}
+                >
+                  <ExternalLink size={20} />
+                </motion.a>
+                <span className="text-xs px-2 py-0.5 bg-neutral-100 rounded-full text-neutral-600">Portfolio</span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-neutral-600 mb-6 leading-relaxed">
+            {developer.description}
+          </p>
+
+          <div className="mt-auto">
+            <div className="border-t border-neutral-200 pt-6">
+              <p className="text-sm text-neutral-500 italic">
+                "{developer.funFact}"
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+  
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -234,9 +340,7 @@ const AboutPage = () => {
             </h1>
 
             <p className="text-xl md:text-2xl text-neutral-600 mb-8 leading-relaxed">
-              Born from missed deadlines, Excel nightmares, and too much
-              caffeine. Built by students who learned the hard way that there
-              had to be a better solution.
+              Let's be honest — university admin tools are stuck in '05. We spent more time fighting with scheduling tools than actually studying. So instead of complaining, we built something better.
               <span className="block mt-2 font-semibold text-primary-700">
                 100% open source for complete transparency and community-driven
                 development.
@@ -257,109 +361,23 @@ const AboutPage = () => {
             viewport={{ once: true }}
           >
             <h2 className="text-4xl font-display font-bold mb-6 text-neutral-800">
-              Meet the <span className="text-primary-600">Team</span>
+              The Faces Behind <span className="text-primary-600">ugflow.</span>
             </h2>
             <p className="text-xl text-neutral-600">
-              Two developers, countless coding hours, and one shared mission:
-              making student life less painful.
+              What happens when engineering students get tired of bad software? They build better ones.
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-2 gap-12">
             {developers.map((dev, index) => (
-              <motion.div
-                key={index}
-                className="elegant-card rounded-2xl p-8 flex flex-col"
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.2 }}
-                viewport={{ once: true }}
-              >
-                <div className="text-center mb-6">
-                  <img
-                    src={dev.avatar}
-                    alt={dev.name}
-                    className="w-24 h-24 rounded-full mx-auto mb-4 object-cover shadow-lg"
-                  />
-                  <h3 className="text-2xl font-bold text-neutral-800 mb-2 font-display">
-                    {dev.name}
-                  </h3>
-                  <p className="text-primary-600 font-semibold">{dev.role}</p>
-                </div>
-
-                <p className="text-neutral-600 mb-6 leading-relaxed">
-                  {dev.description}
-                </p>
-
-                <div className="mb-6">
-                  <h4 className="font-semibold text-neutral-800 mb-3">
-                    Skills:
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {dev.skills.map((skill, skillIndex) => (
-                      <span
-                        key={skillIndex}
-                        className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-auto">
-                  <div className="border-t border-neutral-200 pt-6">
-                    <p className="text-sm text-neutral-500 italic mb-4">
-                      "{dev.funFact}"
-                    </p>
-
-                    <div className="flex space-x-4">
-                      <motion.a
-                        href={dev.github}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center space-x-2 text-neutral-600 hover:text-neutral-800 transition-colors"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Github size={20} />
-                        <span>GitHub</span>
-                      </motion.a>
-
-                      <motion.a
-                        href={dev.linkedin}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center space-x-2 text-primary-600 hover:text-primary-800 transition-colors"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Linkedin size={20} />
-                        <span>LinkedIn</span>
-                      </motion.a>
-
-                      <motion.a
-                        href={dev.portfolio}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center space-x-2 text-primary-600 hover:text-primary-800 transition-colors"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <ExternalLink size={20} />
-                        <span>Portfolio</span>
-                      </motion.a>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
+              <DeveloperCard key={index} developer={dev} index={index} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* Tech Stack Section */}
-      <section className="py-20 px-4 bg-primary-50">
+      {/* Tech Stack Section - Updated styling */}
+      <section className="py-20 px-4 bg-gradient-to-br from-primary-50 via-white to-primary-50">
         <div className="max-w-6xl mx-auto">
           <motion.div
             className="text-center mb-16"
@@ -380,14 +398,14 @@ const AboutPage = () => {
           <div className="grid md:grid-cols-2 gap-12">
             {/* Frontend Stack */}
             <motion.div
-              className="elegant-card rounded-2xl p-8"
+              className="elegant-card rounded-2xl p-8 bg-white/80 backdrop-blur-sm border border-white/30"
               initial={{ opacity: 0, x: -50 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
             >
               <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center mr-4">
                   <Code className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-neutral-800 font-display">
@@ -403,16 +421,17 @@ const AboutPage = () => {
               <div className="space-y-4">
                 <div className="flex flex-wrap gap-2">
                   {[
-                    { name: "React 18", color: "bg-blue-100 text-blue-700" },
-                    { name: "Vite", color: "bg-purple-100 text-purple-700" },
-                    {
-                      name: "Tailwind CSS",
-                      color: "bg-cyan-100 text-cyan-700",
-                    },
-                    {
-                      name: "Framer Motion",
-                      color: "bg-pink-100 text-pink-700",
-                    },
+                    { name: "React 18", color: "bg-primary-100 text-primary-700" },
+                    { name: "JavaScript/JSX", color: "bg-primary-100 text-primary-700" },
+                    { name: "React Router", color: "bg-primary-100 text-primary-700" },
+                    { name: "Vite", color: "bg-primary-100 text-primary-700" },
+                    { name: "Tailwind CSS", color: "bg-primary-100 text-primary-700" },
+                    { name: "Framer Motion", color: "bg-primary-100 text-primary-700" },
+                    { name: "Lucide React", color: "bg-primary-100 text-primary-700" },
+                    { name: "Email JS", color: "bg-primary-100 text-primary-700" },
+                    { name: "React Helmet Async", color: "bg-primary-100 text-primary-700" },
+                    { name: "Recharts", color: "bg-primary-100 text-primary-700" },
+                    { name: "React Hooks", color: "bg-primary-100 text-primary-700" },
                   ].map((tech, index) => (
                     <motion.span
                       key={index}
@@ -444,14 +463,14 @@ const AboutPage = () => {
 
             {/* Backend Stack */}
             <motion.div
-              className="elegant-card rounded-2xl p-8"
+              className="elegant-card rounded-2xl p-8 bg-white/80 backdrop-blur-sm border border-white/30"
               initial={{ opacity: 0, x: 50 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
             >
               <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mr-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center mr-4">
                   <Database className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-neutral-800 font-display">
@@ -467,17 +486,19 @@ const AboutPage = () => {
               <div className="space-y-4">
                 <div className="flex flex-wrap gap-2">
                   {[
-                    { name: "Django", color: "bg-green-100 text-green-700" },
-                    { name: "PostgreSQL", color: "bg-blue-100 text-blue-700" },
-                    { name: "Redis", color: "bg-red-100 text-red-700" },
-                    { name: "Celery", color: "bg-orange-100 text-orange-700" },
-                    { name: "Docker", color: "bg-cyan-100 text-cyan-700" },
-                    { name: "Nginx", color: "bg-gray-100 text-gray-700" },
-                    {
-                      name: "Prometheus",
-                      color: "bg-purple-100 text-purple-700",
-                    },
-                    { name: "Grafana", color: "bg-indigo-100 text-indigo-700" },
+                    { name: "Django", color: "bg-primary-100 text-primary-700" },
+                    { name: "Python 3", color: "bg-primary-100 text-primary-700" },
+                    { name: "PostgreSQL", color: "bg-primary-100 text-primary-700" },
+                    { name: "MySQL", color: "bg-primary-100 text-primary-700" },
+                    { name: "Django AllAuth", color: "bg-primary-100 text-primary-700" },
+                    { name: "Argon2", color: "bg-primary-100 text-primary-700" },
+                    { name: "Redis", color: "bg-primary-100 text-primary-700" },
+                    { name: "Celery", color: "bg-primary-100 text-primary-700" },
+                    { name: "Docker", color: "bg-primary-100 text-primary-700" },
+                    { name: "Nginx", color: "bg-primary-100 text-primary-700" },
+                    { name: "Prometheus", color: "bg-primary-100 text-primary-700" },
+                    { name: "Grafana", color: "bg-primary-100 text-primary-700" },
+                    { name: "RESTful APIs", color: "bg-primary-100 text-primary-700" },
                   ].map((tech, index) => (
                     <motion.span
                       key={index}
@@ -509,71 +530,6 @@ const AboutPage = () => {
               </div>
             </motion.div>
           </div>
-
-          {/* Additional Tech Details */}
-          <motion.div
-            className="mt-16 elegant-card rounded-2xl p-8"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            viewport={{ once: true }}
-          >
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold text-neutral-800 mb-4 font-display">
-                Why These Technologies?
-              </h3>
-              <p className="text-neutral-600 max-w-3xl mx-auto leading-relaxed">
-                Every technology choice was made with student needs in mind:
-                fast loading times, reliable performance, and a smooth user
-                experience that works on any device.
-                <span className="block mt-2 font-medium text-primary-700">
-                  Plus, everything is open source so you can verify, audit, and
-                  improve our choices.
-                </span>
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="text-center p-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Lightbulb className="w-8 h-8 text-white" />
-                </div>
-                <h4 className="font-semibold text-neutral-800 mb-2">
-                  Performance First
-                </h4>
-                <p className="text-sm text-neutral-600">
-                  Lightning-fast load times and smooth interactions, powered by
-                  Redis caching and optimized queries.
-                </p>
-              </div>
-
-              <div className="text-center p-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Heart className="w-8 h-8 text-white" />
-                </div>
-                <h4 className="font-semibold text-neutral-800 mb-2">
-                  Student-Centered
-                </h4>
-                <p className="text-sm text-neutral-600">
-                  Built specifically for university workflows and academic
-                  scheduling needs, tested by real students.
-                </p>
-              </div>
-
-              <div className="text-center p-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Coffee className="w-8 h-8 text-white" />
-                </div>
-                <h4 className="font-semibold text-neutral-800 mb-2">
-                  Production-Ready
-                </h4>
-                <p className="text-sm text-neutral-600">
-                  Containerized architecture with monitoring, scalable
-                  infrastructure that grows with our user base.
-                </p>
-              </div>
-            </div>
-          </motion.div>
         </div>
       </section>
 

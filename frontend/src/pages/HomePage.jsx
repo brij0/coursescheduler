@@ -87,7 +87,7 @@ const HomePage = () => {
       icon: <Calculator className="w-8 h-8" />,
       title: "GPA Calculator",
       description:
-        "Track your grades and predict your GPA with scary accuracy. No more surprises!",
+        "Calculate what grade you need on that final. Sleep better the night before.",
       color: "from-accent-500 to-accent-600",
       path: "/gpa-calculator",
     },
@@ -95,7 +95,7 @@ const HomePage = () => {
       icon: <GraduationCap className="w-8 h-8" />,
       title: "Course Scheduling",
       description:
-        "Never double-book again! Our algorithm finds the perfect schedule that fits your life.",
+        "Find conflict-free schedules in seconds. Keep your Fridays open.",
       color: "from-primary-500 to-primary-600",
       path: "/conflict-free-schedule",
     },
@@ -103,7 +103,7 @@ const HomePage = () => {
       icon: <Users className="w-8 h-8" />,
       title: "Co-op Forum",
       description:
-        "Share job experiences, tips, and survive the co-op hunt together.",
+        "Unfiltered co-op insights. The stuff not in the brochures.",
       color: "from-primary-600 to-accent-500",
       path: "/coop-forum",
     },
@@ -600,11 +600,10 @@ const HomePage = () => {
             viewport={{ once: true }}
           >
             <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-6">
-              Ready to Level Up?
+              Enough With the All-Nighters
             </h2>
             <p className="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
-              Join thousands of students who've already discovered the secret to
-              academic success. Spoiler alert: it's not more coffee.
+              Built by two students who were sick of missing deadlines and calculating GPAs by hand. If you're reading this at 2am trying to figure out your schedule, we've got you.
             </p>
 
             <motion.button
@@ -622,7 +621,7 @@ const HomePage = () => {
               />
               <span className="relative z-10 flex items-center space-x-2">
                 <GraduationCap className="w-5 h-5" />
-                <span>Get Started Free</span>
+                <span>I need ts. NOW!</span>
                 <motion.span
                   animate={{ x: [0, 5, 0] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
