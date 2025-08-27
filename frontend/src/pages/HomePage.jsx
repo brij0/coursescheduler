@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useMemo, useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
   GraduationCap,
@@ -118,6 +118,136 @@ const HomePage = () => {
     },
   ];
 
+  // NEW: Animated randomized hero background lines
+  const AnimatedLines = () => {
+    const [curves, setCurves] = useState([]);
+
+    const generateCurve = (id) => {
+      // Pick a spawn edge
+      const edge = ["top", "right", "bottom", "left"][Math.floor(Math.random() * 4)];
+
+      // Start point (sx, sy)
+      let sx, sy;
+      switch (edge) {
+        case "top":
+          sx = Math.random() * 100;
+          sy = -5;
+          break;
+        case "bottom":
+          sx = Math.random() * 100;
+          sy = 105;
+          break;
+        case "left":
+          sx = -5;
+          sy = Math.random() * 100;
+          break;
+        case "right":
+          sx = 105;
+          sy = Math.random() * 100;
+          break;
+        default:
+          sx = -5; sy = -5;
+      }
+
+      // End point biased toward interior (shorter than before)
+      const endRadius = 18 + Math.random() * 22; // max travel ~40 (smaller than old straight lines)
+      const theta = Math.random() * Math.PI * 2;
+      const ex = Math.min(100, Math.max(0, sx + Math.cos(theta) * endRadius));
+      const ey = Math.min(100, Math.max(0, sy + Math.sin(theta) * endRadius));
+
+      // Control points to create smooth gentle S‑like curves
+      const midX = (sx + ex) / 2;
+      const midY = (sy + ey) / 2;
+      // Perpendicular offset for curvature
+      const dx = ex - sx;
+      const dy = ey - sy;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const nx = (-dy / len);
+      const ny = (dx / len);
+      const curveStrength = (Math.min(12, len * 0.6)) * (Math.random() * 0.6 + 0.4);
+      const bendDir = Math.random() < 0.5 ? 1 : -1;
+
+      // Two control points around midpoint (slight variance)
+      const c1x = midX + nx * curveStrength * bendDir * 0.6 + (Math.random() - 0.5) * 4;
+      const c1y = midY + ny * curveStrength * bendDir * 0.6 + (Math.random() - 0.5) * 4;
+      const c2x = midX + nx * curveStrength * bendDir * 1.0 + (Math.random() - 0.5) * 4;
+      const c2y = midY + ny * curveStrength * bendDir * 1.0 + (Math.random() - 0.5) * 4;
+
+      const duration = 5.5 + Math.random() * 3; // a bit quicker
+      const delay = Math.random() * 0.4;
+
+      return {
+        id,
+        d: `M ${sx} ${sy} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${ex} ${ey}`,
+        duration,
+        delay,
+        strokeWidth: 0.2 + Math.random() * 0.1,
+        opacity: 0.18 + Math.random() * 0.25,
+        hue: 200 + Math.random() * 18,
+        dash: Math.random() < 0.5
+          ? `${6 + Math.random() * 8} ${10 + Math.random() * 14}`
+          : undefined
+      };
+    };
+
+    useEffect(() => {
+      setCurves(Array.from({ length: 22 }, (_, i) => generateCurve(i)));
+    }, []);
+
+    // Recycle one curve at a time
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setCurves(prev => {
+          if (!prev.length) return prev;
+          const idx = Math.floor(Math.random() * prev.length);
+            const next = [...prev];
+            next[idx] = generateCurve(Date.now());
+            return next;
+        });
+      }, 850);
+      return () => clearInterval(interval);
+    }, []);
+
+    // Respect reduced motion
+    const prefersReduced = typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    return (
+      <svg
+        className="absolute inset-0 w-full h-full"
+        preserveAspectRatio="none"
+        viewBox="0 0 100 100"
+      >
+        {curves.map(c => (
+          <motion.path
+            key={c.id}
+            d={c.d}
+            fill="none"
+            stroke={`hsl(${c.hue} 100% 40%)`}
+            strokeWidth={c.strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray={c.dash}
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{
+              pathLength: 1,
+              opacity: prefersReduced ? c.opacity : [0, c.opacity, 0]
+            }}
+            transition={{
+              duration: c.duration,
+              delay: c.delay,
+              ease: "easeInOut",
+              repeat: Infinity,
+              repeatDelay: 0.8 + Math.random() * 1.4
+            }}
+            style={{ mixBlendMode: "plus-lighter", filter: "blur(0.1px)" }}
+          />
+        ))}
+      </svg>
+    );
+  };
+
   return (
     <div ref={containerRef} className="min-h-screen">
       <Helmet>
@@ -140,74 +270,68 @@ const HomePage = () => {
         className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24"
         style={{ y, opacity }}
       >
-        {/* Fireflies Animation */}
+        {/* Enhanced Dynamic Grid Animation */}
         <div className="absolute inset-0">
-          {/* Fireflies */}
-          {[...Array(20)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 bg-primary-500 rounded-full shadow-lg"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                boxShadow: `0 0 6px #456882, 0 0 12px #456882, 0 0 18px #456882`,
-              }}
-              animate={{
-                x: [
-                  0,
-                  Math.random() * 200 - 100,
-                  Math.random() * 150 - 75,
-                  Math.random() * 100 - 50,
-                  0,
-                ],
-                y: [
-                  0,
-                  Math.random() * 150 - 75,
-                  Math.random() * 200 - 100,
-                  Math.random() * 100 - 50,
-                  0,
-                ],
-                scale: [0, 1, 0.8, 1.2, 0.6, 1, 0],
-                opacity: [0, 0.8, 0.3, 1, 0.4, 0.9, 0],
-              }}
-              transition={{
-                duration: 8 + Math.random() * 6,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: Math.random() * 5,
-                repeatDelay: Math.random() * 3,
-              }}
-            />
-          ))}
+          {/* Grid Base (unchanged) */}
+          <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid-pattern" width="10" height="10" patternUnits="userSpaceOnUse">
+                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#90a1ae" strokeWidth="0.3" opacity="0.15" />
+              </pattern>
+              <pattern id="grid-pattern-bold" width="45" height="45" patternUnits="userSpaceOnUse">
+                <path d="M 150 0 L 0 0 0 150" fill="none" stroke="#90a1ae" strokeWidth="0.7" opacity="0.25" />
+              </pattern>
+            </defs>
+            <rect x="0" y="0" width="100%" height="100%" fill="url(#grid-pattern)" />
+            <rect x="0" y="0" width="100%" height="100%" fill="url(#grid-pattern-bold)" />
+          </svg>
 
-          {/* Additional smaller fireflies */}
-          {[...Array(15)].map((_, i) => (
-            <motion.div
-              key={`small-${i}`}
-              className="absolute w-0.5 h-0.5 bg-primary-400 rounded-full"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                boxShadow: `0 0 4px #456882, 0 0 8px #456882`,
-              }}
-              animate={{
-                x: [0, Math.random() * 100 - 50, Math.random() * 80 - 40, 0],
-                y: [0, Math.random() * 100 - 50, Math.random() * 120 - 60, 0],
-                opacity: [0, 0.6, 0.2, 0.8, 0],
-                scale: [0, 0.8, 1.2, 0.6, 0],
-              }}
-              transition={{
-                duration: 6 + Math.random() * 4,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: Math.random() * 4,
-                repeatDelay: Math.random() * 2,
-              }}
-            />
-          ))}
+          {/* NEW randomized animated lines */}
+          <AnimatedLines />
+
+          {/* Reduced pulse points to complement new lines */}
+          {[...Array(4)].map((_, i) => {
+            const posX = Math.random() * 90 + 5;
+            const posY = Math.random() * 90 + 5;
+            return (
+              <motion.div
+                key={`pulse-${i}`}
+                className="absolute rounded-full bg-primary-400/30"
+                style={{
+                  width: 14 + Math.random() * 14,
+                  height: 14 + Math.random() * 14,
+                  left: `${posX}%`,
+                  top: `${posY}%`,
+                  filter: "blur(6px)"
+                }}
+                animate={{ scale: [1, 1.6, 1], opacity: [0.12, 0.45, 0.12] }}
+                transition={{ duration: 6 + Math.random() * 4, repeat: Infinity, ease: "easeInOut" }}
+              />
+            );
+          })}
+
+          {/* Ambient orb (kept) */}
+          <motion.div
+            className="absolute w-32 h-32 rounded-full bg-gradient-radial from-primary-400/10 to-transparent pointer-events-none"
+            animate={{
+              x: [0, 100, -100, 0],
+              y: [0, -100, 100, 0],
+              scale: [1, 1.1, 0.9, 1],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+            style={{ 
+              filter: 'blur(20px)',
+              boxShadow: '0 0 40px rgba(69, 104, 130, 0.5)',
+              mixBlendMode: 'lighten',
+            }}
+          />
         </div>
 
-        {/* Hero Content */}
+        {/* Hero Content - Existing hero content remains the same */}
         <div className="relative z-20 text-center px-4 max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -276,26 +400,38 @@ const HomePage = () => {
             >
               <motion.button
                 onClick={handleStartJourney}
-                className="bg-primary-500 text-white px-10 py-5 rounded-xl font-bold text-xl shadow-xl hover:bg-primary-600 hover:shadow-2xl transition-all duration-300 relative overflow-hidden group"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className="group relative px-10 py-4 rounded-full font-bold text-lg shadow-lg transition-all duration-300 overflow-hidden"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
               >
+                {/* White background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-primary-500 rounded-full" />
+                
+                {/* Subtle glow effect */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-primary-400/40 to-primary-600/40 blur-md rounded-full" />
+                
                 {/* Button shine effect */}
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-100/50 to-transparent -skew-x-12"
                   initial={{ x: "-100%" }}
                   whileHover={{ x: "200%" }}
-                  transition={{ duration: 0.6 }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
                 />
-                <span className="relative z-10 flex items-center space-x-2">
-                  <Sparkles className="w-5 h-5" />
-                  <span>Start Your Journey</span>
-                  <motion.span
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
+                
+                {/* Content with blue text */}
+                <span className="relative z-10 flex items-center justify-center text-white">
+                  <Sparkles className="w-4 h-4 mr-2.5" />
+                  <span className="tracking-wide">Try it Now</span>
+                  <motion.div
+                    className="ml-2.5 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    animate={{ x: [0, 4, 0] }}
+                    transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
                   >
-                    →
-                  </motion.span>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3.33334 8H12.6667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M8 3.33337L12.6667 8.00004L8 12.6667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </motion.div>
                 </span>
               </motion.button>
             </motion.div>
@@ -608,31 +744,46 @@ const HomePage = () => {
 
             <motion.button
               onClick={handleStartJourney}
-              className="bg-white text-primary-700 px-10 py-5 rounded-xl font-bold text-xl shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden group"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className="group relative px-10 py-4 rounded-full font-bold text-lg shadow-lg transition-all duration-300 overflow-hidden"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
             >
+              {/* White background */}
+              <div className="absolute inset-0 bg-white rounded-full" />
+              
+              {/* Subtle glow effect */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/60 blur-md rounded-full" />
+              
               {/* Button shine effect */}
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-200/30 to-transparent -skew-x-12"
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-100/50 to-transparent -skew-x-12"
                 initial={{ x: "-100%" }}
                 whileHover={{ x: "200%" }}
-                transition={{ duration: 0.6 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
               />
-              <span className="relative z-10 flex items-center space-x-2">
-                <GraduationCap className="w-5 h-5" />
-                <span>I need ts. NOW!</span>
-                <motion.span
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
+              
+              {/* Content with blue text */}
+              <span className="relative z-10 flex items-center justify-center text-primary-500">
+                <GraduationCap className="w-5 h-5 mr-2.5" />
+                <span className="tracking-wide">I need ts. NOW!</span>
+                <motion.div
+                  className="ml-2.5 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  animate={{ x: [0, 4, 0] }}
+                  transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  →
-                </motion.span>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3.33334 8H12.6667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M8 3.33337L12.6667 8.00004L8 12.6667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </motion.div>
               </span>
             </motion.button>
           </motion.div>
         </div>
       </section>
+      
+      {/* Footer would go here */}
+      
     </div>
   );
 };

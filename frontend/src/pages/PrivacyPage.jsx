@@ -193,7 +193,7 @@ const PrivacyPage = () => {
             
             <div className="elegant-card rounded-lg p-6 shadow-lg">
               <p className="text-sm text-neutral-500">
-                <strong>Last Updated:</strong> January 15, 2025
+                <strong>Last Updated:</strong> August 15, 2025
               </p>
             </div>
           </motion.div>

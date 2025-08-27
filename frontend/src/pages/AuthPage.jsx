@@ -11,7 +11,8 @@ import {
   CheckCircle, 
   AlertCircle,
   Sparkles,
-  GraduationCap
+  GraduationCap,
+  ChevronDown
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import { useAuth } from '../contexts/AuthContext'
@@ -156,96 +157,112 @@ const AuthPage = () => {
     <div className="min-h-screen" style={{ backgroundColor: '#F3F9FF' }}>
       <Navbar />
       
-      {/* Hero Section with Fireflies */}
+      {/* Hero Section with Grid Animation (simplified) */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24">
-        {/* Fireflies Animation */}
-        <div className="absolute inset-0 pointer-events-none">
-          {/* Main Fireflies */}
-          {[...Array(20)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 rounded-full shadow-lg pointer-events-none"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                backgroundColor: '#456882',
-                boxShadow: `0 0 6px #456882, 0 0 12px #456882, 0 0 18px #456882`,
-              }}
-              initial={false}
-              animate={{
-                x: [
-                  0,
-                  Math.random() * 200 - 100,
-                  Math.random() * 150 - 75,
-                  Math.random() * 100 - 50,
-                  0
-                ],
-                y: [
-                  0,
-                  Math.random() * 150 - 75,
-                  Math.random() * 200 - 100,
-                  Math.random() * 100 - 50,
-                  0
-                ],
-                scale: [0, 1, 0.8, 1.2, 0.6, 1, 0],
-                opacity: [0, 0.8, 0.3, 1, 0.4, 0.9, 0],
-              }}
-              transition={{
-                duration: 8 + Math.random() * 6,
-                repeat: Infinity,
-                ease: "easeInOut", 
-                delay: Math.random() * 5,
-                repeatDelay: Math.random() * 3,
-              }}
-            />
-          ))}
-          
-          {/* Smaller fireflies */}
-          {[...Array(15)].map((_, i) => (
-            <motion.div
-              key={`small-${i}`}
-              className="absolute w-0.5 h-0.5 rounded-full pointer-events-none"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                backgroundColor: '#456882',
-                boxShadow: `0 0 4px #456882, 0 0 8px #456882`,
-              }}
-              initial={false}
-              animate={{
-                x: [
-                  0,
-                  Math.random() * 100 - 50,
-                  Math.random() * 80 - 40,
-                  0
-                ],
-                y: [
-                  0,
-                  Math.random() * 100 - 50,
-                  Math.random() * 120 - 60,
-                  0
-                ],
-                opacity: [0, 0.6, 0.2, 0.8, 0],
-                scale: [0, 0.8, 1.2, 0.6, 0],
-              }}
-              transition={{
-                duration: 6 + Math.random() * 4,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: Math.random() * 4,
-                repeatDelay: Math.random() * 2,
-              }}
-            />
-          ))}
+        {/* Enhanced Dynamic Grid Animation */}
+        <div className="absolute inset-0">
+          {/* Grid Base */}
+          <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid-pattern" width="10" height="10" patternUnits="userSpaceOnUse">
+                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#90a1ae" strokeWidth="0.3" opacity="0.15" />
+              </pattern>
+              <pattern id="grid-pattern-bold" width="45" height="45" patternUnits="userSpaceOnUse">
+                <path d="M 150 0 L 0 0 0 150" fill="none" stroke="#90a1ae" strokeWidth="0.7" opacity="0.25" />
+              </pattern>
+            </defs>
+            <rect x="0" y="0" width="100%" height="100%" fill="url(#grid-pattern)" />
+            <rect x="0" y="0" width="100%" height="100%" fill="url(#grid-pattern-bold)" />
+          </svg>
+
+          {/* Pulse points */}
+          {[...Array(4)].map((_, i) => {
+            const posX = Math.random() * 90 + 5;
+            const posY = Math.random() * 90 + 5;
+            return (
+              <motion.div
+                key={`pulse-${i}`}
+                className="absolute rounded-full bg-primary-400/30"
+                style={{
+                  width: 14 + Math.random() * 14,
+                  height: 14 + Math.random() * 14,
+                  left: `${posX}%`,
+                  top: `${posY}%`,
+                  filter: "blur(6px)"
+                }}
+                animate={{ scale: [1, 1.6, 1], opacity: [0.12, 0.45, 0.12] }}
+                transition={{ duration: 6 + Math.random() * 4, repeat: Infinity, ease: "easeInOut" }}
+              />
+            );
+          })}
+
+          {/* Ambient orb */}
+          <motion.div
+            className="absolute w-32 h-32 rounded-full bg-gradient-radial from-primary-400/10 to-transparent pointer-events-none"
+            animate={{
+              x: [0, 100, -100, 0],
+              y: [0, -100, 100, 0],
+              scale: [1, 1.1, 0.9, 1],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+            style={{ 
+              filter: 'blur(20px)',
+              boxShadow: '0 0 40px rgba(69, 104, 130, 0.5)',
+              mixBlendMode: 'lighten',
+            }}
+          />
         </div>
 
         {/* Auth Content */}
         <div className="relative z-20 w-full max-w-md mx-auto px-4">
+          {/* Enhanced deep glow effect behind card */}
+          <div className="absolute inset-0 -mt-16 -mb-16 -ml-20 -mr-20">
+            <motion.div 
+              className="w-full h-full rounded-3xl"
+              animate={{ 
+                opacity: [0.7, 0.9, 0.7],
+                scale: [1, 1.03, 1]
+              }}
+              transition={{ 
+                duration: 5, 
+                repeat: Infinity,
+                ease: "easeInOut" 
+              }}
+              style={{ 
+                background: 'radial-gradient(circle at center, rgba(69, 104, 130, 0.8) 0%, rgba(69, 104, 130, 0.3) 35%, rgba(69, 104, 130, 0) 70%)',
+                filter: 'blur(25px)',
+                transform: 'translateZ(0)'
+              }}
+            />
+            {/* Secondary inner glow for added depth */}
+            <motion.div 
+              className="absolute inset-0 w-full h-full rounded-3xl"
+              animate={{ 
+                opacity: [0.5, 0.7, 0.5]
+              }}
+              transition={{ 
+                duration: 4, 
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.5
+              }}
+              style={{ 
+                background: 'radial-gradient(circle at center, rgba(255, 255, 255, 0.15) 0%, rgba(69, 104, 130, 0.1) 30%, transparent 70%)',
+                filter: 'blur(15px)',
+                transform: 'translateZ(0)'
+              }}
+            />
+          </div>
+
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/30"
+            className="relative bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/30"
           >
             {/* Header */}
             <div className="text-center mb-8">
@@ -275,6 +292,7 @@ const AuthPage = () => {
               </p>
             </div>
 
+            {/* Rest of the auth content remains unchanged */}
             {/* Verification Notice */}
             <AnimatePresence>
               {needsVerification && (
