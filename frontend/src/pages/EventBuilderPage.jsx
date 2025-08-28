@@ -27,11 +27,11 @@ const MonthlyCalendarGrid = ({ courseEvents, courseColors }) => {
   };
 
   const formatEventDate = (dateStr) => {
-    const date = new Date(dateStr);
+    const [year, month, day] = dateStr.split('-').map(Number);
     return {
-      year: date.getFullYear(),
-      month: date.getMonth(),
-      day: date.getDate(),
+      year: year,
+      month: month - 1, // JavaScript months are 0-indexed (0-11)
+      day: day
     };
   };
 
