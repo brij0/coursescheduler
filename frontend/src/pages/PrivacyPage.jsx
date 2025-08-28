@@ -1,7 +1,98 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Shield, Eye, Lock, Users, Database, Cookie, Mail, Sparkles } from 'lucide-react'
 import Navbar from '../components/Navbar'
+
+const AnimatedLines = () => {
+  const [curves, setCurves] = useState([])
+
+  const generateCurve = (id) => {
+    const edge = ["top", "right", "bottom", "left"][Math.floor(Math.random() * 4)]
+    let sx, sy
+    switch (edge) {
+      case "top": sx = Math.random() * 100; sy = -5; break
+      case "bottom": sx = Math.random() * 100; sy = 105; break
+      case "left": sx = -5; sy = Math.random() * 100; break
+      case "right": sx = 105; sy = Math.random() * 100; break
+      default: sx = -5; sy = -5
+    }
+    const endRadius = 18 + Math.random() * 22
+    const theta = Math.random() * Math.PI * 2
+    const ex = Math.min(100, Math.max(0, sx + Math.cos(theta) * endRadius))
+    const ey = Math.min(100, Math.max(0, sy + Math.sin(theta) * endRadius))
+    const midX = (sx + ex) / 2
+    const midY = (sy + ey) / 2
+    const dx = ex - sx
+    const dy = ey - sy
+    const len = Math.sqrt(dx * dx + dy * dy) || 1
+    const nx = -dy / len
+    const ny = dx / len
+    const curveStrength = Math.min(12, len * 0.6) * (Math.random() * 0.6 + 0.4)
+    const bendDir = Math.random() < 0.5 ? 1 : -1
+    const c1x = midX + nx * curveStrength * bendDir * 0.6 + (Math.random() - 0.5) * 4
+    const c1y = midY + ny * curveStrength * bendDir * 0.6 + (Math.random() - 0.5) * 4
+    const c2x = midX + nx * curveStrength * bendDir * 1.0 + (Math.random() - 0.5) * 4
+    const c2y = midY + ny * curveStrength * bendDir * 1.0 + (Math.random() - 0.5) * 4
+    return {
+      id,
+      d: `M ${sx} ${sy} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${ex} ${ey}`,
+      duration: 5.5 + Math.random() * 3,
+      delay: Math.random() * 0.4,
+      strokeWidth: 0.2 + Math.random() * 0.1,
+      opacity: 0.18 + Math.random() * 0.25,
+      hue: 200 + Math.random() * 18,
+      dash: Math.random() < 0.5 ? `${6 + Math.random() * 8} ${10 + Math.random() * 14}` : undefined
+    }
+  }
+
+  useEffect(() => {
+    setCurves(Array.from({ length: 22 }, (_, i) => generateCurve(i)))
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurves(prev => {
+        if (!prev.length) return prev
+        const idx = Math.floor(Math.random() * prev.length)
+        const next = [...prev]
+        next[idx] = generateCurve(Date.now())
+        return next
+      })
+    }, 850)
+    return () => clearInterval(interval)
+  }, [])
+
+  const prefersReduced = typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
+  return (
+    <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+      {curves.map(c => (
+        <motion.path
+          key={c.id}
+          d={c.d}
+          fill="none"
+          stroke={`hsl(${c.hue} 100% 40%)`}
+          strokeWidth={c.strokeWidth}
+          strokeLinecap="round"
+            strokeLinejoin="round"
+          strokeDasharray={c.dash}
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: prefersReduced ? c.opacity : [0, c.opacity, 0] }}
+          transition={{
+            duration: c.duration,
+            delay: c.delay,
+            ease: "easeInOut",
+            repeat: Infinity,
+            repeatDelay: 0.8 + Math.random() * 1.4
+          }}
+          style={{ mixBlendMode: "plus-lighter", filter: "blur(0.1px)" }}
+        />
+      ))}
+    </svg>
+  )
+}
 
 const PrivacyPage = () => {
   const sections = [
@@ -53,109 +144,55 @@ const PrivacyPage = () => {
       
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24">
-        {/* Elegant background elements */}
+        {/* Replaced previous fireflies + blobs with unified grid + animated lines */}
         <div className="absolute inset-0">
-          {[...Array(10)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                y: [0, -20, 0],
-                x: [0, Math.random() * 15 - 7.5, 0],
-                scale: [1, 1.1, 1],
-                opacity: [0.3, 0.6, 0.3],
-              }}
-              transition={{
-                duration: 6 + Math.random() * 4,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: i * 0.5,
-              }}
-            >
-              <div className={`w-${Math.floor(Math.random() * 3) + 2} h-${Math.floor(Math.random() * 3) + 2} bg-primary-200/40 rounded-full blur-sm`} />
-            </motion.div>
-          ))}
-        </div>
+          <div className="absolute inset-0 z-20 pointer-events-none">
+            <AnimatedLines />
+          </div>
 
-        {/* Fireflies Animation */}
-        <div className="absolute inset-0">
-          {/* Fireflies */}
-          {[...Array(20)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 bg-primary-500 rounded-full shadow-lg"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                boxShadow: `0 0 6px #456882, 0 0 12px #456882, 0 0 18px #456882`,
-              }}
-              animate={{
-                x: [
-                  0,
-                  Math.random() * 200 - 100,
-                  Math.random() * 150 - 75,
-                  Math.random() * 100 - 50,
-                  0
-                ],
-                y: [
-                  0,
-                  Math.random() * 150 - 75,
-                  Math.random() * 200 - 100,
-                  Math.random() * 100 - 50,
-                  0
-                ],
-                scale: [0, 1, 0.8, 1.2, 0.6, 1, 0],
-                opacity: [0, 0.8, 0.3, 1, 0.4, 0.9, 0],
-              }}
-              transition={{
-                duration: 8 + Math.random() * 6,
-                repeat: Infinity,
-                ease: "easeInOut", 
-                delay: Math.random() * 5,
-                repeatDelay: Math.random() * 3,
-              }}
-            />
-          ))}
-          
-          {/* Additional smaller fireflies */}
-          {[...Array(15)].map((_, i) => (
-            <motion.div
-              key={`small-${i}`}
-              className="absolute w-0.5 h-0.5 bg-primary-400 rounded-full"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                boxShadow: `0 0 4px #456882, 0 0 8px #456882`,
-              }}
-              animate={{
-                x: [
-                  0,
-                  Math.random() * 100 - 50,
-                  Math.random() * 80 - 40,
-                  0
-                ],
-                y: [
-                  0,
-                  Math.random() * 100 - 50,
-                  Math.random() * 120 - 60,
-                  0
-                ],
-                opacity: [0, 0.6, 0.2, 0.8, 0],
-                scale: [0, 0.8, 1.2, 0.6, 0],
-              }}
-              transition={{
-                duration: 6 + Math.random() * 4,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: Math.random() * 4,
-                repeatDelay: Math.random() * 2,
-              }}
-            />
-          ))}
+          <svg className="absolute inset-0 w-full h-full z-10" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid-pattern" width="10" height="10" patternUnits="userSpaceOnUse">
+                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#90a1ae" strokeWidth="0.3" opacity="0.15" />
+              </pattern>
+              <pattern id="grid-pattern-bold" width="45" height="45" patternUnits="userSpaceOnUse">
+                <path d="M 150 0 L 0 0 0 150" fill="none" stroke="#90a1ae" strokeWidth="0.7" opacity="0.25" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid-pattern)" />
+            <rect width="100%" height="100%" fill="url(#grid-pattern-bold)" />
+          </svg>
+
+          {[...Array(4)].map((_, i) => {
+            const posX = Math.random() * 90 + 5
+            const posY = Math.random() * 90 + 5
+            return (
+              <motion.div
+                key={`pulse-${i}`}
+                className="absolute rounded-full bg-primary-400/30"
+                style={{
+                  width: 14 + Math.random() * 14,
+                  height: 14 + Math.random() * 14,
+                  left: `${posX}%`,
+                  top: `${posY}%`,
+                  filter: "blur(6px)"
+                }}
+                animate={{ scale: [1, 1.6, 1], opacity: [0.12, 0.45, 0.12] }}
+                transition={{ duration: 6 + Math.random() * 4, repeat: Infinity, ease: "easeInOut" }}
+              />
+            )
+          })}
+
+          <motion.div
+            className="absolute w-32 h-32 rounded-full bg-gradient-radial from-primary-400/10 to-transparent pointer-events-none z-30"
+            animate={{ x: [0, 100, -100, 0], y: [0, -100, 100, 0], scale: [1, 1.1, 0.9, 1] }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            style={{
+              filter: 'blur(20px)',
+              boxShadow: '0 0 40px rgba(69, 104, 130, 0.5)',
+              mixBlendMode: 'lighten'
+            }}
+          />
         </div>
 
         {/* Hero Content */}

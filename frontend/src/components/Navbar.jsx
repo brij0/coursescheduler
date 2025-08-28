@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { User, Menu, X, LogOut, ChevronDown, MoreHorizontal, GraduationCap } from 'lucide-react'
+import { User, Menu, X, LogOut, ChevronDown, MoreHorizontal } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 const Navbar = () => {
@@ -52,7 +52,6 @@ const Navbar = () => {
   }, [])
 
   const handleAuthNavigation = () => {
-    // Pass current location as redirect parameter
     const currentPath = location.pathname
     const searchParams = location.search
     const fullPath = currentPath + searchParams
@@ -85,11 +84,10 @@ const Navbar = () => {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        {/* Enhanced Glass Effect Container */}
-        <div className="bg-white/30 backdrop-blur-lg border border-white/40 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.2)] px-8 py-4 relative">
-          {/* Internal refraction effect */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent opacity-70 pointer-events-none"></div>
-          <div className="absolute -inset-[1px] bg-gradient-to-br from-white/50 to-white/5 pointer-events-none rounded-full"></div>
+        {/* Enhanced Glass Effect Container - FIXED OVERFLOW */}
+        <div className="bg-white/40 backdrop-blur-xl rounded-full border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.15)] px-8 py-4 relative">
+          {/* Enhanced internal reflections for better contrast */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/50 via-white/30 to-white/20 pointer-events-none rounded-full"></div>
           
           {/* Content */}
           <div className="relative z-10 flex justify-between items-center">
@@ -114,41 +112,41 @@ const Navbar = () => {
               </div>
             </Link>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-4">
+            {/* Desktop Navigation - IMPROVED CONTRAST */}
+            <div className="hidden md:flex items-center space-x-5">
               {mainNavItems.map((item) => (
                 <Link
                   key={item.name}
                   to={item.path}
-                  className={`relative px-5 py-2.5 text-sm font-medium transition-all duration-200 rounded-full ${
+                  className={`relative px-5 py-2.5 text-[16px] font-medium transition-all duration-200 rounded-full ${
                     (Array.isArray(item.basePath) 
                       ? item.basePath.some(path => location.pathname.startsWith(path))
                       : location.pathname.startsWith(item.basePath))
-                      ? 'text-white bg-primary-500 shadow-lg'
-                      : 'text-neutral-700 hover:text-primary-600 hover:bg-white/30'
+                      ? 'text-white bg-primary-600 shadow-lg shadow-primary-500/20'
+                      : 'text-neutral-900 hover:text-primary-600 hover:bg-white/40'
                   }`}
                 >
                   {item.name}
                 </Link>
               ))}
               
-              {/* More Menu */}
+              {/* More Menu - FIXED Z-INDEX */}
               <div className="relative" ref={moreMenuRef}>
                 <motion.button
                   onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
-                  className={`flex items-center space-x-1 px-5 py-2.5 text-sm font-medium transition-all duration-200 rounded-full ${
+                  className={`flex items-center space-x-2 px-5 py-2.5 text-[16px] font-medium transition-all duration-200 rounded-full ${
                     moreNavItems.some(item => location.pathname === item.path)
-                      ? 'text-white bg-primary-500 shadow-lg'
-                      : 'text-neutral-700 hover:text-primary-600 hover:bg-white/30'
+                      ? 'text-white bg-primary-600 shadow-lg shadow-primary-500/20'
+                      : 'text-neutral-900 hover:text-primary-600 hover:bg-white/40'
                   }`}
                   whileHover={{ scale: 1.02 }}
                 >
-                  <MoreHorizontal size={16} />
+                  <MoreHorizontal size={17} />
                   <span>More</span>
-                  <ChevronDown size={14} className={`transition-transform duration-200 ${isMoreMenuOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={15} className={`transition-transform duration-200 ${isMoreMenuOpen ? 'rotate-180' : ''}`} />
                 </motion.button>
 
-                {/* More Dropdown Menu */}
+                {/* More Dropdown Menu - IMPROVED Z-INDEX */}
                 <AnimatePresence>
                   {isMoreMenuOpen && (
                     <motion.div
@@ -156,16 +154,17 @@ const Navbar = () => {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-40 bg-white/95 backdrop-blur-md border border-white/50 rounded-xl shadow-2xl py-2 z-50"
+                      className="absolute right-0 mt-3 w-44 bg-white/60 backdrop-blur-xl border border-white/60 rounded-xl shadow-2xl py-2 z-[100] overflow-hidden"
                     >
+                      <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/30 to-white/20 pointer-events-none"></div>
                       {moreNavItems.map((item) => (
                         <Link
                           key={item.name}
                           to={item.path}
-                          className={`block px-4 py-2 text-sm font-medium transition-colors ${
+                          className={`block relative z-10 px-5 py-3 text-[15px] font-medium transition-colors ${
                             location.pathname === item.path
-                              ? 'text-primary-600 bg-primary-50'
-                              : 'text-neutral-700 hover:text-primary-600 hover:bg-white/50'
+                              ? 'text-primary-600 bg-white/50'
+                              : 'text-neutral-900 hover:text-primary-600 hover:bg-white/50'
                           }`}
                           onClick={() => setIsMoreMenuOpen(false)}
                         >
@@ -178,7 +177,7 @@ const Navbar = () => {
               </div>
             </div>
 
-            {/* User Authentication Section */}
+            {/* User Authentication Section - FIXED Z-INDEX */}
             <div className="hidden md:flex">
               {isLoading ? (
                 <div className="w-8 h-8 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
@@ -187,16 +186,16 @@ const Navbar = () => {
                 <div className="relative" ref={userMenuRef}>
                   <motion.button
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className="flex items-center space-x-2 bg-primary-500 text-white px-4 py-2 rounded-full font-medium hover:bg-primary-600 transition-all duration-300 shadow-lg"
+                    className="flex items-center space-x-2 bg-primary-600 text-white px-5 py-2.5 rounded-full font-medium hover:bg-primary-700 transition-all duration-300 shadow-lg shadow-primary-500/20"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <User size={16} />
-                    <span>{user.username}</span>
-                    <ChevronDown size={14} className={`transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+                    <User size={18} />
+                    <span className="text-[15px]">{user.username}</span>
+                    <ChevronDown size={15} className={`transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                   </motion.button>
 
-                  {/* User Dropdown Menu */}
+                  {/* User Dropdown Menu - IMPROVED Z-INDEX */}
                   <AnimatePresence>
                     {isUserMenuOpen && (
                       <motion.div
@@ -204,19 +203,20 @@ const Navbar = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute right-0 mt-2 w-48 bg-white/95 backdrop-blur-md border border-white/50 rounded-xl shadow-2xl py-2 z-50"
+                        className="absolute right-0 mt-3 w-56 bg-white/60 backdrop-blur-xl border border-white/60 rounded-xl shadow-2xl py-2 z-[100] overflow-hidden"
                       >
-                        <div className="px-4 py-2 border-b border-neutral-200/50">
-                          <p className="text-sm font-medium text-neutral-800">{user.username}</p>
-                          <p className="text-xs text-neutral-600">{user.email}</p>
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/30 to-white/20 pointer-events-none"></div>
+                        <div className="px-5 py-3 border-b border-neutral-200/40 relative z-10">
+                          <p className="text-[15px] font-medium text-neutral-800">{user.username}</p>
+                          <p className="text-sm text-neutral-600">{user.email}</p>
                         </div>
                         
                         <motion.button
                           onClick={handleLogout}
-                          className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50/50 transition-colors"
+                          className="w-full flex items-center space-x-2 px-5 py-3 text-[15px] text-red-600 hover:bg-red-50/70 transition-colors relative z-10"
                           whileHover={{ x: 4 }}
                         >
-                          <LogOut size={16} />
+                          <LogOut size={18} />
                           <span>Logout</span>
                         </motion.button>
                       </motion.div>
@@ -226,13 +226,13 @@ const Navbar = () => {
               ) : (
                 // Not logged in - Show login button
                 <motion.button
-                  className="flex items-center space-x-2 bg-primary-500 text-white px-4 py-2 rounded-full font-medium hover:bg-primary-600 transition-all duration-300 shadow-lg"
+                  className="flex items-center space-x-2 bg-primary-600 text-white px-5 py-2.5 rounded-full font-medium hover:bg-primary-700 transition-all duration-300 shadow-lg shadow-primary-500/20"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleAuthNavigation}
                 >
-                  <User size={16} />
-                  <span>Login</span>
+                  <User size={18} />
+                  <span className="text-[15px]">Login</span>
                 </motion.button>
               )}
             </div>
@@ -241,40 +241,41 @@ const Navbar = () => {
             <div className="md:hidden">
               <motion.button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 rounded-full text-neutral-700 hover:bg-white/30 transition-colors"
+                className="p-2.5 rounded-full text-neutral-900 hover:bg-white/30 transition-colors"
                 whileTap={{ scale: 0.95 }}
               >
-                {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
               </motion.button>
             </div>
           </div>
         </div>
       </motion.nav>
       
-      {/* Mobile Navigation - Fixed positioning */}
+      {/* Mobile Navigation - IMPROVED Z-INDEX */}
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
-            className="fixed top-24 left-4 right-4 md:hidden z-50"
+            className="fixed top-24 left-4 right-4 md:hidden z-[60]"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="bg-white/95 backdrop-blur-lg border border-white/40 rounded-2xl shadow-lg ">
-              <div className="max-h-[70vh] overflow-y-auto py-4">
-                <div className="flex flex-col space-y-2 px-4">
+            <div className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-lg overflow-hidden border border-white/60">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/30 to-white/20 pointer-events-none"></div>
+              <div className="max-h-[70vh] overflow-y-auto py-4 relative z-10">
+                <div className="flex flex-col space-y-3 px-4">
                   {/* Main navigation items */}
                   {mainNavItems.map((item) => (
                     <Link
                       key={item.name}
                       to={item.path}
-                      className={`px-4 py-3 text-sm font-medium rounded-full transition-all duration-200 ${
+                      className={`px-5 py-3 text-[16px] font-medium rounded-full transition-all duration-200 ${
                         (Array.isArray(item.basePath) 
                           ? item.basePath.some(path => location.pathname.startsWith(path))
                           : location.pathname.startsWith(item.basePath))
-                          ? 'text-white bg-primary-500 shadow-lg'
-                          : 'text-neutral-700 hover:text-primary-600 hover:bg-white/30'
+                          ? 'text-white bg-primary-600 shadow-lg shadow-primary-500/20'
+                          : 'text-neutral-900 hover:text-primary-600 hover:bg-white/40'
                       }`}
                     >
                       {item.name}
@@ -286,10 +287,10 @@ const Navbar = () => {
                     <Link
                       key={item.name}
                       to={item.path}
-                      className={`px-4 py-3 text-sm font-medium rounded-full transition-all duration-200 ${
+                      className={`px-5 py-3 text-[16px] font-medium rounded-full transition-all duration-200 ${
                         location.pathname === item.path
-                          ? 'text-white bg-primary-500 shadow-lg'
-                          : 'text-neutral-700 hover:text-primary-600 hover:bg-white/30'
+                          ? 'text-white bg-primary-600 shadow-lg shadow-primary-500/20'
+                          : 'text-neutral-900 hover:text-primary-600 hover:bg-white/40'
                       }`}
                     >
                       {item.name}
@@ -297,40 +298,40 @@ const Navbar = () => {
                   ))}
                   
                   {/* Mobile Auth Section */}
-                  <div className="pt-4 border-t border-neutral-200/60 mt-2">
+                  <div className="pt-4 border-t border-neutral-200/40 mt-2">
                     {isLoading ? (
                       <div className="flex justify-center py-2">
                         <div className="w-6 h-6 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
                       </div>
                     ) : user ? (
                       <div>
-                        <div className="px-4 py-2 text-sm">
+                        <div className="px-5 py-3 text-[15px]">
                           <p className="font-medium text-neutral-800">{user.username}</p>
-                          <p className="text-xs text-neutral-600">{user.email}</p>
+                          <p className="text-sm text-neutral-600">{user.email}</p>
                         </div>
                         <motion.button
                           onClick={() => {
                             handleLogout()
                             setIsMenuOpen(false)
                           }}
-                          className="w-full flex items-center justify-center space-x-2 bg-red-500 text-white px-4 py-3 rounded-full font-medium mt-2 shadow-lg"
+                          className="w-full flex items-center justify-center space-x-2 bg-red-500 text-white px-5 py-3 rounded-full font-medium mt-2 shadow-lg"
                           whileTap={{ scale: 0.95 }}
                         >
-                          <LogOut size={16} />
-                          <span>Logout</span>
+                          <LogOut size={18} />
+                          <span className="text-[15px]">Logout</span>
                         </motion.button>
                       </div>
                     ) : (
                       <motion.button
-                        className="w-full flex items-center justify-center space-x-2 bg-primary-500 text-white px-4 py-3 rounded-full font-medium shadow-lg"
+                        className="w-full flex items-center justify-center space-x-2 bg-primary-600 text-white px-5 py-3 rounded-full font-medium shadow-lg"
                         whileTap={{ scale: 0.95 }}
                         onClick={() => {
                           handleAuthNavigation()
                           setIsMenuOpen(false)
                         }}
                       >
-                        <User size={16} />
-                        <span>Login</span>
+                        <User size={18} />
+                        <span className="text-[15px]">Login</span>
                       </motion.button>
                     )}
                   </div>

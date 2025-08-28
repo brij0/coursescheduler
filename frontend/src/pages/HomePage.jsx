@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
   GraduationCap,
@@ -16,9 +16,115 @@ import {
   CheckCircle,
   MessageCircle,
 } from "lucide-react";
-import { useHref, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import Navbar from "../components/Navbar";
+
+// Reused AnimatedLines (mirrors AboutPage)
+const AnimatedLines = () => {
+  const [curves, setCurves] = useState([]);
+
+  const generateCurve = (id) => {
+    const edge = ["top", "right", "bottom", "left"][Math.floor(Math.random() * 4)];
+    let sx, sy;
+    switch (edge) {
+      case "top":
+        sx = Math.random() * 100; sy = -5; break;
+      case "bottom":
+        sx = Math.random() * 100; sy = 105; break;
+      case "left":
+        sx = -5; sy = Math.random() * 100; break;
+      case "right":
+        sx = 105; sy = Math.random() * 100; break;
+      default:
+        sx = -5; sy = -5;
+    }
+    const endRadius = 18 + Math.random() * 22;
+    const theta = Math.random() * Math.PI * 2;
+    const ex = Math.min(100, Math.max(0, sx + Math.cos(theta) * endRadius));
+    const ey = Math.min(100, Math.max(0, sy + Math.sin(theta) * endRadius));
+    const midX = (sx + ex) / 2;
+    const midY = (sy + ey) / 2;
+    const dx = ex - sx;
+    const dy = ey - sy;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+    const curveStrength = Math.min(12, len * 0.6) * (Math.random() * 0.6 + 0.4);
+    const bendDir = Math.random() < 0.5 ? 1 : -1;
+    const c1x = midX + nx * curveStrength * bendDir * 0.6 + (Math.random() - 0.5) * 4;
+    const c1y = midY + ny * curveStrength * bendDir * 0.6 + (Math.random() - 0.5) * 4;
+    const c2x = midX + nx * curveStrength * bendDir * 1.0 + (Math.random() - 0.5) * 4;
+    const c2y = midY + ny * curveStrength * bendDir * 1.0 + (Math.random() - 0.5) * 4;
+    const duration = 5.5 + Math.random() * 3;
+    const delay = Math.random() * 0.4;
+
+    return {
+      id,
+      d: `M ${sx} ${sy} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${ex} ${ey}`,
+      duration,
+      delay,
+      strokeWidth: 0.2 + Math.random() * 0.1,
+      opacity: 0.18 + Math.random() * 0.25,
+      hue: 200 + Math.random() * 18,
+      dash: Math.random() < 0.5
+        ? `${6 + Math.random() * 8} ${10 + Math.random() * 14}`
+        : undefined
+    };
+  };
+
+  useEffect(() => {
+    setCurves(Array.from({ length: 22 }, (_, i) => generateCurve(i)));
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurves(prev => {
+        if (!prev.length) return prev;
+        const idx = Math.floor(Math.random() * prev.length);
+        const next = [...prev];
+        next[idx] = generateCurve(Date.now());
+        return next;
+      });
+    }, 850);
+    return () => clearInterval(interval);
+  }, []);
+
+  const prefersReduced =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  return (
+    <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+      {curves.map(c => (
+        <motion.path
+          key={c.id}
+          d={c.d}
+          fill="none"
+          stroke={`hsl(${c.hue} 100% 40%)`}
+          strokeWidth={c.strokeWidth}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray={c.dash}
+          initial={{ pathLength: 0, opacity: 0 }}
+            animate={{
+              pathLength: 1,
+              opacity: prefersReduced ? c.opacity : [0, c.opacity, 0]
+            }}
+            transition={{
+              duration: c.duration,
+              delay: c.delay,
+              ease: "easeInOut",
+              repeat: Infinity,
+              repeatDelay: 0.8 + Math.random() * 1.4
+            }}
+            style={{ mixBlendMode: "plus-lighter", filter: "blur(0.1px)" }}
+        />
+      ))}
+    </svg>
+  );
+};
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -57,7 +163,7 @@ const HomePage = () => {
     );
   };
 
-  // Enhanced AnimatedHighlight that works with TypewriterText
+  // Highlight animation
   const AnimatedHighlight = ({ children, delay = 0 }) => {
     return (
       <span className="relative inline-block">
@@ -82,6 +188,7 @@ const HomePage = () => {
       </span>
     );
   };
+
   const features = [
     {
       icon: <Calculator className="w-8 h-8" />,
@@ -109,145 +216,6 @@ const HomePage = () => {
     },
   ];
 
-  const funFacts = [
-    { icon: <Coffee />, text: "Powered by 47% coffee, 53% determination" },
-    { icon: <Brain />, text: "Built by students who've been there, done that" },
-    {
-      icon: <Star />,
-      text: "Tested by procrastinators, approved by perfectionists",
-    },
-  ];
-
-  // NEW: Animated randomized hero background lines
-  const AnimatedLines = () => {
-    const [curves, setCurves] = useState([]);
-
-    const generateCurve = (id) => {
-      // Pick a spawn edge
-      const edge = ["top", "right", "bottom", "left"][Math.floor(Math.random() * 4)];
-
-      // Start point (sx, sy)
-      let sx, sy;
-      switch (edge) {
-        case "top":
-          sx = Math.random() * 100;
-          sy = -5;
-          break;
-        case "bottom":
-          sx = Math.random() * 100;
-          sy = 105;
-          break;
-        case "left":
-          sx = -5;
-          sy = Math.random() * 100;
-          break;
-        case "right":
-          sx = 105;
-          sy = Math.random() * 100;
-          break;
-        default:
-          sx = -5; sy = -5;
-      }
-
-      // End point biased toward interior (shorter than before)
-      const endRadius = 18 + Math.random() * 22; // max travel ~40 (smaller than old straight lines)
-      const theta = Math.random() * Math.PI * 2;
-      const ex = Math.min(100, Math.max(0, sx + Math.cos(theta) * endRadius));
-      const ey = Math.min(100, Math.max(0, sy + Math.sin(theta) * endRadius));
-
-      // Control points to create smooth gentle S‑like curves
-      const midX = (sx + ex) / 2;
-      const midY = (sy + ey) / 2;
-      // Perpendicular offset for curvature
-      const dx = ex - sx;
-      const dy = ey - sy;
-      const len = Math.sqrt(dx * dx + dy * dy) || 1;
-      const nx = (-dy / len);
-      const ny = (dx / len);
-      const curveStrength = (Math.min(12, len * 0.6)) * (Math.random() * 0.6 + 0.4);
-      const bendDir = Math.random() < 0.5 ? 1 : -1;
-
-      // Two control points around midpoint (slight variance)
-      const c1x = midX + nx * curveStrength * bendDir * 0.6 + (Math.random() - 0.5) * 4;
-      const c1y = midY + ny * curveStrength * bendDir * 0.6 + (Math.random() - 0.5) * 4;
-      const c2x = midX + nx * curveStrength * bendDir * 1.0 + (Math.random() - 0.5) * 4;
-      const c2y = midY + ny * curveStrength * bendDir * 1.0 + (Math.random() - 0.5) * 4;
-
-      const duration = 5.5 + Math.random() * 3; // a bit quicker
-      const delay = Math.random() * 0.4;
-
-      return {
-        id,
-        d: `M ${sx} ${sy} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${ex} ${ey}`,
-        duration,
-        delay,
-        strokeWidth: 0.2 + Math.random() * 0.1,
-        opacity: 0.18 + Math.random() * 0.25,
-        hue: 200 + Math.random() * 18,
-        dash: Math.random() < 0.5
-          ? `${6 + Math.random() * 8} ${10 + Math.random() * 14}`
-          : undefined
-      };
-    };
-
-    useEffect(() => {
-      setCurves(Array.from({ length: 22 }, (_, i) => generateCurve(i)));
-    }, []);
-
-    // Recycle one curve at a time
-    useEffect(() => {
-      const interval = setInterval(() => {
-        setCurves(prev => {
-          if (!prev.length) return prev;
-          const idx = Math.floor(Math.random() * prev.length);
-            const next = [...prev];
-            next[idx] = generateCurve(Date.now());
-            return next;
-        });
-      }, 850);
-      return () => clearInterval(interval);
-    }, []);
-
-    // Respect reduced motion
-    const prefersReduced = typeof window !== "undefined" &&
-      window.matchMedia &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    return (
-      <svg
-        className="absolute inset-0 w-full h-full"
-        preserveAspectRatio="none"
-        viewBox="0 0 100 100"
-      >
-        {curves.map(c => (
-          <motion.path
-            key={c.id}
-            d={c.d}
-            fill="none"
-            stroke={`hsl(${c.hue} 100% 40%)`}
-            strokeWidth={c.strokeWidth}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray={c.dash}
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{
-              pathLength: 1,
-              opacity: prefersReduced ? c.opacity : [0, c.opacity, 0]
-            }}
-            transition={{
-              duration: c.duration,
-              delay: c.delay,
-              ease: "easeInOut",
-              repeat: Infinity,
-              repeatDelay: 0.8 + Math.random() * 1.4
-            }}
-            style={{ mixBlendMode: "plus-lighter", filter: "blur(0.1px)" }}
-          />
-        ))}
-      </svg>
-    );
-  };
-
   return (
     <div ref={containerRef} className="min-h-screen">
       <Helmet>
@@ -255,8 +223,6 @@ const HomePage = () => {
         <meta name="description" content="Schedule university courses conflict-free, calculate GPA, and access co-op resources. Built by University of Guelph students for students." />
         <meta name="keywords" content="university course scheduler, GPA calculator, UGuelph, ugflow, academic planning, course conflicts" />
         <link rel="canonical" href="https://ugflow.com/" />
-        
-        {/* Open Graph tags */}
         <meta property="og:title" content="ugflow | Student Academic Tools" />
         <meta property="og:description" content="Schedule university courses conflict-free, calculate GPA, and access co-op resources." />
         <meta property="og:url" content="https://ugflow.com/" />
@@ -265,15 +231,16 @@ const HomePage = () => {
       
       <Navbar />
 
-      {/* Hero Section */}
-      <motion.section
-        className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24"
-        style={{ y, opacity }}
-      >
-        {/* Enhanced Dynamic Grid Animation */}
+      {/* Hero Section (updated) */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24">
         <div className="absolute inset-0">
-          {/* Grid Base (unchanged) */}
-          <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          {/* Animated lines layer */}
+          <div className="absolute inset-0 z-20 pointer-events-none">
+            <AnimatedLines />
+          </div>
+
+          {/* Grid Base */}
+          <svg className="absolute inset-0 w-full h-full z-10" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="grid-pattern" width="10" height="10" patternUnits="userSpaceOnUse">
                 <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#90a1ae" strokeWidth="0.3" opacity="0.15" />
@@ -286,10 +253,7 @@ const HomePage = () => {
             <rect x="0" y="0" width="100%" height="100%" fill="url(#grid-pattern-bold)" />
           </svg>
 
-          {/* NEW randomized animated lines */}
-          <AnimatedLines />
-
-          {/* Reduced pulse points to complement new lines */}
+          {/* Pulse points */}
           {[...Array(4)].map((_, i) => {
             const posX = Math.random() * 90 + 5;
             const posY = Math.random() * 90 + 5;
@@ -310,29 +274,24 @@ const HomePage = () => {
             );
           })}
 
-          {/* Ambient orb (kept) */}
-          <motion.div
-            className="absolute w-32 h-32 rounded-full bg-gradient-radial from-primary-400/10 to-transparent pointer-events-none"
-            animate={{
-              x: [0, 100, -100, 0],
-              y: [0, -100, 100, 0],
-              scale: [1, 1.1, 0.9, 1],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-            style={{ 
-              filter: 'blur(20px)',
-              boxShadow: '0 0 40px rgba(69, 104, 130, 0.5)',
-              mixBlendMode: 'lighten',
-            }}
-          />
+          {/* Ambient orb */}
+            <motion.div
+              className="absolute w-32 h-32 rounded-full bg-gradient-radial from-primary-400/10 to-transparent pointer-events-none z-30"
+              animate={{ x: [0, 100, -100, 0], y: [0, -100, 100, 0], scale: [1, 1.1, 0.9, 1] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              style={{
+                filter: 'blur(20px)',
+                boxShadow: '0 0 40px rgba(69, 104, 130, 0.5)',
+                mixBlendMode: 'lighten',
+              }}
+            />
         </div>
 
-        {/* Hero Content - Existing hero content remains the same */}
-        <div className="relative z-20 text-center px-4 max-w-6xl mx-auto">
+        {/* Hero Content (parallax only on content) */}
+        <motion.div
+          className="relative z-20 text-center px-4 max-w-6xl mx-auto"
+          style={{ y, opacity }}
+        >
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -404,21 +363,14 @@ const HomePage = () => {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
               >
-                {/* White background */}
                 <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-primary-500 rounded-full" />
-                
-                {/* Subtle glow effect */}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-primary-400/40 to-primary-600/40 blur-md rounded-full" />
-                
-                {/* Button shine effect */}
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-100/50 to-transparent -skew-x-12"
                   initial={{ x: "-100%" }}
                   whileHover={{ x: "200%" }}
                   transition={{ duration: 0.8, ease: "easeOut" }}
                 />
-                
-                {/* Content with blue text */}
                 <span className="relative z-10 flex items-center justify-center text-white">
                   <Sparkles className="w-4 h-4 mr-2.5" />
                   <span className="tracking-wide">Try it Now</span>
@@ -427,7 +379,7 @@ const HomePage = () => {
                     animate={{ x: [0, 4, 0] }}
                     transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
                   >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M3.33334 8H12.6667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       <path d="M8 3.33337L12.6667 8.00004L8 12.6667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
@@ -436,7 +388,7 @@ const HomePage = () => {
               </motion.button>
             </motion.div>
           </motion.div>
-        </div>
+        </motion.div>
 
         {/* Scroll Indicator */}
         <motion.div
@@ -446,7 +398,7 @@ const HomePage = () => {
         >
           <ChevronDown className="w-8 h-8 text-neutral-400" />
         </motion.div>
-      </motion.section>
+      </section>
 
       {/* Features Section */}
       <section className="py-20 px-4 bg-white">
@@ -499,7 +451,6 @@ const HomePage = () => {
                   {feature.description}
                 </p>
 
-                {/* Hover effect overlay */}
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-accent-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                   initial={false}
@@ -509,6 +460,7 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+
       <section className="py-20 px-4 bg-gradient-to-br from-white via-primary-50/30 to-white">
         <div className="max-w-4xl mx-auto">
           <motion.div
@@ -525,7 +477,6 @@ const HomePage = () => {
           </motion.div>
 
           <div className="relative">
-            {/* Timeline line */}
             <div className="absolute left-8 md:left-1/2 transform md:-translate-x-px top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary-200 via-primary-400 to-primary-200"></div>
 
             {[
@@ -600,7 +551,6 @@ const HomePage = () => {
                 impact: " Making student life easier, one feature at a time",
               },
             ].map((item, index) => {
-              // Icon component mapping
               const iconMap = {
                 AlertTriangle,
                 BookOpen,
@@ -623,10 +573,8 @@ const HomePage = () => {
                   transition={{ duration: 0.6, delay: index * 0.1 }}
                   viewport={{ once: true }}
                 >
-                  {/* Timeline marker */}
                   <div className="absolute left-8 md:left-1/2 transform -translate-x-1/2 mt-2 w-4 h-4 bg-white rounded-full border-4 border-primary-400 z-10"></div>
 
-                  {/* Content */}
                   <div
                     className={`ml-16 md:ml-0 md:w-5/12 ${
                       index % 2 === 0 ? "" : "md:text-right"
@@ -680,51 +628,6 @@ const HomePage = () => {
           </div>
         </div>
       </section>
-      {/* Fun Facts Section */}
-      <section className="py-20 px-4 bg-primary-50">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.h2
-            className="text-3xl md:text-4xl font-display font-bold mb-12 text-neutral-800"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-          >
-            The Real Talk
-          </motion.h2>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {funFacts.map((fact, index) => (
-              <motion.div
-                key={index}
-                className="flex flex-col items-center p-6 elegant-card rounded-xl"
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: index * 0.2 }}
-                viewport={{ once: true }}
-                whileHover={{
-                  scale: 1.05,
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
-                }}
-              >
-                <motion.div
-                  className="text-primary-600 mb-4"
-                  whileHover={{
-                    scale: 1.2,
-                    rotate: [0, -10, 10, 0],
-                  }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {React.cloneElement(fact.icon, { size: 48 })}
-                </motion.div>
-                <p className="text-neutral-700 font-medium text-center">
-                  {fact.text}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* CTA Section */}
       <section className="py-20 px-4 bg-primary-500">
@@ -748,30 +651,23 @@ const HomePage = () => {
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >
-              {/* White background */}
               <div className="absolute inset-0 bg-white rounded-full" />
-              
-              {/* Subtle glow effect */}
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/60 blur-md rounded-full" />
-              
-              {/* Button shine effect */}
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-100/50 to-transparent -skew-x-12"
                 initial={{ x: "-100%" }}
                 whileHover={{ x: "200%" }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
               />
-              
-              {/* Content with blue text */}
               <span className="relative z-10 flex items-center justify-center text-primary-500">
                 <GraduationCap className="w-5 h-5 mr-2.5" />
-                <span className="tracking-wide">I need ts. NOW!</span>
+                <span className="tracking-wide">I need this. NOW!</span>
                 <motion.div
                   className="ml-2.5 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                   animate={{ x: [0, 4, 0] }}
                   transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M3.33334 8H12.6667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M8 3.33337L12.6667 8.00004L8 12.6667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
@@ -781,9 +677,6 @@ const HomePage = () => {
           </motion.div>
         </div>
       </section>
-      
-      {/* Footer would go here */}
-      
     </div>
   );
 };
