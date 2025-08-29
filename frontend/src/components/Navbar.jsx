@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, delay } from 'framer-motion'
 import { User, Menu, X, LogOut, ChevronDown, MoreHorizontal } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -87,14 +87,14 @@ const Navbar = () => {
       >
         {/* Enhanced Glass Effect Container - Dynamic Island style for mobile */}
         <motion.div
-          className="bg-white/40 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.15)] relative md:px-8 md:py-4 px-4 py-2"
+          className="bg-white/40 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.15)] relative md:px-8 md:py-4 px-4 py-2 overflow-hidden"
           initial={{ borderRadius: 9999 }}
           animate={{ 
             borderRadius: isMenuOpen ? 24 : 9999,
           }}
           transition={{ 
             duration: 0.0, 
-            ease: "[0.19, 1.0, 0.22, 1.0]"  // Smooth ease-out animation
+            ease: [0.19, 1.0, 0.22, 1.0]  // Using array format, not string
           }}
         >
           {/* Enhanced internal reflections for better contrast */}
@@ -105,7 +105,7 @@ const Navbar = () => {
               borderRadius: isMenuOpen ? 24 : 9999,
             }}
             transition={{ 
-              duration: 0.4, 
+              duration: 0.0, 
               ease: [0.19, 1.0, 0.22, 1.0] 
             }}
           ></motion.div>
@@ -280,9 +280,9 @@ const Navbar = () => {
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ 
-                    duration: 0.3,
-                    opacity: { duration: 0.2, delay: 0.1 },
-                    height: { duration: 0.3 } 
+                    duration: 0.0,
+                    opacity: { duration: 0.20 },
+                    height: { duration: 0.30 }
                   }}
                   className="md:hidden mt-4 overflow-hidden"
                 >
