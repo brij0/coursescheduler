@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import LoadingScreen from './components/LoadingScreen'
 import Footer from './components/Footer' // Import the Footer component
@@ -46,8 +46,9 @@ function App() {
               <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
               <Route path="/gpa-calculator" element={<GPACalculatorPage />} />
               <Route path="/coop-forum" element={<CoopForumPage />} />
-              <Route path="/schedule" element={<EventBuilderPage/>} />
+              <Route path="/scheduler" element={<Navigate to="/conflict-free-schedule" replace />} />
               <Route path="/conflict-free-schedule" element={<ConflictFreeSchedulePage />} />
+              <Route path="/schedule" element={<EventBuilderPage />} />
               <Route path="/coop-forum/post/:id" element={<PostPage />} />
               <Route path="/scheduler" element={<SchedulerPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />

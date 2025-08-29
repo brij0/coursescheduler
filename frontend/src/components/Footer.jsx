@@ -71,8 +71,8 @@ const Footer = () => {
                   <h3 className="text-[11px] font-semibold tracking-wide text-neutral-800 uppercase">Product</h3>
                   <ul className="space-y-1">
                     <li><Link to="/gpa-calculator" className={linkBase}>GPA Calculator</Link></li>
-                    <li><Link to="/conflict-free-schedule" className={linkBase}>Schedule Builder</Link></li>
-                    <li><Link to="/schedule" className={linkBase}>Events Export</Link></li>
+                    <li><Link to="/conflict-free-schedule" className={linkBase}>Scheduler</Link></li>
+                    <li><Link to="/schedule" className={linkBase}>Event Exporter</Link></li>
                     <li><Link to="/coop-forum" className={linkBase}>Co-op Forum</Link></li>
                   </ul>
                 </nav>

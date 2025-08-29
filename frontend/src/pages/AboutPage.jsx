@@ -341,7 +341,7 @@ const AboutPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen" style={{ backgroundColor: '#F3F9FF' }}>
       <Navbar />
 
       {/* Hero Section */}

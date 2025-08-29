@@ -66,12 +66,13 @@ const Navbar = () => {
 
   const mainNavItems = [
     { name: 'GPA Calculator', path: '/gpa-calculator', basePath: '/gpa-calculator' },
-    { name: 'Scheduler', path: '/scheduler', basePath: ['/scheduler', '/conflict-free-schedule', '/schedule'] },
+    { name: 'Event Exporter', path: '/schedule', basePath: '/schedule' },
+    { name: 'Scheduler', path: '/conflict-free-schedule', basePath: '/conflict-free-schedule' },
     { name: 'Co-op Forum', path: '/coop-forum', basePath: '/coop-forum' },
-    { name: 'Dashboard', path: '/dashboard', basePath: '/dashboard' },
   ]
 
   const moreNavItems = [
+    { name: 'Dashboard', path: '/dashboard' },
     { name: 'About', path: '/about' },
     { name: 'Privacy', path: '/privacy' },
   ]
@@ -176,17 +177,17 @@ const Navbar = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute right-0 mt-3 w-44 bg-white/60 backdrop-blur-xl border border-white/60 rounded-xl shadow-2xl py-2 z-[100] overflow-hidden"
+                        className="absolute right-0 mt-3 w-56 bg-white/90 backdrop-blur-xl border border-white/70 rounded-xl shadow-2xl py-2 z-[100] overflow-hidden"
                       >
-                        <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/30 to-white/20 pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/50 to-white/40 pointer-events-none"></div>
                         {moreNavItems.map((item) => (
                           <Link
                             key={item.name}
                             to={item.path}
                             className={`block relative z-10 px-5 py-3 text-[15px] font-medium transition-colors ${
                               location.pathname === item.path
-                                ? 'text-primary-600 bg-white/50'
-                                : 'text-neutral-900 hover:text-primary-600 hover:bg-white/50'
+                                ? 'text-primary-600 bg-white/80'
+                                : 'text-neutral-900 hover:text-primary-600 hover:bg-white/70'
                             }`}
                             onClick={() => setIsMoreMenuOpen(false)}
                           >
@@ -225,9 +226,9 @@ const Navbar = () => {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -10, scale: 0.95 }}
                           transition={{ duration: 0.2 }}
-                          className="absolute right-0 mt-3 w-56 bg-white/60 backdrop-blur-xl border border-white/60 rounded-xl shadow-2xl py-2 z-[100] overflow-hidden"
+                          className="absolute right-0 mt-3 w-56 bg-white/90 backdrop-blur-xl border border-white/70 rounded-xl shadow-2xl py-2 z-[100] overflow-hidden"
                         >
-                          <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/30 to-white/20 pointer-events-none"></div>
+                          <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/50 to-white/40 pointer-events-none"></div>
                           <div className="px-5 py-3 border-b border-neutral-200/40 relative z-10">
                             <p className="text-[15px] font-medium text-neutral-800">{user.username}</p>
                             <p className="text-sm text-neutral-600">{user.email}</p>

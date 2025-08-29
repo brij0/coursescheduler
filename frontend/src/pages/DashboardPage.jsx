@@ -561,7 +561,7 @@ const Dashboard = () => {
   };
   const popularAppsData = getMostPopularApps(metrics.api_performance);
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
+    <div className="min-h-screen" style={{ backgroundColor: '#F3F9FF' }}>
       <Navbar />
       <div className="max-w-7xl mx-auto p-6 pt-28 space-y-8">
         {/* Header */}

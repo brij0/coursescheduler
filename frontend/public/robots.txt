@@ -1,3 +1,14 @@
 User-agent: *
 Allow: /
+
+# Explicitly allow Google and its specialized crawlers
+User-agent: Googlebot
+Allow: /
+Allow: /images/favicon/
+
+User-agent: Googlebot-Image
+Allow: /
+Allow: /images/
+
+# Sitemap
 Sitemap: https://ugflow.com/sitemap.xml
