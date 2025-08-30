@@ -20,6 +20,45 @@ import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import Navbar from "../components/Navbar";
 
+// Add this hook to detect mobile devices
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Check on initial load
+    checkMobile();
+    
+    // Add event listener for resize
+    window.addEventListener('resize', checkMobile);
+    
+    // Clean up
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  return isMobile;
+};
+
+// Detect reduced motion preference
+const usePrefersReducedMotion = () => {
+  const [prefersReduced, setPrefersReduced] = useState(false);
+  
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReduced(mediaQuery.matches);
+    
+    const handleChange = () => setPrefersReduced(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+  
+  return prefersReduced;
+};
+
 // Reused AnimatedLines (mirrors AboutPage)
 const AnimatedLines = () => {
   const [curves, setCurves] = useState([]);
@@ -129,6 +168,12 @@ const AnimatedLines = () => {
 const HomePage = () => {
   const navigate = useNavigate();
   const containerRef = useRef(null);
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  
+  // In GlobalBackground, AnimatedLines, etc., use the prefersReducedMotion value:
+  const simpleAnimations = isMobile || prefersReducedMotion;
+
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
@@ -336,21 +381,19 @@ const HomePage = () => {
 
   // New global background component
   const GlobalBackground = React.memo(() => {
-    const stars = useMemo(
-      () =>
-        Array.from({ length: 70 }).map((_, i) => ({
-          id: i,
-          x: Math.random() * 100,
-          y: Math.random() * 100,
-          size: Math.random() * 1.1 + 0.4,
-          delay: Math.random() * 6,
-          dur: 5 + Math.random() * 6,
-        })),
-      []
-    );
+    // Skip complex background on mobile
+    if (isMobile) {
+      return (
+        <div className="fixed inset-0 -z-10 overflow-hidden bg-[#f7fafc]">
+          <div className="absolute -top-40 -left-32 w-[60vw] h-[60vw] rounded-full bg-[radial-gradient(circle_at_center,rgba(70,120,150,0.12),transparent_70%)]" />
+          <div className="absolute bottom-[-25%] left-1/2 -translate-x-1/2 w-[70vw] h-[70vw] rounded-full bg-[radial-gradient(circle_at_center,rgba(80,130,160,0.08),transparent_70%)]" />
+        </div>
+      );
+    }
+    
+    // Full version for desktop
     return (
       <div className="fixed inset-0 -z-10 overflow-hidden bg-[#f7fafc]">
-        {/* (unchanged large gradients / rings / aurora) */}
         <div className="absolute -top-40 -left-32 w-[60vw] h-[60vw] rounded-full bg-[radial-gradient(circle_at_center,rgba(70,120,150,0.18),transparent_70%)] blur-2xl" />
         <div className="absolute top-[30%] -right-48 w-[55vw] h-[55vw] rounded-full bg-[radial-gradient(circle_at_center,rgba(120,170,200,0.20),transparent_70%)] blur-2xl" />
         <div className="absolute bottom-[-25%] left-1/2 -translate-x-1/2 w-[70vw] h-[70vw] rounded-full bg-[radial-gradient(circle_at_center,rgba(80,130,160,0.12),transparent_70%)] blur-3xl" />
@@ -361,29 +404,12 @@ const HomePage = () => {
               "linear-gradient(105deg,rgba(90,140,170,0.12),rgba(160,200,220,0.06) 40%,rgba(90,140,170,0.15) 60%,rgba(180,220,235,0.08))",
             mixBlendMode: "plus-lighter",
             mask: "linear-gradient(to bottom,transparent,black 15%,black 85%,transparent)",
+            willChange: "transform",
+            contain: "paint",
           }}
           animate={{ backgroundPosition: ["0% 0%", "120% 100%", "0% 0%"] }}
           transition={{ duration: 70, repeat: Infinity, ease: "linear" }}
         />
-        <div className="absolute inset-0">
-          {stars.map(s => (
-            <motion.span
-              key={s.id}
-              className="absolute rounded-full bg-primary-500"
-              style={{
-                left: `${s.x}%`,
-                top: `${s.y}%`,
-                width: s.size,
-                height: s.size,
-                opacity: 0.18,
-                boxShadow: "0 0 4px 1px rgba(69,104,130,0.35)",
-                willChange: "opacity, transform",
-              }}
-              animate={{ opacity: [0.15, 0.6, 0.15], scale: [1, 1.5, 1] }}
-              transition={{ duration: s.dur, repeat: Infinity, delay: s.delay, ease: "easeInOut" }}
-            />
-          ))}
-        </div>
         <div
           className="absolute inset-0 opacity-[0.05]"
           style={{
@@ -400,35 +426,45 @@ const HomePage = () => {
     const segment = 1 / total;
     const start = index * segment;
     const end = (index + 1) * segment;
-    const smoothProgress = useSpring(scrollYProgress, {
-      stiffness: 110,
-      damping: 25,
-      mass: 0.25,
-    });
-    const segmentProgress = useTransform(smoothProgress, [start, end], [0, 1], { clamp: true });
+    
+    // Even more simplified config for mobile
+    const springConfig = isMobile 
+      ? { stiffness: 50, damping: 30, mass: 0.2 } // Much lighter spring for mobile
+      : { stiffness: 110, damping: 25, mass: 0.25 };
+    
+    // Use a regular transform on mobile without springs for better performance
+    const segmentProgress = isMobile 
+      ? useTransform(scrollYProgress, [start, end], [0, 1], { clamp: true })
+      : useTransform(useSpring(scrollYProgress, springConfig), [start, end], [0, 1], { clamp: true });
 
     const iconMap = { AlertTriangle, BookOpen, Calendar, Zap, Users, MessageCircle, CheckCircle };
     const IconComponent = iconMap[event.icon];
 
-    const extendedFadePoint = Math.min(1, end + segment * 0.3);
+    // Even simpler animations for mobile
+    let opacity, scale, y, rotate;
 
-    const opacity = index === 0
-      ? useTransform(
-          smoothProgress,
-          [0, segment * 0.05, end, extendedFadePoint],
-          [1, 1, 1, 0]
-        )
-      : useTransform(segmentProgress, [0, 0.15, 0.55, 0.85, 1], [0, 1, 1, 0.6, 0]);
-
-    const scale = index === 0
-      ? useTransform(smoothProgress, [0, end, extendedFadePoint], [1, 1, 0.96])
-      : useTransform(segmentProgress, [0, 0.15, 0.5, 1], [0.9, 1, 1, 0.95]);
-
-    const y = index === 0
-      ? useTransform(smoothProgress, [0, end, extendedFadePoint], [0, 0, -40])
-      : useTransform(segmentProgress, [0, 0.2, 0.5, 1], [60, 0, 0, -50]);
-
-    const rotate = useTransform(segmentProgress, [0, 0.5, 1], [2.5, 0, -2]);
+    if (isMobile) {
+      // Use simpler transforms without springs for mobile
+      opacity = useTransform(
+        segmentProgress,
+        [0, 0.2, 0.8, 1],
+        [0, 1, 1, 0]
+      );
+      
+      // On mobile, only do minimal Y translation, no scaling or rotation
+      scale = 1; // No scale animation on mobile
+      y = useTransform(segmentProgress, [0, 0.5, 1], [20, 0, -20]);
+      rotate = 0; // No rotation on mobile
+    } else {
+      // Keep existing desktop animations
+      const extendedFadePoint = Math.min(1, end + segment * 0.3);
+      opacity = index === 0
+        ? useTransform(scrollYProgress, [0, segment * 0.05, end, extendedFadePoint], [1, 1, 1, 0])
+        : useTransform(segmentProgress, [0, 0.15, 0.55, 0.85, 1], [0, 1, 1, 0.6, 0]);
+      scale = useTransform(segmentProgress, [0, 0.15, 0.5, 1], [0.9, 1, 1, 0.95]);
+      y = useTransform(segmentProgress, [0, 0.2, 0.5, 1], [60, 0, 0, -50]);
+      rotate = useTransform(segmentProgress, [0, 0.5, 1], [2.5, 0, -2]);
+    }
 
     return (
       <motion.div
@@ -438,105 +474,67 @@ const HomePage = () => {
           y,
           rotate,
           pointerEvents: "none",
-          willChange: "transform, opacity",
-          transformStyle: "preserve-3d",
+          willChange: isMobile ? "opacity, transform" : "transform, opacity", 
+          transformStyle: isMobile ? "flat" : "preserve-3d", // Use flat transform on mobile
+          contain: "layout paint size",
         }}
         className="absolute inset-0 flex items-center justify-center"
+        // Use CSS transition for smoother performance on mobile
+        transition={isMobile ? { duration: 0.1 } : undefined}
       >
-        <div className="relative w-full max-w-[48rem] px-6 sm:px-0 pointer-events-auto will-change-transform">
+        <div className={`relative w-full ${isMobile ? 'max-w-[85%]' : 'max-w-[48rem]'} px-3 sm:px-0 pointer-events-auto`}>
           <div className="relative group">
-            {/* Outer subtle glass ring */}
-            <div className="absolute -inset-[3px] rounded-[30px] bg-gradient-to-br from-primary-400/25 via-white/40 to-primary-100/10 opacity-70 group-hover:opacity-100 transition-opacity duration-400" />
-            {/* Inner hairline frame */}
-            <div className="relative rounded-[28px] p-[1.5px] bg-gradient-to-br from-white/70 via-primary-100/30 to-primary-300/10">
-              {/* Card core */}
-              <div className="relative rounded-[26px] bg-white/82 backdrop-blur-xl p-10 shadow-[0_6px_34px_-10px_rgba(60,100,130,0.22)] overflow-hidden">
-                {/* Left accent rail (animated focus) */}
-                <motion.div
-                  className="absolute top-8 bottom-8 left-0 w-[6px] rounded-r-full bg-gradient-to-b from-primary-400 via-primary-500 to-primary-300"
-                  style={{
-                    opacity: useTransform(segmentProgress, [0, 0.25, 0.9, 1], [0.12, 0.6, 0.45, 0]),
-                    filter: "brightness(1.05)",
-                  }}
-                />
+            {/* Card content */}
+            <div className={`relative rounded-[28px] p-[1.5px] bg-gradient-to-br ${
+              isMobile ? 'from-white/60 via-primary-100/20 to-transparent' : 'from-white/70 via-primary-100/30 to-primary-300/10'
+            }`}>
+              {/* Even more simplified card for mobile */}
+              <div className={`relative rounded-[26px] ${
+                isMobile ? 'bg-white/90' : 'bg-white/82 backdrop-blur-xl'
+              } ${isMobile ? 'p-4' : 'p-10'} shadow-[0_6px_34px_-10px_rgba(60,100,130,0.22)] overflow-hidden`}>
                 
-                {/* Subtle pattern + noise overlay */}
-                <div
-                  className="absolute inset-0 pointer-events-none opacity-[0.18] mix-blend-overlay"
-                  style={{
-                    backgroundImage:
-                      "repeating-linear-gradient(135deg,rgba(90,115,135,0.35) 0 1px,transparent 1px 26px),repeating-linear-gradient(45deg,rgba(90,115,135,0.22) 0 1px,transparent 1px 34px)",
-                    mask: "linear-gradient(to bottom,transparent,black 10%,black 90%,transparent)",
-                  }}
-                />
-                <div
-                  className="absolute inset-0 pointer-events-none opacity-[0.07] mix-blend-overlay"
-                  style={{
-                    backgroundImage:
-                      "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='110' height='110'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/></filter><rect width='110' height='110' filter='url(%23n)' opacity='0.55'/></svg>\")",
-                  }}
-                />
-
-                {/* Hover shimmer (very light) */}
-                <div className="absolute inset-0 rounded-[24px] overflow-hidden pointer-events-none">
-                  <div className="absolute inset-0 before:content-[''] before:absolute before:inset-0 before:bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.55),transparent)] before:translate-x-[-120%] group-hover:before:animate-[shine_1.4s_ease] @keyframes shine{0%{transform:translateX(-120%)}100%{transform:translateX(120%)}}" />
-                </div>
-
-                {/* Year & Icon Row */}
-                <div className="flex items-start mb-8">
-                  <motion.div
-                    className={`w-20 h-20 rounded-3xl flex-shrink-0 flex items-center justify-center mr-7 shadow-inner ${event.bgColor} relative`}
-                    whileHover={{ scale: 1.05, rotate: 3 }}
-                    transition={{ type: "spring", stiffness: 240, damping: 18 }}
-                    style={{ willChange: "transform" }}
+                {/* Year & Icon Row - further simplified for mobile */}
+                <div className={`flex items-start ${isMobile ? 'mb-3' : 'mb-8'}`}>
+                  {/* Static non-animated icon on mobile */}
+                  <div
+                    className={`${isMobile ? 'w-12 h-12' : 'w-20 h-20'} rounded-3xl flex-shrink-0 flex items-center justify-center ${isMobile ? 'mr-3' : 'mr-7'} ${event.bgColor} relative`}
                   >
-                    <IconComponent className={`w-10 h-10 ${event.color}`} />
-                    <div className="absolute inset-0 rounded-3xl bg-white/15 mix-blend-overlay" />
-                  </motion.div>
+                    <IconComponent className={`${isMobile ? 'w-6 h-6' : 'w-10 h-10'} ${event.color}`} />
+                  </div>
 
                   <div className="flex-1">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <span className="px-3.5 py-1.5 rounded-full text-[12px] font-semibold tracking-wide bg-white/85 border border-primary-200/70 text-neutral-700 shadow-sm">
+                      <span className="px-3 py-1 rounded-full text-[12px] font-semibold tracking-wide bg-white/85 border border-primary-200/70 text-neutral-700 shadow-sm">
                         {event.year}
                       </span>
-                      {event.impact && (
-                        <span className="px-3.5 py-1.5 rounded-full text-[12px] font-medium bg-gradient-to-r from-primary-500/15 to-primary-400/10 text-primary-700 border border-primary-300/40">
-                          {event.impact}
-                        </span>
-                      )}
                     </div>
-                    <h3 className="mt-4 text-[2.15rem] leading-tight font-display font-bold text-neutral-800 relative">
+                    <h3 className={`${isMobile ? 'mt-2 text-lg' : 'mt-4 text-[2.15rem]'} leading-tight font-display font-bold text-neutral-800 relative`}>
                       {event.title || `Chapter ${index + 1}`}
-                      <span className="block mt-3 h-[3.5px] w-16 rounded-full bg-gradient-to-r from-primary-500 via-primary-400 to-primary-300" />
+                      <span className={`block ${isMobile ? 'mt-1.5 h-[2px] w-10' : 'mt-3 h-[3.5px] w-16'} rounded-full bg-gradient-to-r from-primary-500 to-primary-300`} />
                     </h3>
                   </div>
                 </div>
 
-                {/* Description */}
-                <p className="text-[1.12rem] text-neutral-700 leading-relaxed mb-10">
-                  {event.description}
+                {/* Description - even shorter on mobile */}
+                <p className={`${isMobile ? 'text-sm' : 'text-[1.12rem]'} text-neutral-700 leading-relaxed ${isMobile ? 'mb-4' : 'mb-10'}`}>
+                  {isMobile && event.description.length > 100
+                    ? `${event.description.substring(0, 100)}...`
+                    : event.description}
                 </p>
 
-                {/* Progress dots (slightly larger) */}
-                <div className="mt-6 flex items-center justify-center gap-2.5">
+                {/* Simpler indicator dots for mobile */}
+                <div className={`mt-3 flex items-center justify-center ${isMobile ? 'gap-1' : 'gap-2.5'}`}>
                   {Array.from({ length: total }).map((_, i) => (
-                    <motion.span
+                    <span
                       key={i}
-                      className={`h-3 w-3 rounded-full ${
+                      className={`${isMobile ? 'h-1.5 w-1.5' : 'h-3 w-3'} rounded-full ${
                         i === index
-                          ? "bg-primary-500 shadow-[0_0_0_5px_rgba(69,104,130,0.18)]"
+                          ? "bg-primary-500"
                           : "bg-neutral-300/70"
                       }`}
-                      initial={false}
-                      animate={i === index ? { scale: 1.35 } : { scale: 1 }}
-                      transition={{ type: "spring", stiffness: 250, damping: 18 }}
-                      style={{ willChange: "transform" }}
                     />
                   ))}
                 </div>
-
-                {/* Bottom fade (subtle) */}
-                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white/85 via-white/40 to-transparent pointer-events-none" />
               </div>
             </div>
           </div>
@@ -545,10 +543,17 @@ const HomePage = () => {
     );
   };
 
-  // Pinned timeline container
+  // Update TimelinePinned for better mobile scrolling
   const TimelinePinned = () => {
     const pinRef = useRef(null);
-    const startOffset = "start 75%";
+    
+    // Smaller pinned section on mobile but still enough to display all cards
+    const sectionHeight = isMobile ? 
+      `${timelineEvents.length * 70}vh` : // Taller on mobile to ensure all cards are viewable
+      `${timelineEvents.length * 100}vh`; 
+    
+    // Adjust scroll trigger for better mobile performance
+    const startOffset = isMobile ? "start 90%" : "start 75%";
     const { scrollYProgress } = useScroll({
       target: pinRef,
       offset: [startOffset, "end end"],
@@ -557,14 +562,24 @@ const HomePage = () => {
     return (
       <div
         ref={pinRef}
-        style={{ height: `${timelineEvents.length * 100}vh` }}
+        style={{ height: sectionHeight }}
         className="relative"
       >
-        <div className="sticky top-24 h-[calc(100vh-6rem)] [contain:layout_paint_size] will-change-transform">
-          <TimelineSceneBackground />
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-px h-[70%] bg-gradient-to-b from-transparent via-primary-400/65 to-transparent drop-shadow-[0_0_5px_rgba(69,104,130,0.4)]" />
-          </div>
+        <div className="sticky top-24 h-[calc(100vh-6rem)] overflow-hidden">
+          {!isMobile && <TimelineSceneBackground />}
+          
+          {/* Simpler timeline line on mobile */}
+          {isMobile ? (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-[1px] h-[60%] bg-primary-400/40" />
+            </div>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-px h-[70%] bg-gradient-to-b from-transparent via-primary-400/65 to-transparent drop-shadow-[0_0_5px_rgba(69,104,130,0.4)]" />
+            </div>
+          )}
+          
+          {/* Show ALL timeline cards, not just the first 3 */}
           {timelineEvents.map((evt, i) => (
             <TimelineCard
               key={i}
@@ -574,6 +589,13 @@ const HomePage = () => {
               scrollYProgress={scrollYProgress}
             />
           ))}
+          
+          {/* Add instruction for mobile */}
+          {isMobile && (
+            <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-white/80 rounded-full text-sm text-neutral-600 shadow-sm border border-primary-100">
+              Scroll to see more.
+            </div>
+          )}
         </div>
       </div>
     );
@@ -616,39 +638,6 @@ const HomePage = () => {
             <rect x="0" y="0" width="100%" height="100%" fill="url(#grid-pattern)" />
             <rect x="0" y="0" width="100%" height="100%" fill="url(#grid-pattern-bold)" />
           </svg>
-
-          {/* Pulse points */}
-          {[...Array(4)].map((_, i) => {
-            const posX = Math.random() * 90 + 5;
-            const posY = Math.random() * 90 + 5;
-            return (
-              <motion.div
-                key={`pulse-${i}`}
-                className="absolute rounded-full bg-primary-400/30"
-                style={{
-                  width: 14 + Math.random() * 14,
-                  height: 14 + Math.random() * 14,
-                  left: `${posX}%`,
-                  top: `${posY}%`,
-                  filter: "blur(6px)"
-                }}
-                animate={{ scale: [1, 1.6, 1], opacity: [0.12, 0.45, 0.12] }}
-                transition={{ duration: 6 + Math.random() * 4, repeat: Infinity, ease: "easeInOut" }}
-              />
-            );
-          })}
-
-          {/* Ambient orb */}
-            <motion.div
-              className="absolute w-32 h-32 rounded-full bg-gradient-radial from-primary-400/10 to-transparent pointer-events-none z-30"
-              animate={{ x: [0, 100, -100, 0], y: [0, -100, 100, 0], scale: [1, 1.1, 0.9, 1] }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              style={{
-                filter: 'blur(20px)',
-                boxShadow: '0 0 40px rgba(69, 104, 130, 0.5)',
-                mixBlendMode: 'lighten',
-              }}
-            />
         </div>
 
         {/* Hero Content (parallax only on content) */}

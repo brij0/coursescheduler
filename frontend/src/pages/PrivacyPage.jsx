@@ -162,37 +162,6 @@ const PrivacyPage = () => {
             <rect width="100%" height="100%" fill="url(#grid-pattern)" />
             <rect width="100%" height="100%" fill="url(#grid-pattern-bold)" />
           </svg>
-
-          {[...Array(4)].map((_, i) => {
-            const posX = Math.random() * 90 + 5
-            const posY = Math.random() * 90 + 5
-            return (
-              <motion.div
-                key={`pulse-${i}`}
-                className="absolute rounded-full bg-primary-400/30"
-                style={{
-                  width: 14 + Math.random() * 14,
-                  height: 14 + Math.random() * 14,
-                  left: `${posX}%`,
-                  top: `${posY}%`,
-                  filter: "blur(6px)"
-                }}
-                animate={{ scale: [1, 1.6, 1], opacity: [0.12, 0.45, 0.12] }}
-                transition={{ duration: 6 + Math.random() * 4, repeat: Infinity, ease: "easeInOut" }}
-              />
-            )
-          })}
-
-          <motion.div
-            className="absolute w-32 h-32 rounded-full bg-gradient-radial from-primary-400/10 to-transparent pointer-events-none z-30"
-            animate={{ x: [0, 100, -100, 0], y: [0, -100, 100, 0], scale: [1, 1.1, 0.9, 1] }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            style={{
-              filter: 'blur(20px)',
-              boxShadow: '0 0 40px rgba(69, 104, 130, 0.5)',
-              mixBlendMode: 'lighten'
-            }}
-          />
         </div>
 
         {/* Hero Content */}

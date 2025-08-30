@@ -87,7 +87,7 @@ const Navbar = () => {
       >
         {/* Enhanced Glass Effect Container - Dynamic Island style for mobile */}
         <motion.div
-          className="bg-white/40 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.15)] relative md:px-8 md:py-4 px-4 py-2 overflow-hidden"
+          className="bg-white/40 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.15)] relative md:px-8 md:py-4 px-4 py-2"
           initial={{ borderRadius: 9999 }}
           animate={{ 
             borderRadius: isMenuOpen ? 24 : 9999,
@@ -226,7 +226,7 @@ const Navbar = () => {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -10, scale: 0.95 }}
                           transition={{ duration: 0.2 }}
-                          className="absolute right-0 mt-3 w-56 bg-white/90 backdrop-blur-xl border border-white/70 rounded-xl shadow-2xl py-2 z-[100] overflow-hidden"
+                          className="absolute right-0 mt-3 w-56 bg-white/90 backdrop-blur-xl border border-white/70 rounded-xl shadow-2xl py-2 z-[100]"
                         >
                           <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/50 to-white/40 pointer-events-none"></div>
                           <div className="px-5 py-3 border-b border-neutral-200/40 relative z-10">
