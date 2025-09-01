@@ -66,7 +66,7 @@ const Navbar = () => {
 
   const mainNavItems = [
     { name: 'GPA Calculator', path: '/gpa-calculator', basePath: '/gpa-calculator' },
-    { name: 'Event Exporter', path: '/schedule', basePath: '/schedule' },
+    { name: 'Assignment Calendar', path: '/schedule', basePath: '/schedule' },
     { name: 'Scheduler', path: '/conflict-free-schedule', basePath: '/conflict-free-schedule' },
     { name: 'Co-op Forum', path: '/coop-forum', basePath: '/coop-forum' },
   ]

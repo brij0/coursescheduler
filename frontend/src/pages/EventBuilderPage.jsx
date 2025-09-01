@@ -470,7 +470,7 @@ const EventBuilderPage = () => {
                 <Calendar className="w-6 h-6 text-white" />
               </div>
               <h1 className="text-4xl font-bold" style={{ color: '#456882' }}>
-                Course Events Builder
+                Course Assignment Calendar
               </h1>
             </div>
 
@@ -493,7 +493,7 @@ const EventBuilderPage = () => {
                 className="text-2xl font-bold"
                 style={{ color: '#456882' }}
               >
-                How to Use Events Builder
+                How to Use Assignment Calendar
               </h2>
             </div>
 

@@ -110,7 +110,6 @@ const PrivacyPage = () => {
       icon: <Database className="w-6 h-6" />,
       title: "How We Use Your Data",
       content: [
-        "Provide personalized course scheduling recommendations",
         "Calculate and track your GPA progress",
         "Improve our services based on usage patterns",
         "Send important updates about your account (if registered)"
@@ -122,7 +121,6 @@ const PrivacyPage = () => {
       content: [
         "All data is encrypted in transit and at rest",
         "We use industry-standard security practices",
-        "Regular security audits and updates",
         "Limited access to personal data by our team"
       ]
     },
@@ -132,7 +130,6 @@ const PrivacyPage = () => {
       content: [
         "We never sell your personal information",
         "No sharing with third parties for marketing",
-        "Anonymous usage statistics may be shared for research",
         "Legal compliance only when required by law"
       ]
     }
@@ -300,7 +297,7 @@ const PrivacyPage = () => {
             </motion.div>
           </div>
 
-          {/* Google Services Notice */}
+          {/* Google Services Notice
           <motion.div
             className="mt-16 bg-primary-50 border border-primary-200 rounded-2xl p-8"
             initial={{ opacity: 0, y: 30 }}
@@ -318,7 +315,7 @@ const PrivacyPage = () => {
             <p className="text-sm text-primary-600">
               This integration is optional and can be disconnected at any time through your Google account settings.
             </p>
-          </motion.div>
+          </motion.div> */}
 
           {/* Contact Section */}
           <motion.div
@@ -333,15 +330,15 @@ const PrivacyPage = () => {
               Questions About Privacy?
             </h3>
             <p className="text-neutral-600 mb-6 leading-relaxed">
-              We're real people, not a faceless corporation. If you have any questions about how we 
+              If you have any questions about how we 
               handle your data, just reach out. We promise to give you a straight answer.
             </p>
             <motion.a
-              href="mailto:privacy@ugflow.com"
+              href="mailto:uofgflow@gmail.com"
               className="inline-flex items-center space-x-2 bg-primary-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-600 transition-all duration-300 shadow-lg"
             >
               <Mail size={20} />
-              <span>privacy@ugflow.com</span>
+              <span>uofgflow@gmail.com</span>
             </motion.a>
           </motion.div>
 

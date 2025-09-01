@@ -57,7 +57,7 @@ const SchedulerPage = () => {
               </Link>
             </motion.div>
 
-            {/* Course Event Exporter */}
+            {/* Course Assignment Calendar */}
             <motion.div
               className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 border border-white/30 hover:shadow-xl transition-shadow duration-300"
               initial={{ opacity: 0, y: 30 }}
@@ -71,7 +71,7 @@ const SchedulerPage = () => {
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
                 <h2 className="text-2xl font-bold" style={{ color: '#456882' }}>
-                  Course Event Exporter
+                  Course Assignment Calendar
                 </h2>
               </div>
               <p className="text-neutral-600 mb-6">
@@ -82,7 +82,7 @@ const SchedulerPage = () => {
                 className="inline-block px-6 py-3 rounded-lg font-semibold text-white hover:shadow-lg transition-all duration-300"
                 style={{ backgroundColor: '#456882' }}
               >
-                Go to Event Exporter
+                Go to Assignment Calendar
               </Link>
             </motion.div>
           </div>

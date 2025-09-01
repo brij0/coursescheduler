@@ -244,21 +244,22 @@ const HomePage = () => {
       path: "/gpa-calculator",
     },
     {
-      icon: <GraduationCap className="w-8 h-8" />,
-      title: "Course Scheduler",
-      description:
-        "Find conflict-free schedules in seconds. Keep your Fridays open.",
-      color: "from-primary-500 to-primary-600",
-      path: "/conflict-free-schedule",
-    },
-    {
       icon: <Calendar className="w-8 h-8" />,
-      title: "Event Exporter",
+      title: "Assignment Calendar",
       description:
         "Export your course schedule to your favorite calendar app.",
       color: "from-green-500 to-green-600",
       path: "/schedule",
     },
+    {
+      icon: <GraduationCap className="w-8 h-8" />,
+      title: "Scheduler",
+      description:
+        "Find conflict-free schedules in seconds. Keep your Fridays open.",
+      color: "from-primary-500 to-primary-600",
+      path: "/conflict-free-schedule",
+    },
+
     {
       icon: <Users className="w-8 h-8" />,
       title: "Co-op Forum",

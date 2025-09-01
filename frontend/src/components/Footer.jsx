@@ -72,7 +72,7 @@ const Footer = () => {
                   <ul className="space-y-1">
                     <li><Link to="/gpa-calculator" className={linkBase}>GPA Calculator</Link></li>
                     <li><Link to="/conflict-free-schedule" className={linkBase}>Scheduler</Link></li>
-                    <li><Link to="/schedule" className={linkBase}>Event Exporter</Link></li>
+                    <li><Link to="/schedule" className={linkBase}>Assignment Calendar</Link></li>
                     <li><Link to="/coop-forum" className={linkBase}>Co-op Forum</Link></li>
                   </ul>
                 </nav>
