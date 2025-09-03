@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import LoadingScreen from './components/LoadingScreen'
-import Footer from './components/Footer' // Import the Footer component
+import Footer from './components/Footer'
+import ScrollToTop from './components/ScrollToTop'
 import HomePage from './pages/HomePage'
 import AboutPage from './pages/AboutPage'
 import PrivacyPage from './pages/PrivacyPage'
@@ -37,6 +38,7 @@ function App() {
     <HelmetProvider>
       <AuthProvider>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex flex-col">
+          <ScrollToTop />
           <div className="flex-grow">
             <Routes>
               <Route path="/" element={<HomePage />} />

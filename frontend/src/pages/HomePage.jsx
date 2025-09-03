@@ -777,38 +777,36 @@ const HomePage = () => {
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                className="group relative p-8 rounded-2xl elegant-card cursor-pointer"
+                className="group relative p-8 rounded-2xl elegant-card cursor-pointer overflow-hidden"
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
                 viewport={{ once: true }}
-                whileHover={{ y: -5 }}
+                whileHover={{ y: -8 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => navigate(feature.path)}
               >
-                <motion.div
-                  className="inline-flex p-4 rounded-xl bg-primary-500 text-white mb-6 transition-transform duration-300 shadow-lg"
-                  whileHover={{
-                    scale: 1.1,
-                    rotate: [0, -5, 5, 0],
-                    boxShadow: "0 10px 25px rgba(69,104,130,0.3)",
-                  }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {feature.icon}
-                </motion.div>
+                {/* Instant background color change on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary-50 to-accent-50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-150 ease-out -z-10" />
 
-                <h3 className="text-2xl font-bold mb-4 text-neutral-800 font-display">
+                {/* Elegant bottom border that appears instantly */}
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 to-accent-500 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-200 ease-out" />
+                
+                {/* Shadow transition */}
+                <div className="absolute inset-0 rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow duration-200" />
+
+                {/* Icon with quick elegant animation */}
+                <div className="p-4 rounded-xl bg-primary-500 text-white mb-6 inline-block transform transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg">
+                  {feature.icon}
+                </div>
+
+                <h3 className="text-2xl font-bold mb-4 text-neutral-800 font-display group-hover:text-primary-600 transition-colors duration-150">
                   {feature.title}
                 </h3>
 
                 <p className="text-neutral-600 leading-relaxed">
                   {feature.description}
                 </p>
-
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-accent-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  initial={false}
-                />
               </motion.div>
             ))}
           </div>
