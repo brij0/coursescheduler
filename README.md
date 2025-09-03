@@ -60,25 +60,33 @@ Deliver reliable, fast academic tooling without lock‑in or hidden data practic
 
 ```mermaid
 flowchart LR
+  %% Client Layer
   subgraph Client
-    A[React SPA\nVite + Tailwind] -->|REST| B[Django Views]
-    A -->|Auth (token)| B
-    A -->|Dashboard Fetch| J[Precomputed Metrics JSON]
+    A[React SPA<br/>Vite + Tailwind]
   end
 
-  subgraph Server (Django)
-    B --> C[Domain Logic\nApps: Scheduler Forum GPA Metrics]
-    C --> D[(ORM Models)]
-    C --> E[Celery Tasks]
-    C --> I[Scraping / ETL Scripts]
+  %% Backend Layer
+  subgraph Backend[Django Backend]
+    B[HTTP Views / Endpoints]
+    C[Domain Apps<br/>Scheduler | Forum | GPA | Metrics]
+    D[(Relational DB<br/>MySQL Dev / PostgreSQL Prod)]
+    E[Celery Workers]
+    J[(Precomputed Metrics<br/>Cached Snapshots)]
+    G[(Redis Broker)]
+    I[Scraping / ETL Scripts]
   end
 
-  D --> F[(MySQL Dev / PostgreSQL Ready)]
-  E --> G[(Redis Broker)]
-  E --> J[(PrecomputedMetrics)]
+  %% Edges
+  A -->|REST API| B
+  A -->|Auth Token| B
+  B --> C
+  C --> D
+  C --> E
+  E --> J
+  J -->|Dashboard Data| A
+  E --> G
+  I --> C
   I --> D
-
-  J --> A
 ```
 
 Data flow:
