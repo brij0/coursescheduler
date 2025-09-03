@@ -1,4 +1,4 @@
-# ugflow
+# [ugflow] (https://ugflow.com)
 
 All-in-one academic platform for university students: conflict-free course scheduling, GPA calculation, assignment/event extraction, and a focused co‑op discussion forum.
 
