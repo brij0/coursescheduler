@@ -352,6 +352,29 @@ const api = {
         return response.blob();
     },
 
+    // Assignment Calendar Progress
+    fetchAssignmentCalendarProgress: async () => {
+        const response = await fetch(
+            `${BACKEND_API_URL}/api/gpacalc/assignment_calendar_progress/`, {
+                credentials: "include",
+            }
+        );
+        return response.json();
+    },
+    saveAssignmentCalendarProgress: async (progressData) => {
+        const response = await fetch(
+            `${BACKEND_API_URL}/api/gpacalc/assignment_calendar_progress/`, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCookie("csrftoken"),
+                },
+                body: JSON.stringify(progressData),
+            }
+        );
+        return response.json();
+    },
     // Metrics Endpoint
     fetchMetrics: async () => {
         const response = await fetch(`${BACKEND_API_URL}/api/metrics/`,

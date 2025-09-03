@@ -30,4 +30,5 @@ urlpatterns = [
 
     # User progress endpoint
     path('user_progress/', views.get_user_progress, name='get_user_progress'),
+    path('assignment_calendar_progress/', views.get_assignment_calendar_progress, name='get_assignment_calendar_progress'),
     ]

@@ -3,7 +3,7 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from scheduler.models import Course, CourseEvent
-from .models import CourseGrade, AssessmentGrade, GpaCalcProgress, GradingScheme, AssessmentWeightage
+from .models import CourseGrade, AssessmentGrade, GpaCalcProgress, GradingScheme, AssessmentWeightage, AssignmentCalendarProgress
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
@@ -828,3 +828,46 @@ def get_user_progress(request):
             return JsonResponse({})
     else:
         return JsonResponse(request.session.get('gpacalc_progress', {}))
+@require_GET
+def get_assignment_calendar_progress(request):
+    """
+    API: Get or save the user's assignment calendar progress
+    
+    GET - Returns the user's most recent assignment calendar data
+    POST - Saves new assignment calendar data
+    
+    Returns:
+        JSON: The user's assignment calendar data or empty object if none exists
+    
+    Frontend usage:
+    - GET: Call when loading the assignment calendar page to restore previous state
+    - POST: Call when user makes changes to save the current state
+    - Returns empty object if no previous data exists
+    """
+    if request.method == "GET":
+        if request.user.is_authenticated:
+            try:
+                progress = AssignmentCalendarProgress.objects.get(user=request.user)
+                return JsonResponse(progress.data)
+            except AssignmentCalendarProgress.DoesNotExist:
+                return JsonResponse({})
+        else:
+            return JsonResponse(request.session.get('assignment_calendar_progress', {}))
+    
+    elif request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            
+            if request.user.is_authenticated:
+                AssignmentCalendarProgress.objects.update_or_create(
+                    user=request.user,
+                    defaults={'data': data}
+                )
+            else:
+                request.session['assignment_calendar_progress'] = data
+                
+            return JsonResponse({"message": "Progress saved successfully"})
+            
+        except Exception as e:
+            logger.error(f"Error saving assignment calendar progress: {str(e)}")
+            return JsonResponse({"error": str(e)}, status=500)

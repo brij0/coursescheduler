@@ -201,3 +201,27 @@ class GpaCalcProgress(models.Model):
 
     def __str__(self):
         return f"GPA Progress for {self.user or self.session_key}"
+
+class AssignmentCalendarProgress(models.Model):
+    """
+    Stores a user's progress and results from the Assignment Calendar.
+    
+    This model maintains the state of a user's assignment calendar session,
+    allowing them to return to their previous work.
+    
+    API relevance:
+    - Updated whenever 'generate_calendar' endpoint is called by authenticated users
+    - Retrieved when user visits the index endpoint
+    - Contains serialized calendar data and input selections
+    - Used for restoring a previous session
+    """
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
+    session_key = models.CharField(max_length=40, null=True, blank=True)
+    data = models.JSONField()
+    updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Calendar Progress for {self.user or self.session_key}"
+
+    class Meta:
+        db_table = 'gpacalc_assignmentcalendarprogress'

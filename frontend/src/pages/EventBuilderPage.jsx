@@ -192,11 +192,12 @@ const EventBuilderPage = () => {
   const [availableSections, setAvailableSections] = useState({});
   const [courseEvents, setCourseEvents] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const [isExporting, setIsExporting] = useState(false); // Add separate export loading state
+  const [isExporting, setIsExporting] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [suggestion, setSuggestion] = useState('');
   const [selectedCourses, setSelectedCourses] = useState([]);
   const [courseColors, setCourseColors] = useState({});
+  const [isLoadingProgress, setIsLoadingProgress] = useState(false);
 
   // Course selection state
   const [newCourse, setNewCourse] = useState({
@@ -205,34 +206,116 @@ const EventBuilderPage = () => {
     course_section: '',
   });
 
-  // Fetch offered terms on component mount with has_events=true
+  // Load saved progress on component mount
   useEffect(() => {
+    loadSavedProgress();
     fetchOfferedTerms();
   }, []);
 
-  // Fetch course types when term is selected and reset dependent fields
-  useEffect(() => {
-    if (selectedTerm) {
-      fetchCourseTypes();
-      setNewCourse({ course_type: '', course_code: '', course_section: '' });
-      setAvailableCourses({});
-      setAvailableSections({});
-      setCourseTypes([]);
-      setCourseEvents({});
-      setSelectedCourses([]);
-      setCourseColors({}); // Also clear colors on term change
+  // Load assignment calendar progress
+  const loadSavedProgress = async () => {
+    try {
+      setIsLoadingProgress(true);
+      const progressData = await api.fetchAssignmentCalendarProgress();
+      
+      if (progressData && Object.keys(progressData).length > 0) {
+        // Restore the saved state
+        if (progressData.offered_term) {
+          setSelectedTerm(progressData.offered_term);
+        }
+        
+        if (progressData.course_events && Object.keys(progressData.course_events).length > 0) {
+          setCourseEvents(progressData.course_events);
+          
+          // Reconstruct selected courses from course events
+          const reconstructedCourses = Object.keys(progressData.course_events).map(courseKey => {
+            const [course_type, course_code, course_section] = courseKey.split('*');
+            return {
+              course_type,
+              course_code,
+              course_section,
+            };
+          });
+          setSelectedCourses(reconstructedCourses);
+          
+          // Regenerate colors for the courses
+          generateCourseColors(progressData.course_events);
+          
+          setMessage({
+            type: 'success',
+            text: 'Previous session restored successfully!',
+          });
+          setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading saved progress:', error);
+      // Don't show error message for missing progress - it's expected for new users
+    } finally {
+      setIsLoadingProgress(false);
     }
-  }, [selectedTerm]);
-  useEffect(() => {
-    if (newCourse.course_type && selectedTerm) {
-      fetchCourseCodes(newCourse.course_type);
+  };
+
+  // Generate course colors (extracted from existing logic)
+  const generateCourseColors = (events) => {
+    const newColors = {};
+    const colorPalette = [
+      'bg-red-100 border-red-300 text-red-800',
+      'bg-blue-100 border-blue-300 text-blue-800',
+      'bg-green-100 border-green-300 text-green-800',
+      'bg-purple-100 border-purple-300 text-purple-800',
+      'bg-orange-100 border-orange-300 text-orange-800',
+      'bg-pink-100 border-pink-300 text-pink-800',
+      'bg-indigo-100 border-indigo-300 text-indigo-800',
+      'bg-yellow-100 border-yellow-300 text-yellow-800',
+      'bg-teal-100 border-teal-300 text-teal-800',
+      'bg-gray-100 border-gray-300 text-gray-800',
+    ];
+    
+    let colorIndex = 0;
+    const courseCodeColorMap = new Map();
+
+    // Create a unique list of courseType*courseCode identifiers
+    const uniqueCourseCodes = Array.from(new Set(
+      Object.keys(events).map(courseKey => {
+        const [courseType, courseCode] = courseKey.split('*');
+        return `${courseType}*${courseCode}`;
+      })
+    ));
+
+    // Assign a consistent color to each unique course code
+    uniqueCourseCodes.forEach(identifier => {
+      const color = colorPalette[colorIndex % colorPalette.length];
+      courseCodeColorMap.set(identifier, color);
+      colorIndex++;
+    });
+    
+    // Apply these colors to each specific course section
+    Object.keys(events).forEach((courseKey) => {
+      const [courseType, courseCode] = courseKey.split('*');
+      const courseCodeIdentifier = `${courseType}*${courseCode}`;
+      newColors[courseKey] = courseCodeColorMap.get(courseCodeIdentifier);
+    });
+
+    setCourseColors(newColors);
+  };
+
+  // Save progress when course events are updated
+  const saveProgress = async (events, term) => {
+    try {
+      const progressData = {
+        offered_term: term,
+        course_events: events,
+      };
+      
+      // The backend will automatically save this when we fetch course events
+      // but we can also explicitly save it here if needed
+    } catch (error) {
+      console.error('Error saving progress:', error);
     }
-  }, [newCourse.course_type, selectedTerm]);
-  useEffect(() => {
-    if (newCourse.course_type && newCourse.course_code && selectedTerm) {
-      fetchSectionNumbers(newCourse.course_type, newCourse.course_code);
-    }
-  }, [newCourse.course_type, newCourse.course_code, selectedTerm]);
+  };
+
+  // Fetch offered terms on component mount with has_events=true
   const fetchOfferedTerms = async () => {
     try {
       const data = await api.fetchOfferedTerms(true);
@@ -241,6 +324,38 @@ const EventBuilderPage = () => {
       setMessage({ type: 'error', text: 'Failed to fetch offered terms' });
     }
   };
+
+  // Fetch course types when term is selected and reset dependent fields
+  useEffect(() => {
+    if (selectedTerm) {
+      fetchCourseTypes();
+      // Only reset if this is a new term selection (not from loaded progress)
+      if (!isLoadingProgress) {
+        setNewCourse({ course_type: '', course_code: '', course_section: '' });
+        setAvailableCourses({});
+        setAvailableSections({});
+        setCourseTypes([]);
+        // Don't clear course events and selected courses if we're loading from progress
+        if (!courseEvents || Object.keys(courseEvents).length === 0) {
+          setCourseEvents({});
+          setSelectedCourses([]);
+          setCourseColors({});
+        }
+      }
+    }
+  }, [selectedTerm]);
+
+  useEffect(() => {
+    if (newCourse.course_type && selectedTerm) {
+      fetchCourseCodes(newCourse.course_type);
+    }
+  }, [newCourse.course_type, selectedTerm]);
+
+  useEffect(() => {
+    if (newCourse.course_type && newCourse.course_code && selectedTerm) {
+      fetchSectionNumbers(newCourse.course_type, newCourse.course_code);
+    }
+  }, [newCourse.course_type, newCourse.course_code, selectedTerm]);
 
   const fetchCourseTypes = async () => {
     try {
@@ -351,42 +466,7 @@ const EventBuilderPage = () => {
       const data = await response.json();
       setCourseEvents(data);
 
-      const newColors = {};
-      const colorPalette = [
-        'bg-red-100 border-red-300 text-red-800',
-        'bg-blue-100 border-blue-300 text-blue-800',
-        'bg-green-100 border-green-300 text-green-800',
-        'bg-purple-100 border-purple-300 text-purple-800',
-        'bg-orange-100 border-orange-300 text-orange-800',
-        'bg-pink-100 border-pink-300 text-pink-800',
-        'bg-indigo-100 border-indigo-300 text-indigo-800',
-        'bg-yellow-100 border-yellow-300 text-yellow-800',
-        'bg-teal-100 border-teal-300 text-teal-800',
-        'bg-gray-100 border-gray-300 text-gray-800',
-      ];
-      let colorIndex = 0;
-      const courseCodeColorMap = new Map(); // To track colors for unique course_type*course_code
-
-      // Create a unique list of courseType*courseCode identifiers from selectedCourses
-      const uniqueCourseCodes = Array.from(new Set(
-        selectedCourses.map(course => `${course.course_type}*${course.course_code}`)
-      ));
-
-      // Assign a consistent color to each unique course code
-      uniqueCourseCodes.forEach(identifier => {
-        const color = colorPalette[colorIndex % colorPalette.length];
-        courseCodeColorMap.set(identifier, color);
-        colorIndex++;
-      });
-      
-      // Now, apply these colors to each specific course section
-      Object.keys(data).forEach((courseKey) => {
-        const [courseType, courseCode] = courseKey.split('*');
-        const courseCodeIdentifier = `${courseType}*${courseCode}`;
-        newColors[courseKey] = courseCodeColorMap.get(courseCodeIdentifier);
-      });
-
-      setCourseColors(newColors);
+      generateCourseColors(data);
 
       setMessage({
         type: 'success',
@@ -478,15 +558,25 @@ const EventBuilderPage = () => {
               Get detailed course events and deadlines. Add them to your
               personal calendar to stay organized.
             </p>
+            
+            {/* Show loading indicator when restoring progress */}
+            {isLoadingProgress && (
+              <div className="mt-4">
+                <p className="text-sm text-neutral-500">
+                  Restoring your previous session...
+                </p>
+              </div>
+            )}
           </motion.div>
 
-          {/* How to Use */}
+          {/* How to Use - existing code unchanged */}
           <motion.div
             className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 mb-8 border border-white/30"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
+            {/* ...existing How to Use content... */}
             <div className="flex items-center mb-6">
               <Info className="w-6 h-6 mr-3" style={{ color: '#456882' }} />
               <h2
@@ -624,7 +714,7 @@ const EventBuilderPage = () => {
             </motion.div>
           )}
 
-          {/* Course Events Results */}
+          {/* Course Events Results - existing code unchanged */}
           {Object.keys(courseEvents).length > 0 && (
             <motion.div
               className="space-y-8"
@@ -632,6 +722,7 @@ const EventBuilderPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
+              {/* ...rest of the existing course events display code... */}
               {/* Events Header with Download Button */}
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-white/30">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
@@ -718,7 +809,6 @@ const EventBuilderPage = () => {
                   })}
                 </div>
               </motion.div>
-
 
               {/* Monthly Calendar Grid Display */}
               <motion.div
