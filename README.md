@@ -62,16 +62,16 @@ Deliver reliable, fast academic tooling without lock‑in or hidden data practic
 flowchart LR
   %% Client Layer
   subgraph Client
-    A[React SPA<br/>Vite + Tailwind]
+    A[React SPA\nVite + Tailwind]
   end
 
   %% Backend Layer
   subgraph Backend[Django Backend]
     B[HTTP Views / Endpoints]
-    C[Domain Apps<br/>Scheduler | Forum | GPA | Metrics]
-    D[(Relational DB<br/>MySQL Dev / PostgreSQL Prod)]
+    C[Domain Apps\nScheduler, Forum, GPA, Metrics]
+    D[(Relational DB\nMySQL Dev / PostgreSQL Prod)]
     E[Celery Workers]
-    J[(Precomputed Metrics<br/>Cached Snapshots)]
+    J[(Precomputed Metrics\nCached Snapshots)]
     G[(Redis Broker)]
     I[Scraping / ETL Scripts]
   end
@@ -90,10 +90,9 @@ flowchart LR
 ```
 
 Data flow:
-1. User initiates API request (schedule / forum / GPA)
-2. Django app processes + persists
-3. Celery tasks aggregate usage → PrecomputedMetrics
-4. Frontend dashboard renders cached snapshot
+1. Client invokes REST endpoints (auth, scheduler, forum, GPA, metrics)
+2. Django domain apps handle logic and persistence
+3. Celery workers aggregate + store snapshot
 
 ---
 
