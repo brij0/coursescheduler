@@ -345,7 +345,7 @@ const PrivacyPage = () => {
           {/* Legal Footer */}
           <div className="mt-16 pt-8 border-t border-neutral-200">
             <p className="text-sm text-neutral-500 text-center leading-relaxed">
-              This privacy policy is effective as of January 15, 2025. We may update it occasionally, 
+              This privacy policy is effective as of August 15, 2025. We may update it occasionally, 
               but we'll always notify you of significant changes. By using ugflow, you agree to 
               this privacy policy.
             </p>
