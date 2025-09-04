@@ -23,10 +23,9 @@ const EmailVerificationPage = () => {
         if (response.ok) {
           setStatus('success')
           setMessage(data.message)
-          // Redirect to login after 3 seconds
-          setTimeout(() => {
-            navigate('/auth')
-          }, 3000)
+          // Redirect to the shared verification success page
+          // pass along the message/email if helpful for display
+          navigate('/verify-success', { state: { email: data?.email || '' } })
         } else {
           if (data.error.includes('expired')) {
             setStatus('expired')

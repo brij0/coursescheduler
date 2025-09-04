@@ -97,8 +97,9 @@ const AuthPage = () => {
         const result = await register(formData.username, formData.email, formData.password)
         
         if (result.success) {
-          setUserEmail(formData.email)
-          setNeedsVerification(true)
+          // Go to the shared verification-success page (frontend-only)
+          // this avoids duplicating multiple UI boxes and centralizes the message
+          navigate('/verify-success', { state: { email: formData.email } })
         }
         
         setMessage({ 

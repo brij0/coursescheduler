@@ -18,6 +18,7 @@ import EventBuilderPage from './pages/EventBuilderPage'
 import DashboardPage from './pages/DashboardPage'
 import NotFoundPage from './pages/NotFoundPage'
 import { HelmetProvider } from 'react-helmet-async'
+import VerificationSuccessPage from './pages/VerificationSuccessPage'
 
 function App() {
   // Check if this is the first load in this session
@@ -56,6 +57,7 @@ function App() {
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
+              <Route path="/verify-success" element={<VerificationSuccessPage />} />
               <Route path="/gpa-calculator" element={<GPACalculatorPage />} />
               <Route path="/coop-forum" element={<CoopForumPage />} />
               <Route path="/scheduler" element={<Navigate to="/conflict-free-schedule" replace />} />
