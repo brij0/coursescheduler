@@ -16,24 +16,34 @@ import SchedulerPage from './pages/SchedulerPage'
 import ConflictFreeSchedulePage from './pages/ConflictFreeSchedulePage'
 import EventBuilderPage from './pages/EventBuilderPage'
 import DashboardPage from './pages/DashboardPage'
+import NotFoundPage from './pages/NotFoundPage'
 import { HelmetProvider } from 'react-helmet-async'
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true)
+  // Check if this is the first load in this session
+  const [isLoading, setIsLoading] = useState(() => {
+    // Check if we've already loaded the app in this session
+    const hasLoadedBefore = sessionStorage.getItem('hasLoadedApp')
+    return !hasLoadedBefore
+  })
 
   useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 2500)
+    if (isLoading) {
+      // Only run the timer if we're actually loading
+      const timer = setTimeout(() => {
+        setIsLoading(false)
+        // Mark that we've loaded the app
+        sessionStorage.setItem('hasLoadedApp', 'true')
+      }, 2500)
 
-    return () => clearTimeout(timer)
-  }, [])
+      return () => clearTimeout(timer)
+    }
+  }, [isLoading])
 
   if (isLoading) {
     return <LoadingScreen />
   }
-
+  
   return (
     <HelmetProvider>
       <AuthProvider>
@@ -54,6 +64,7 @@ function App() {
               <Route path="/coop-forum/post/:id" element={<PostPage />} />
               <Route path="/scheduler" element={<SchedulerPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </div>
           <Footer />
