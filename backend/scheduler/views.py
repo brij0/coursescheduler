@@ -86,7 +86,7 @@ def course_events_schedule(request):
     # else:
     #     request.session['assignment_calendar_progress'] = progress_data
     
-    # return JsonResponse(result, safe=False)
+    return JsonResponse(result, safe=False)
 
 # -----------------------------------------
 # API: Generate Conflict-Free Schedules

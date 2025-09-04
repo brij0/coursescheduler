@@ -341,12 +341,7 @@ def process_pdfs_to_event_list(pdf_input, student_details):
 
 if __name__ == "__main__":  
     course_listt = [
-            {"course_type": "ENGG", "course_code": "2400", "course_section": "0104","offered_term":"Fall 2025"},
-            {"course_type": "ENGG", "course_code": "2400", "course_section": "0106","offered_term":"Fall 2025"},
-            {"course_type": "ENGG", "course_code": "2400", "course_section": "0204","offered_term":"Fall 2025"},
-            {"course_type": "ENGG", "course_code": "2400", "course_section": "0206","offered_term":"Fall 2025"},
-            {"course_type": "ENGG", "course_code": "2400", "course_section": "0304","offered_term":"Fall 2025"},
-            {"course_type": "ENGG", "course_code": "2400", "course_section": "0306","offered_term":"Fall 2025"}
+            {"course_type": "ENGG", "course_code": "2400", "course_section": "0104","offered_term":"Fall 2025"}
             ]
     for course in course_listt:
         course_type = course.get("course_type")
